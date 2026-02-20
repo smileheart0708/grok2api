@@ -1,18 +1,15 @@
 # Grok2API（Cloudflare Workers / Pages：D1 + KV）
 
-这个仓库已经新增 **Cloudflare Workers / Pages** 可部署版本（TypeScript）。
+本项目是 **Cloudflare Workers / Pages** 可部署版本（TypeScript）。
 
-> 一键部署前置条件：若使用 GitHub Actions 工作流，请先在仓库 Secrets 配置 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`。  
-> Docker 一键启动入口仍是 `docker compose up -d`，请参考 `readme.md`。
+> 一键部署前置条件：若使用 GitHub Actions 工作流，请先在仓库 Secrets 配置 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`。
 
 ## 功能概览
 
 - **D1（SQLite）**：持久化 Tokens / API Keys / 管理员会话 / 配置 / 日志
 - **KV**：缓存 `/images/*` 的图片/视频资源（从 `assets.grok.com` 代理抓取）
 - **每天 0 点统一清除**：通过 KV `expiration` + Workers Cron 定时清理元数据（`wrangler.toml` 已配置，默认按北京时间 00:00）
-- **前端移动端适配一致生效**：Workers 与 FastAPI/Docker 复用同一套 `/static/*` 资源，包含手机端抽屉导航、表格横向滚动、API Key 居中悬浮新增弹窗等交互
-
-> 原 Python/FastAPI 版本仍保留用于本地/Docker；Cloudflare 部署请按本文件走 Worker 版本。
+- **前端移动端适配一致生效**：Workers 复用 `/static/*` 静态资源，包含手机端抽屉导航、表格横向滚动、API Key 居中悬浮新增弹窗等交互
 
 ---
 
@@ -242,6 +239,14 @@ region = "aws:us-east-1"
 
 如需调整：把 `region` 改成你想要的区域（例如 `aws:us-west-2`）。
 如需关闭：删除 `wrangler.toml` 中的 `[placement]` 段落即可（恢复默认的边缘就近执行）。
+
+---
+
+## 注意事项
+
+1. **自动注册功能**：原 Python 版本的自动注册功能（Turnstile Solver、邮箱 Worker 等）已移至 `local/` 目录，该目录已被 Git 排除。如需使用自动注册，请自行在本地部署 Python 环境并参考 `local/` 中的代码。
+
+2. **Token 来源**：本项目不提供自动注册功能，使用者需自行获取 Grok Token（sso 或 ssoSuper）。
 
 ---
 
