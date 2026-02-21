@@ -1,0 +1,20 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+"rules": {
+  "@typescript-eslint/consistent-type-assertions": [
+    "error",
+    {
+      "assertionStyle": "as",              // 允许使用 as 语法
+      "objectLiteralTypeAssertions": "never" // 但是！严禁在对象字面量上使用它（比如 { a: 1 } as Type）
+    }
+  ],
+    "@typescript-eslint/no-unused-vars": "error",           // 禁止未使用的变量
+    "no-console": "warn"                                    // 生产环境别乱打印，给个警告
+  }
+}
