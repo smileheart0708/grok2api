@@ -1,30 +1,31 @@
 name = "grok2api"
 main = "src/index.ts"
 compatibility_date = "2026-01-28"
+minify = true
 
-# Static assets (admin UI)
+# 静态资源（管理面板）
 assets = { directory = "./app/static", binding = "ASSETS" }
 
-# Hard-pin execution closer to the US to make egress locality more stable.
-# Docs: https://developers.cloudflare.com/workers/platform/placement/
+# 将执行位置固定在美国附近，使出口流量更稳定。
+# 文档: https://developers.cloudflare.com/workers/platform/placement/
 [placement]
 region = "aws:us-east-1"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "grok2api"
-# Filled by CI / your first deployment bootstrap.
+# 由 CI 或首次部署填充。
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
 [[kv_namespaces]]
 binding = "KV_CACHE"
-# Filled by CI / your first deployment bootstrap.
+# 由 CI 或首次部署填充。
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
-# Durable Objects migrations history:
-# - do-v1 created AutoRegisterJob (now removed)
-# - do-v2 deletes it so the Worker can deploy without exporting the class
+# Durable Objects 迁移历史：
+# - do-v1 创建了 AutoRegisterJob（现已移除）
+# - do-v2 删除它，使 Worker 可以在不导出类的情况下部署
 [[migrations]]
 tag = "do-v1"
 new_sqlite_classes = ["AutoRegisterJob"]
@@ -34,22 +35,19 @@ tag = "do-v2"
 deleted_classes = ["AutoRegisterJob"]
 
 [vars]
-# Daily reset at local midnight (default: Asia/Shanghai, UTC+8).
-# Make sure the cron below matches this offset.
+# 每日在本地午夜重置（默认：Asia/Shanghai, UTC+8）。
+# 确保下方的 cron ��间与此偏移量匹配。
 CACHE_RESET_TZ_OFFSET_MINUTES = "480"
 
-# Build info (CI will inject commit SHA into wrangler.ci.toml)
+# 构建信息（CI 会将 commit SHA 注入到 wrangler.ci.toml）
 BUILD_SHA = "dev"
 
-# Workers KV has per-value limits; keep <= 25MB.
+# Workers KV 单值有限制；保持 <= 25MB。
 KV_CACHE_MAX_BYTES = "26214400"
 
-# Batch size for the daily cleanup job (deleting KV keys + D1 rows).
+# 每日清理任务的批处理大小（删除 KV 键和 D1 行）。
 KV_CLEANUP_BATCH = "200"
 
 [triggers]
-# Every day at 00:00 (Asia/Shanghai => 16:00 UTC)
+# 每日 00:00（Asia/Shanghai => 16:00 UTC）
 crons = ["0 16 * * *"]
-
-[build]
-minify = true
