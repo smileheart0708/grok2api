@@ -36,7 +36,7 @@ deleted_classes = ["AutoRegisterJob"]
 
 [vars]
 # 每日在本地午夜重置（默认：Asia/Shanghai, UTC+8）。
-# 确保下方的 cron ��间与此偏移量匹配。
+# 确保下方的 cron 时间与此偏移量匹配。
 CACHE_RESET_TZ_OFFSET_MINUTES = "480"
 
 # 构建信息（CI 会将 commit SHA 注入到 wrangler.ci.toml）
