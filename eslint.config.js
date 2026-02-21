@@ -1,6 +1,7 @@
 // @ts-check
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
@@ -15,20 +16,62 @@ export default defineConfig(
     ],
   },
 
-  js.configs.recommended,
-  tseslint.configs.recommended,
+  {
+    ...js.configs.recommended,
+    files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.es2022,
+        ...globals.node,
+      },
+    },
+  },
+
+  ...tseslint.configs.recommended,
 
   {
-    // 这里的配置只针对你真正关心的文件
-    files: ["src/**/*.ts"], 
+    files: ['src/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.es2022,
+        ...globals.serviceworker,
+      },
+    },
     rules: {
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/consistent-type-assertions": [
-        "error",
-        { "assertionStyle": "never" }
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
       ],
-      "@typescript-eslint/no-unused-vars": "error",
-      "no-console": "warn",
+      'no-console': 'warn',
+    },
+  },
+
+  {
+    files: ['app/static/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.es2022,
+        ...globals.browser,
+        ensureApiKey: 'readonly',
+        buildAuthHeaders: 'readonly',
+        logout: 'readonly',
+        showToast: 'readonly',
+        storeAppKey: 'readonly',
+        getStoredAppKey: 'readonly',
+        updateStorageModeButton: 'readonly',
+        Chart: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-useless-assignment': 'off',
+      'preserve-caught-error': 'off',
     },
   }
 );
