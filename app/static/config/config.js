@@ -59,7 +59,8 @@ const LOCALE_MAP = {
   "cache": {
     "label": "缓存设置",
     "enable_auto_clean": { title: "自动清理", desc: "是否启用缓存自动清理，开启后按上限自动回收。" },
-    "limit_mb": { title: "清理阈值", desc: "缓存大小阈值（MB），超过阈值会触发清理。" }
+    "limit_mb": { title: "清理阈值", desc: "缓存大小阈值（MB），超过阈值会触发清理。" },
+    "keep_base64_cache": { title: "保留 Base64 缓存", desc: "当返回 Base64 格式的图片/视频时，是否保留已下载的媒体缓存文件。开启后会保留本地缓存，避免每次请求都重新下载；关闭后每次都会从上游重新获取，不占用存储空间。" }
   },
   "performance": {
     "label": "并发性能",
