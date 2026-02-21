@@ -1,180 +1,182 @@
-# AGENTS.md - Grok2API 开发指南
+# AGENTS.md - grok2api 开发指南
 
 ## 项目概述
 
-Grok2API 是一个双栈项目，包含：
-- **Python FastAPI 后端** (`app/`, `main.py`)：完整功能版本
-- **Cloudflare Workers 版本** (`src/`)：轻量边缘部署版本
+基于 Cloudflare Workers 的 Grok2API 服务，使用 TypeScript + Hono 框架，支持 D1 数据库和 KV 缓存。
 
-## 构建/测试/运行命令
+## 技术栈
 
-### Python FastAPI 后端
+- **运行时**: Cloudflare Workers
+- **框架**: Hono v4.6+
+- **语言**: TypeScript 5.7+ (严格模式)
+- **数据库**: Cloudflare D1 (SQLite)
+- **缓存**: Cloudflare KV
+- **包管理器**: pnpm
 
-```bash
-# 环境准备
-uv sync
-
-# 启动开发服务
-uv run main.py
-# 或
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# 运行单个测试
-uv run pytest tests/test_image_api.py -v
-uv run pytest tests/test_image_api.py::test_resolve_aspect_ratio -v
-
-# 运行所有测试
-uv run pytest tests/ -v
-
-# 类型检查（项目使用动态类型，无严格 typecheck）
-# 代码格式化（如有配置）
-uv run ruff format .
-uv run ruff check .
-```
-
-### Cloudflare Workers
+## 构建/测试/部署命令
 
 ```bash
 # 安装依赖
-npm install
+pnpm install
 
 # 本地开发
-npm run dev
+pnpm run dev              # 启动 wrangler 开发服务器
 
 # 类型检查
-npm run typecheck
+pnpm run typecheck        # tsc --noEmit
 
 # 部署
-npm run deploy
+pnpm run deploy           # wrangler deploy
 
 # 数据库迁移
-npm run db:migrate
+pnpm run db:migrate       # wrangler d1 migrations apply DB --remote
 ```
 
-### Docker 部署
+**注意**: 本项目无单元测试框架，验证主要靠类型检查和手动测试。
 
-```bash
-# 一键启动
-docker compose up -d
+## 项目结构
 
-# 源码构建启动
-docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
-
-# 查看日志
-docker compose logs -f grok2api
+```
+grok2api/
+├── src/
+│   ├── index.ts          # 入口文件，路由注册
+│   ├── env.ts            # 类型定义
+│   ├── auth.ts           # 认证中间件
+│   ├── db.ts             # 数据库工具函数
+│   ├── settings.ts       # 配置管理
+│   ├── routes/           # 路由处理器
+│   │   ├── openai.ts     # OpenAI 兼容 API
+│   │   ├── media.ts      # 媒体资源 API
+│   │   └── admin.ts      # 管理面板 API
+│   ├── repo/             # 数据仓库层
+│   │   ├── tokens.ts     # Token 管理
+│   │   ├── apiKeys.ts    # API Key 管理
+│   │   └── logs.ts       # 日志管理
+│   ├── grok/             # Grok API 客户端
+│   ├── kv/               # KV 缓存操作
+│   └── utils/            # 工具函数
+├── app/static/           # 管理面板静态资源
+├── migrations/           # D1 数据库迁移
+├── wrangler.toml         # Workers 配置
+└── config.defaults.toml  # 默认配置模板
 ```
 
 ## 代码风格指南
 
-### Python 代码规范
+### 1. TypeScript 类型系统
 
-#### 导入规范
-```python
-# 顺序：标准库 -> 第三方 -> 本地模块
-from contextlib import asynccontextmanager
-import asyncio
-import os
+- **严格禁止使用 `any`**，除非第三方库类型缺失且无法绕过（需注释说明）
+- 启用 `noUncheckedIndexedAccess`，数组/对象索引访问需判空
+- 启用 `exactOptionalPropertyTypes`，可选属性类型必须精确
+- 所有变量、参数、返回值必须有明确类型定义
+- 优先使用接口 (interface) 定义数据结构
 
-from fastapi import FastAPI, Request
-from dotenv import load_dotenv
+示例:
+```typescript
+export interface Env {
+  DB: D1Database;
+  KV_CACHE: KVNamespace;
+}
 
-from app.core.auth import verify_api_key
-from app.core.config import get_config
+export async function dbFirst<T>(db: D1Database, sql: string): Promise<T | null> {
+  // 实现
+}
 ```
 
-#### 类型注解
-- 所有函数参数和返回值必须添加类型注解
-- 禁止使用 `Any`，除非第三方库限制且无法绕过（需注释说明）
-- 使用 `Optional[T]` 或 `T | None` 表示可选值
-- 使用 `TypedDict` 或 `dataclass` 定义复杂数据结构
+### 2. 导入规范
 
-#### 命名约定
-- 类名：`PascalCase`（如 `TokenService`, `AppException`）
-- 函数/变量：`snake_case`（如 `get_config`, `refresh_interval`）
-- 常量：`UPPER_SNAKE_CASE`（如 `MAX_RETRY`, `DEFAULT_PORT`）
-- 私有方法/变量：前缀 `_`（如 `_internal_helper`）
+- 使用 ES Module 语法 (`import`/`export`)
+- 相对导入使用 `./` 或 `../` 前缀
+- 导入顺序：第三方库 → 本地模块 → 工具函数
+- 使用类型导入时显式声明 `type`
 
-#### 错误处理
-- 使用自定义异常类（`AppException`, `ValidationException` 等）
-- 异常必须记录日志（使用 `logger`）
-- API 错误响应遵循 OpenAI 格式（使用 `error_response()`）
-- 禁止静默失败，所有错误路径必须明确处理
-
-#### 异步编程
-- I/O 操作必须使用异步（`async/await`）
-- 使用 `asyncio.create_task()` 处理后台任务
-- 使用 `asyncio.gather()` 处理并发
-- 资源清理使用 `async with` 或 `try/finally`
-
-### TypeScript 代码规范
-
-#### 导入规范
+示例:
 ```typescript
-// 顺序：Hono/框架 -> 类型 -> 本地模块
 import { Hono } from "hono";
 import type { Env } from "./env";
-import { openAiRoutes } from "./routes/openai";
+import { dbFirst } from "./db";
 ```
 
-#### 类型系统
-- 启用 `strict: true`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`
-- 所有变量、参数、返回值必须有明确类型
-- 使用 `interface` 定义对象结构
-- 禁止使用 `any`，必要时使用 `unknown` 加类型守卫
+### 3. 命名约定
 
-#### 命名约定
-- 类/接口/类型：`PascalCase`（如 `ImageGenerationRequest`）
-- 函数/变量：`camelCase`（如 `getAssets`, `buildSha`）
-- 常量：`UPPER_SNAKE_CASE`（如 `MAX_CONCURRENT`）
-- 文件命名：`camelCase.ts`（如 `imageExperimental.ts`）
+- **文件/目录**: 小写 + 连字符 (kebab-case)，如 `api-keys.ts`
+- **类型/接口**: 大驼峰 (PascalCase)，如 `TokenRow`, `SettingsBundle`
+- **函数/变量**: 小驼峰 (camelCase)，如 `selectBestToken`, `cooldownUntil`
+- **常量**: 全大写 + 下划线，如 `MAX_FAILURES`, `IMAGE_METHOD_LEGACY`
+- **数据库表名**: 复数形式，如 `tokens`, `api_keys`, `settings`
 
-#### 错误处理
-- 使用 `try/catch` 包裹异步操作
-- 错误必须记录到 `console.error()`
-- HTTP 错误返回合适状态码（400/401/403/404/500）
+### 4. 错误处理
 
-### 通用规范
+- 使用 `try/catch` 处理异步错误
+- 错误信息使用中文（与项目整体风格一致）
+- API 错误响应统一格式:
+```typescript
+return c.json({ error: "错误信息", code: "ERROR_CODE" }, 401);
+```
+- 未捕获错误在 `app.onError` 中统一处理
 
-#### 代码结构
-- 模块化：复杂函数拆分为小的、可测试的单元
-- 单一职责：每个文件/类专注于一个功能
-- 依赖注入：通过参数传递依赖，避免全局状态
+### 5. 函数式编程风格
 
-#### 日志规范
-- Python 使用 `loguru`：`logger.info()`, `logger.error()`
-- TypeScript 使用 `console.log()`, `console.error()`
-- 日志必须包含上下文信息（如用户 ID、请求 ID）
+- 优先使用 `const` 声明变量
+- 使用 `map`/`filter`/`reduce` 处理数组
+- 避免显式状态变更，优先纯函数
+- 异步函数统一返回 `Promise<T>`
 
-#### 配置管理
-- 敏感配置从环境变量读取
-- 默认配置在 `config.defaults.toml` 或 `settings.ts`
-- 用户配置在 `data/config.toml`（自动生成）
+示例:
+```typescript
+const cleaned = tokens.map((t) => t.trim()).filter(Boolean);
+const set = new Set<string>();
+for (const t of tags) set.add(t);
+return [...set].sort();
+```
 
-#### 测试规范
-- 测试文件以 `test_` 开头
-- 使用 `pytest` 框架（Python）
-- 测试用例命名：`test_<function>_<scenario>`
-- 使用 `@pytest.mark.parametrize` 进行参数化测试
+### 6. 数据库操作规范
 
-## 重要文件说明
+- 所有数据库操作封装在 `src/repo/` 目录
+- 使用参数化查询防止 SQL 注入
+- 批量操作使用 `db.batch()`
+- 时间戳统一使用毫秒 (ms) 存储
 
-| 文件 | 说明 |
-|------|------|
-| `main.py` | Python 应用入口 |
-| `src/index.ts` | Workers 应用入口 |
-| `app/api/v1/` | API 路由定义 |
-| `app/services/` | 业务逻辑层 |
-| `app/core/` | 核心组件（配置、异常、存储） |
-| `src/routes/` | Workers 路由定义 |
-| `src/repo/` | Workers 数据访问层 |
-| `tests/` | Python 测试用例 |
-| `config.defaults.toml` | 默认配置 |
-| `docker-compose.yml` | Docker 部署配置 |
+示例:
+```typescript
+export async function listTokens(db: D1Database): Promise<TokenRow[]> {
+  return dbAll<TokenRow>(db, "SELECT * FROM tokens ORDER BY created_time DESC");
+}
+```
 
-## 开发注意事项
+### 7. 配置管理
 
-1. **双栈一致性**：新增功能需同时考虑 Python 和 Workers 实现
-2. **存储抽象**：使用 `StorageFactory` 抽象存储层（local/redis/mysql/pgsql）
-3. **Token 管理**：Token 池、API Key、缓存管理逻辑需保持一致
-4. **移动优先**：前端页面需适配移动端（响应式布局）
-5. **类型安全**：宁可多写类型定义，不可牺牲类型检查
+- 默认配置在 `config.defaults.toml`
+- 运行时配置存储在 D1 `settings` 表
+- 使用 `getSettings()` / `saveSettings()` 访问配置
+- 敏感配置（如 API Key）不提交到 Git
+
+### 8. 注释规范
+
+- 公共 API 必须写 JSDoc 注释
+- 复杂逻辑需要行内注释说明
+- 使用简体中文编写注释
+- 避免无意义的注释
+
+## 部署流程
+
+1. GitHub Actions 自动部署（push 到 `main` 分支）
+2. CI 流程：类型检查 → 生成 `wrangler.ci.toml` → 应用迁移 → 部署
+3. 环境变量通过 GitHub Secrets 配置：
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+
+## 重要注意事项
+
+1. **禁止使用 Windows 保留设备名** (NUL, CON, PRN 等) 作为文件名
+2. **不要随意修改 wrangler.toml 中的绑定 ID**，否则可能导致数据丢失
+3. **KV 缓存单值限制 25MB**，超出需分块存储
+4. **缓存清理**: 每天 00:00 (Asia/Shanghai) 自动执行
+5. **数据库迁移**: 新增表/字段需创建 migration 文件
+
+## 常用调试技巧
+
+- 访问 URL 添加 `?debug=1` 查看详细错误堆栈
+- 检查 `/health` 端点验证服务状态和绑定
+- 本地开发使用 `wrangler dev` 实时调试
+- 查看 Workers 日志通过 Cloudflare Dashboard

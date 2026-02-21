@@ -44,7 +44,7 @@ const LOCALE_MAP = {
     "cf_clearance": { title: "CF Clearance", desc: "Cloudflare 验证 Cookie，用于验证 Cloudflare 的验证。" },
     "max_retry": { title: "最大重试", desc: "请求 Grok 服务失败时的最大重试次数。" },
     "retry_status_codes": { title: "重试状态码", desc: "触发重试的 HTTP 状态码列表。" },
-    "image_generation_method": { title: "生图调用方式", desc: "旧方法稳定；新方法为实验性方法。" }
+    "image_generation_method": { title: "生图调用方式", desc: "旧方法基于 REST API 轮询（/rest/media/post/create），稳定性高但延迟较大；新方法基于 WebSocket 实时推送（/ws/imagine/listen），生成速度更快但处于实验阶段。" }
   },
   "token": {
     "label": "Token 池设置",
@@ -238,8 +238,8 @@ function renderConfig(data) {
         input.dataset.key = key;
 
         const opts = [
-          { val: 'legacy', text: '旧方法（默认）' },
-          { val: 'imagine_ws_experimental', text: '新方法（实验性）' }
+          { val: 'legacy', text: '旧方法（REST API 轮询）' },
+          { val: 'imagine_ws_experimental', text: '新方法（WebSocket 实时推送）' }
         ];
 
         opts.forEach(opt => {
