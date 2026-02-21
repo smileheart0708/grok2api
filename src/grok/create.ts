@@ -4,6 +4,17 @@ import { getDynamicHeaders } from "./headers";
 const ENDPOINT = "https://grok.com/rest/media/post/create";
 
 export type MediaPostType = "MEDIA_POST_TYPE_VIDEO" | "MEDIA_POST_TYPE_IMAGE";
+interface ImageMediaPostBody {
+  mediaType: "MEDIA_POST_TYPE_IMAGE";
+  mediaUrl: string;
+}
+
+interface VideoMediaPostBody {
+  mediaType: "MEDIA_POST_TYPE_VIDEO";
+  prompt: string;
+}
+
+type CreateMediaPostBody = ImageMediaPostBody | VideoMediaPostBody;
 
 export async function createMediaPost(
   args: { mediaType: MediaPostType; prompt?: string; mediaUrl?: string },
@@ -11,16 +22,16 @@ export async function createMediaPost(
   settings: GrokSettings,
 ): Promise<{ postId: string }> {
   const headers = getDynamicHeaders(settings, "/rest/media/post/create");
-  headers.Cookie = cookie;
-  headers.Referer = "https://grok.com/imagine";
+  headers["Cookie"] = cookie;
+  headers["Referer"] = "https://grok.com/imagine";
 
-  const bodyObj: Record<string, unknown> = { mediaType: args.mediaType };
+  let bodyObj: CreateMediaPostBody;
   if (args.mediaType === "MEDIA_POST_TYPE_IMAGE") {
     if (!args.mediaUrl) throw new Error("缺少 mediaUrl");
-    bodyObj.mediaUrl = args.mediaUrl;
+    bodyObj = { mediaType: "MEDIA_POST_TYPE_IMAGE", mediaUrl: args.mediaUrl };
   } else {
     if (!args.prompt) throw new Error("缺少 prompt");
-    bodyObj.prompt = args.prompt;
+    bodyObj = { mediaType: "MEDIA_POST_TYPE_VIDEO", prompt: args.prompt };
   }
 
   const body = JSON.stringify(bodyObj);

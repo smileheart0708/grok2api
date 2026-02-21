@@ -112,7 +112,13 @@ function encodeAssetPath(raw: string): string {
   }
 }
 
-function parseWsMessageData(data: unknown): Record<string, unknown> | null {
+interface ImagineWsControlMessage {
+  type?: unknown;
+  prompt?: unknown;
+  aspect_ratio?: unknown;
+}
+
+function parseWsMessageData(data: unknown): ImagineWsControlMessage | null {
   let raw = "";
   if (typeof data === "string") raw = data;
   else if (data instanceof ArrayBuffer) raw = new TextDecoder().decode(data);
@@ -124,7 +130,7 @@ function parseWsMessageData(data: unknown): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
+      return parsed as ImagineWsControlMessage;
     }
   } catch {
     // ignore parse errors

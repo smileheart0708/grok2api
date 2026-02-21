@@ -19,7 +19,29 @@ const IMAGINE_WS_HTTP_API = "https://grok.com/ws/imagine/listen";
 const IMAGINE_REFERER = "https://grok.com/imagine";
 const ASSET_API = "https://assets.grok.com";
 
-type WsJson = Record<string, unknown>;
+interface WsJson {
+  timestamp?: unknown;
+  item?: unknown;
+  percentage_complete?: unknown;
+  percentageComplete?: unknown;
+  progress?: unknown;
+  url?: unknown;
+  imageUrl?: unknown;
+  image_url?: unknown;
+  current_status?: unknown;
+  currentStatus?: unknown;
+  request_id?: unknown;
+  requestId?: unknown;
+  type?: unknown;
+  err_code?: unknown;
+  errCode?: unknown;
+  err_message?: unknown;
+  err_msg?: unknown;
+  error?: unknown;
+  id?: unknown;
+  imageId?: unknown;
+  image_id?: unknown;
+}
 
 export function resolveImageGenerationMethod(raw: unknown): ImageGenerationMethod {
   const value = String(raw ?? "")
@@ -171,11 +193,11 @@ export async function generateImagineWs(args: {
   const requestId = crypto.randomUUID();
 
   const headers = getDynamicHeaders(args.settings, "/ws/imagine/listen");
-  headers.Cookie = args.cookie;
-  headers.Origin = "https://grok.com";
-  headers.Referer = IMAGINE_REFERER;
-  headers.Connection = "Upgrade";
-  headers.Upgrade = "websocket";
+  headers["Cookie"] = args.cookie;
+  headers["Origin"] = "https://grok.com";
+  headers["Referer"] = IMAGINE_REFERER;
+  headers["Connection"] = "Upgrade";
+  headers["Upgrade"] = "websocket";
   delete headers["Content-Type"];
 
   const wsResp = await fetch(IMAGINE_WS_HTTP_API, { method: "GET", headers });
@@ -279,12 +301,49 @@ export async function generateImagineWs(args: {
   return urls;
 }
 
+interface ExperimentalImageEditPayload extends Record<string, unknown> {
+  temporary: boolean;
+  modelName: "imagine-image-edit" | "grok-3";
+  message: string;
+  fileAttachments: unknown[];
+  imageAttachments: unknown[];
+  disableSearch: boolean;
+  enableImageGeneration: boolean;
+  returnImageBytes: boolean;
+  returnRawGrokInXaiRequest: boolean;
+  enableImageStreaming: boolean;
+  imageGenerationCount: number;
+  forceConcise: boolean;
+  toolOverrides: { imageGen: boolean };
+  enableSideBySide: boolean;
+  sendFinalMetadata: boolean;
+  isReasoning: boolean;
+  disableTextFollowUps: boolean;
+  disableMemory: boolean;
+  forceSideBySide: boolean;
+  isAsyncChat: boolean;
+  responseMetadata: {
+    modelConfigOverride: {
+      modelMap: {
+        imageEditModel: "imagine";
+        imageEditModelConfig: {
+          imageReferences: string[];
+        };
+      };
+    };
+    requestModelDetails: {
+      modelId: "imagine-image-edit" | "grok-3";
+    };
+  };
+  modelMode?: "MODEL_MODE_FAST";
+}
+
 function buildExperimentalImageEditPayload(args: {
   prompt: string;
   imageReferences: string[];
   modelName: "imagine-image-edit" | "grok-3";
-}): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
+}): ExperimentalImageEditPayload {
+  const payload: ExperimentalImageEditPayload = {
     temporary: true,
     modelName: args.modelName,
     message: args.prompt,
@@ -338,7 +397,7 @@ export async function sendExperimentalImageEditRequest(args: {
     throw new Error("Experimental image edit requires uploaded image references");
   }
 
-  const payloads: Array<Record<string, unknown>> = [
+  const payloads: ExperimentalImageEditPayload[] = [
     buildExperimentalImageEditPayload({
       prompt: args.prompt,
       imageReferences,
