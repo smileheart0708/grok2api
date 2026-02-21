@@ -48,6 +48,11 @@ import { getClientIp, isContentModerationMessage, mapLimit, openAiError } from "
 import { enforceQuota } from "./quota";
 import type { OpenAiRoutesApp } from "./types";
 
+function logExperimentalFallback(message: string, detail: string): void {
+  // eslint-disable-next-line no-console
+  console.warn(message, detail);
+}
+
 export function registerImageRoutes(openAiRoutes: OpenAiRoutesApp): void {
 openAiRoutes.post("/images/generations", async (c) => {
   const start = Date.now();
@@ -254,7 +259,7 @@ openAiRoutes.post("/images/generations", async (c) => {
           const msg = e instanceof Error ? e.message : String(e);
           await recordTokenFailure(c.env.DB, experimentalToken.token, 500, msg.slice(0, 200));
           await applyCooldown(c.env.DB, experimentalToken.token, 500);
-          console.warn("Experimental image generation failed, fallback to legacy:", msg);
+          logExperimentalFallback("Experimental image generation failed, fallback to legacy:", msg);
         }
       }
     }
@@ -466,7 +471,7 @@ openAiRoutes.post("/images/edits", async (c) => {
           const msg = e instanceof Error ? e.message : String(e);
           await recordTokenFailure(c.env.DB, chosen.token, 500, msg.slice(0, 200));
           await applyCooldown(c.env.DB, chosen.token, 500);
-          console.warn("Experimental image edit stream failed, fallback to legacy:", msg);
+          logExperimentalFallback("Experimental image edit stream failed, fallback to legacy:", msg);
         }
       }
 
@@ -556,7 +561,7 @@ openAiRoutes.post("/images/edits", async (c) => {
         const msg = e instanceof Error ? e.message : String(e);
         await recordTokenFailure(c.env.DB, chosen.token, 500, msg.slice(0, 200));
         await applyCooldown(c.env.DB, chosen.token, 500);
-        console.warn("Experimental image edit failed, fallback to legacy:", msg);
+        logExperimentalFallback("Experimental image edit failed, fallback to legacy:", msg);
       }
     }
 

@@ -13,6 +13,24 @@ import { getSettings } from "../../settings";
 import { arrayBufferToBase64 } from "../../utils/base64";
 import { runTasksSettledWithLimit } from "./common";
 
+interface GrokImageNdjsonResponse {
+  error?: { message?: unknown };
+  result?: {
+    response?: {
+      modelResponse?: { generatedImageUrls?: unknown };
+      streamingImageGenerationResponse?: {
+        imageIndex?: unknown;
+        progress?: unknown;
+      };
+    };
+  };
+}
+
+function logImageStreamError(message: string, err: unknown): void {
+  // eslint-disable-next-line no-console
+  console.error(message, err);
+}
+
 export function base64UrlEncodeString(input: string): string {
   const bytes = new TextEncoder().encode(input);
   let binary = "";
@@ -157,9 +175,13 @@ export async function collectImageUrls(resp: Response): Promise<string[]> {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const allUrls: string[] = [];
   for (const line of lines) {
-    let data: any;
+    let data: GrokImageNdjsonResponse;
     try {
-      data = JSON.parse(line);
+      const parsed = JSON.parse(line) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        continue;
+      }
+      data = parsed as GrokImageNdjsonResponse;
     } catch {
       continue;
     }
@@ -221,9 +243,14 @@ export function createImageEventStream(args: {
               continue;
             }
 
-            let data: any;
+            let data: GrokImageNdjsonResponse;
             try {
-              data = JSON.parse(line);
+              const parsed = JSON.parse(line) as unknown;
+              if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+                idx = buffer.indexOf("\n");
+                continue;
+              }
+              data = parsed as GrokImageNdjsonResponse;
             } catch {
               idx = buffer.indexOf("\n");
               continue;
@@ -293,7 +320,7 @@ export function createImageEventStream(args: {
         }
       } catch (e) {
         failed = true;
-        console.error("Image stream processing failed:", e);
+        logImageStreamError("Image stream processing failed:", e);
         if (args.onFinish) {
           await args.onFinish({ status: 500, duration: (Date.now() - startedAt) / 1000 });
         }

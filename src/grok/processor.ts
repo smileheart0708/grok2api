@@ -2,6 +2,49 @@ import type { GrokSettings, GlobalSettings } from "../settings";
 
 type GrokNdjson = Record<string, unknown>;
 
+interface GrokModelResponse {
+  generatedImageUrls?: unknown;
+  error?: unknown;
+  model?: unknown;
+  message?: unknown;
+}
+
+interface GrokVideoResponse {
+  progress?: unknown;
+  videoUrl?: unknown;
+  thumbnailImageUrl?: unknown;
+}
+
+interface GrokResponseFrame {
+  userResponse?: { model?: unknown };
+  streamingVideoGenerationResponse?: GrokVideoResponse;
+  imageAttachmentInfo?: unknown;
+  token?: unknown;
+  modelResponse?: GrokModelResponse;
+  isThinking?: unknown;
+  messageTag?: unknown;
+  toolUsageCardId?: unknown;
+  webSearchResults?: { results?: unknown };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getErrorMessage(data: GrokNdjson): string | null {
+  const err = asRecord(data["error"]);
+  const message = err?.["message"];
+  return typeof message === "string" && message.trim() ? message : null;
+}
+
+function getGrokResponse(data: GrokNdjson): GrokResponseFrame | null {
+  const result = asRecord(data["result"]);
+  if (!result) return null;
+  return (asRecord(result["response"]) as GrokResponseFrame | null) ?? null;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -230,11 +273,11 @@ export function createOpenAiStreamFromGrokNdjson(
             firstReceived = true;
             lastChunkTime = Date.now();
 
-            const err = (data as any).error;
-            if (err?.message) {
+            const errMessage = getErrorMessage(data);
+            if (errMessage) {
               finalStatus = 500;
               controller.enqueue(
-                encoder.encode(makeChunk(id, created, currentModel, `Error: ${String(err.message)}`, "stop")),
+                encoder.encode(makeChunk(id, created, currentModel, `Error: ${errMessage}`, "stop")),
               );
               controller.enqueue(encoder.encode(makeDone()));
               if (opts.onFinish) await opts.onFinish({ status: finalStatus, duration: (Date.now() - startTime) / 1000 });
@@ -242,7 +285,7 @@ export function createOpenAiStreamFromGrokNdjson(
               return;
             }
 
-            const grok = (data as any).result?.response;
+            const grok = getGrokResponse(data);
             if (!grok) continue;
 
             const userRespModel = grok.userResponse?.model;
@@ -420,10 +463,10 @@ export async function parseOpenAiFromGrokNdjson(
       continue;
     }
 
-    const err = (data as any).error;
-    if (err?.message) throw new Error(String(err.message));
+    const errMessage = getErrorMessage(data);
+    if (errMessage) throw new Error(errMessage);
 
-    const grok = (data as any).result?.response;
+    const grok = getGrokResponse(data);
     if (!grok) continue;
 
     const videoResp = grok.streamingVideoGenerationResponse;

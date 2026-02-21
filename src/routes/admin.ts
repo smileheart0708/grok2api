@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Env } from "../env";
 import { requireAdminAuth } from "../auth";
 import {
@@ -6,6 +7,13 @@ import {
   saveSettings,
   normalizeCfCookie,
   normalizeImageGenerationMethod,
+} from "../settings";
+import type {
+  CacheSettings,
+  GlobalSettings,
+  GrokSettings,
+  PerformanceSettings,
+  TokenSettings,
 } from "../settings";
 import {
   addApiKey,
@@ -48,6 +56,7 @@ import {
 import { dbAll, dbFirst, dbRun } from "../db";
 import { nowMs } from "../utils/time";
 import { listUsageForDay, localDayString } from "../repo/apiKeyUsage";
+import type { ApiKeyUsageRow } from "../repo/apiKeyUsage";
 
 function jsonError(message: string, code: string): Record<string, unknown> {
   return { error: message, code };
@@ -151,7 +160,133 @@ function parseImagineWsFailureStatus(message: string): number {
   return 500;
 }
 
-async function verifyWsApiKeyForImagine(c: any): Promise<boolean> {
+function parseFiniteNumber(value: unknown): number | null {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function parseOptionalNumber(value: unknown): number | undefined {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+interface AdminConfigAppInput {
+  api_key?: unknown;
+  admin_username?: unknown;
+  app_key?: unknown;
+  app_url?: unknown;
+  image_format?: unknown;
+}
+
+interface AdminConfigGrokInput {
+  base_proxy_url?: unknown;
+  asset_proxy_url?: unknown;
+  cf_clearance?: unknown;
+  filter_tags?: unknown;
+  dynamic_statsig?: unknown;
+  thinking?: unknown;
+  temporary?: unknown;
+  video_poster_preview?: unknown;
+  retry_status_codes?: unknown;
+  timeout?: unknown;
+  image_generation_method?: unknown;
+}
+
+interface AdminConfigTokenInput {
+  auto_refresh?: unknown;
+  refresh_interval_hours?: unknown;
+  fail_threshold?: unknown;
+  save_delay_ms?: unknown;
+  reload_interval_sec?: unknown;
+}
+
+interface AdminConfigCacheInput {
+  enable_auto_clean?: unknown;
+  limit_mb?: unknown;
+  keep_base64_cache?: unknown;
+}
+
+interface AdminConfigPerformanceInput {
+  assets_max_concurrent?: unknown;
+  media_max_concurrent?: unknown;
+  usage_max_concurrent?: unknown;
+  assets_delete_batch_size?: unknown;
+  admin_assets_batch_size?: unknown;
+}
+
+interface AdminConfigInput {
+  app?: AdminConfigAppInput;
+  grok?: AdminConfigGrokInput;
+  token?: AdminConfigTokenInput;
+  cache?: AdminConfigCacheInput;
+  performance?: AdminConfigPerformanceInput;
+}
+
+interface AdminTokenPoolItemInput {
+  token?: unknown;
+  status?: unknown;
+  quota?: unknown;
+  heavy_quota?: unknown;
+  note?: unknown;
+}
+
+interface AdminTokensRefreshBody {
+  token?: unknown;
+  tokens?: unknown;
+}
+
+interface AdminCacheBody {
+  type?: unknown;
+  name?: unknown;
+}
+
+interface AdminSettingsUpdateBody {
+  global_config?: GlobalSettings;
+  grok_config?: GrokSettings;
+}
+
+interface AdminApiKeyLimitsInput {
+  chat_per_day?: unknown;
+  chat_limit?: unknown;
+  heavy_per_day?: unknown;
+  heavy_limit?: unknown;
+  image_per_day?: unknown;
+  image_limit?: unknown;
+  video_per_day?: unknown;
+  video_limit?: unknown;
+}
+
+interface AdminApiKeyCreateBody {
+  name?: unknown;
+  key?: unknown;
+  limits?: unknown;
+  is_active?: unknown;
+}
+
+interface AdminApiKeyUpdateBody {
+  key?: unknown;
+  name?: unknown;
+  is_active?: unknown;
+  limits?: unknown;
+}
+
+interface AdminApiKeyDeleteBody {
+  key?: unknown;
+}
+
+function getRemainingTokens(payload: Record<string, unknown> | null): number | null {
+  if (!payload) return null;
+  const value = payload["remainingTokens"];
+  return typeof value === "number" ? value : null;
+}
+
+function getLimitValue(payload: Record<string, unknown> | null): number | null {
+  if (!payload) return null;
+  const value = payload["limit"];
+  return typeof value === "number" ? value : null;
+}
+
+async function verifyWsApiKeyForImagine(c: Context<{ Bindings: Env }>): Promise<boolean> {
   const settings = await getSettings(c.env);
   const globalKey = String(settings.grok.api_key ?? "").trim();
   const token = String(c.req.query("api_key") ?? "").trim();
@@ -307,20 +442,20 @@ adminRoutes.get("/api/v1/admin/config", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/config", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
-    const appCfg = (body && typeof body === "object" ? body.app : null) as any;
-    const grokCfg = (body && typeof body === "object" ? body.grok : null) as any;
-    const tokenCfg = (body && typeof body === "object" ? body.token : null) as any;
-    const cacheCfg = (body && typeof body === "object" ? body.cache : null) as any;
-    const performanceCfg = (body && typeof body === "object" ? body.performance : null) as any;
+    const body = (await c.req.json()) as AdminConfigInput;
+    const appCfg = body.app;
+    const grokCfg = body.grok;
+    const tokenCfg = body.token;
+    const cacheCfg = body.cache;
+    const performanceCfg = body.performance;
 
-    const global_config: any = {};
-    const grok_config: any = {};
-    const token_config: any = {};
-    const cache_config: any = {};
-    const performance_config: any = {};
+    const global_config: GlobalSettings = {};
+    const grok_config: GrokSettings = {};
+    const token_config: TokenSettings = {};
+    const cache_config: CacheSettings = {};
+    const performance_config: PerformanceSettings = {};
 
-    if (appCfg && typeof appCfg === "object") {
+    if (appCfg) {
       if (typeof appCfg.api_key === "string") grok_config.api_key = appCfg.api_key.trim();
       if (typeof appCfg.admin_username === "string") global_config.admin_username = appCfg.admin_username.trim() || "admin";
       if (typeof appCfg.app_key === "string") global_config.admin_password = appCfg.app_key.trim() || "admin";
@@ -329,22 +464,28 @@ adminRoutes.post("/api/v1/admin/config", requireAdminAuth, async (c) => {
         global_config.image_mode = appCfg.image_format;
     }
 
-    if (grokCfg && typeof grokCfg === "object") {
+    if (grokCfg) {
       if (typeof grokCfg.base_proxy_url === "string") grok_config.proxy_url = grokCfg.base_proxy_url.trim();
       if (typeof grokCfg.asset_proxy_url === "string") grok_config.cache_proxy_url = grokCfg.asset_proxy_url.trim();
       if (typeof grokCfg.cf_clearance === "string") grok_config.cf_clearance = grokCfg.cf_clearance.trim();
       if (typeof grokCfg.filter_tags === "string") {
         grok_config.filtered_tags = grokCfg.filter_tags;
       } else if (Array.isArray(grokCfg.filter_tags)) {
-        grok_config.filtered_tags = grokCfg.filter_tags.map((x: any) => String(x ?? "").trim()).filter(Boolean).join(",");
+        grok_config.filtered_tags = grokCfg.filter_tags
+          .map((x) => String(x ?? "").trim())
+          .filter(Boolean)
+          .join(",");
       }
       if (typeof grokCfg.dynamic_statsig === "boolean") grok_config.dynamic_statsig = grokCfg.dynamic_statsig;
       if (typeof grokCfg.thinking === "boolean") grok_config.show_thinking = grokCfg.thinking;
       if (typeof grokCfg.temporary === "boolean") grok_config.temporary = grokCfg.temporary;
       if (typeof grokCfg.video_poster_preview === "boolean") grok_config.video_poster_preview = grokCfg.video_poster_preview;
       if (Array.isArray(grokCfg.retry_status_codes))
-        grok_config.retry_status_codes = grokCfg.retry_status_codes.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n));
-      if (Number.isFinite(Number(grokCfg.timeout))) grok_config.stream_total_timeout = Math.max(1, Math.floor(Number(grokCfg.timeout)));
+        grok_config.retry_status_codes = grokCfg.retry_status_codes
+          .map((x) => Number(x))
+          .filter((n): n is number => Number.isFinite(n));
+      if (Number.isFinite(Number(grokCfg.timeout)))
+        grok_config.stream_total_timeout = Math.max(1, Math.floor(Number(grokCfg.timeout)));
       if (typeof grokCfg.image_generation_method === "string" && grokCfg.image_generation_method.trim()) {
         grok_config.image_generation_method = normalizeImageGenerationMethod(
           grokCfg.image_generation_method,
@@ -352,7 +493,7 @@ adminRoutes.post("/api/v1/admin/config", requireAdminAuth, async (c) => {
       }
     }
 
-    if (tokenCfg && typeof tokenCfg === "object") {
+    if (tokenCfg) {
       if (typeof tokenCfg.auto_refresh === "boolean") token_config.auto_refresh = tokenCfg.auto_refresh;
       if (Number.isFinite(Number(tokenCfg.refresh_interval_hours)))
         token_config.refresh_interval_hours = Math.max(1, Number(tokenCfg.refresh_interval_hours));
@@ -364,23 +505,23 @@ adminRoutes.post("/api/v1/admin/config", requireAdminAuth, async (c) => {
         token_config.reload_interval_sec = Math.max(0, Math.floor(Number(tokenCfg.reload_interval_sec)));
     }
 
-    if (cacheCfg && typeof cacheCfg === "object") {
+    if (cacheCfg) {
       if (typeof cacheCfg.enable_auto_clean === "boolean") cache_config.enable_auto_clean = cacheCfg.enable_auto_clean;
       if (Number.isFinite(Number(cacheCfg.limit_mb))) cache_config.limit_mb = Math.max(1, Math.floor(Number(cacheCfg.limit_mb)));
       if (typeof cacheCfg.keep_base64_cache === "boolean") cache_config.keep_base64_cache = cacheCfg.keep_base64_cache;
     }
 
-    if (performanceCfg && typeof performanceCfg === "object") {
-      const fields = [
-        "assets_max_concurrent",
-        "media_max_concurrent",
-        "usage_max_concurrent",
-        "assets_delete_batch_size",
-        "admin_assets_batch_size",
-      ] as const;
-      for (const f of fields) {
-        if (Number.isFinite(Number(performanceCfg[f]))) performance_config[f] = Math.max(1, Math.floor(Number(performanceCfg[f])));
-      }
+    if (performanceCfg) {
+      const assetsMaxConcurrent = parseFiniteNumber(performanceCfg.assets_max_concurrent);
+      if (assetsMaxConcurrent !== null) performance_config.assets_max_concurrent = Math.max(1, Math.floor(assetsMaxConcurrent));
+      const mediaMaxConcurrent = parseFiniteNumber(performanceCfg.media_max_concurrent);
+      if (mediaMaxConcurrent !== null) performance_config.media_max_concurrent = Math.max(1, Math.floor(mediaMaxConcurrent));
+      const usageMaxConcurrent = parseFiniteNumber(performanceCfg.usage_max_concurrent);
+      if (usageMaxConcurrent !== null) performance_config.usage_max_concurrent = Math.max(1, Math.floor(usageMaxConcurrent));
+      const assetsDeleteBatchSize = parseFiniteNumber(performanceCfg.assets_delete_batch_size);
+      if (assetsDeleteBatchSize !== null) performance_config.assets_delete_batch_size = Math.max(1, Math.floor(assetsDeleteBatchSize));
+      const adminAssetsBatchSize = parseFiniteNumber(performanceCfg.admin_assets_batch_size);
+      if (adminAssetsBatchSize !== null) performance_config.admin_assets_batch_size = Math.max(1, Math.floor(adminAssetsBatchSize));
     }
 
     await saveSettings(c.env, { global_config, grok_config, token_config, cache_config, performance_config });
@@ -608,7 +749,10 @@ adminRoutes.get("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
     const rows = await listTokens(c.env.DB);
     const now = nowMs();
 
-    const out: Record<"ssoBasic" | "ssoSuper", any[]> = { ssoBasic: [], ssoSuper: [] };
+    const out: Record<"ssoBasic" | "ssoSuper", Array<Record<string, unknown>>> = {
+      ssoBasic: [],
+      ssoSuper: [],
+    };
     for (const r of rows) {
       const pool = toPoolName(r.token_type);
       const isCooling = Boolean(r.cooldown_until && r.cooldown_until > now);
@@ -657,7 +801,11 @@ adminRoutes.post("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
       if (!tokenType) continue;
       const arr = Array.isArray(items) ? items : [];
       for (const it of arr) {
-        const tokenRaw = typeof it === "string" ? it : (it as any)?.token;
+        const item =
+          it && typeof it === "object" && !Array.isArray(it)
+            ? (it as AdminTokenPoolItemInput)
+            : null;
+        const tokenRaw = typeof it === "string" ? it : item?.token;
         const token = normalizeSsoToken(String(tokenRaw ?? ""));
         if (!token) continue;
         desiredByType[tokenType].add(token);
@@ -666,15 +814,15 @@ adminRoutes.post("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
           newlyAdded.push(token);
         }
 
-        const statusRaw = typeof it === "string" ? "active" : String((it as any)?.status ?? "active");
-        const quotaRaw = typeof it === "string" ? 0 : Number((it as any)?.quota ?? 0);
+        const statusRaw = typeof it === "string" ? "active" : String(item?.status ?? "active");
+        const quotaRaw = typeof it === "string" ? 0 : Number(item?.quota ?? 0);
         const quota = Number.isFinite(quotaRaw) && quotaRaw >= 0 ? Math.floor(quotaRaw) : -1;
         const heavyQuotaRaw =
           typeof it === "string"
             ? -1
-            : Number((it as any)?.heavy_quota ?? (tokenType === "ssoSuper" ? quota : -1));
+            : Number(item?.heavy_quota ?? (tokenType === "ssoSuper" ? quota : -1));
         const heavyQuota = Number.isFinite(heavyQuotaRaw) && heavyQuotaRaw >= 0 ? Math.floor(heavyQuotaRaw) : -1;
-        const note = typeof it === "string" ? "" : String((it as any)?.note ?? "");
+        const note = typeof it === "string" ? "" : String(item?.note ?? "");
 
         const status = statusRaw === "invalid" ? "expired" : "active";
         const cooldownUntil = statusRaw === "cooling" ? now + 60 * 60 * 1000 : null;
@@ -711,12 +859,10 @@ adminRoutes.post("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
+    const body = (await c.req.json()) as AdminTokensRefreshBody;
     const tokens: string[] = [];
-    if (body && typeof body === "object") {
-      if (typeof body.token === "string") tokens.push(body.token);
-      if (Array.isArray(body.tokens)) tokens.push(...body.tokens.filter((x: any) => typeof x === "string"));
-    }
+    if (typeof body.token === "string") tokens.push(body.token);
+    if (Array.isArray(body.tokens)) tokens.push(...body.tokens.filter((x): x is string => typeof x === "string"));
     const unique = [...new Set(tokens.map((t) => normalizeSsoToken(t)).filter(Boolean))];
     if (!unique.length) return c.json(legacyErr("No tokens provided"), 400);
 
@@ -739,11 +885,11 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
         const cookie = cf ? `sso-rw=${t};sso=${t};${cf}` : `sso-rw=${t};sso=${t}`;
         const tokenType = tokenTypeByToken.get(t) ?? "sso";
         const r = await checkRateLimits(cookie, settings.grok, "grok-4-fast");
-        const remaining = (r as any)?.remainingTokens;
+        const remaining = getRemainingTokens(r);
         let heavyRemaining: number | null = null;
         if (tokenType === "ssoSuper") {
           const rh = await checkRateLimits(cookie, settings.grok, "grok-4-heavy");
-          const hv = (rh as any)?.remainingTokens;
+          const hv = getRemainingTokens(rh);
           if (typeof hv === "number") heavyRemaining = hv;
         }
         if (typeof remaining === "number") {
@@ -794,7 +940,7 @@ adminRoutes.get("/api/v1/admin/cache", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/cache/clear", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
+    const body = (await c.req.json()) as AdminCacheBody;
     const t = String(body?.type ?? "image").toLowerCase();
     const type: CacheType = t === "video" ? "video" : "image";
     const deleted = await clearKvCacheByType(c.env, type);
@@ -831,7 +977,7 @@ adminRoutes.get("/api/v1/admin/cache/list", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/cache/item/delete", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
+    const body = (await c.req.json()) as AdminCacheBody;
     const t = String(body?.type ?? "image").toLowerCase();
     const type: CacheType = t === "video" ? "video" : "image";
     const name = String(body?.name ?? "").trim();
@@ -950,8 +1096,11 @@ adminRoutes.get("/api/settings", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/settings", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as { global_config?: any; grok_config?: any };
-    await saveSettings(c.env, { global_config: body.global_config, grok_config: body.grok_config });
+    const body = (await c.req.json()) as AdminSettingsUpdateBody;
+    const updates: { global_config?: GlobalSettings; grok_config?: GrokSettings } = {};
+    if (body.global_config) updates.global_config = body.global_config;
+    if (body.grok_config) updates.grok_config = body.grok_config;
+    await saveSettings(c.env, updates);
     return c.json({ success: true, message: "配置更新成功" });
   } catch (e) {
     return c.json(jsonError(`更新失败: ${e instanceof Error ? e.message : String(e)}`, "UPDATE_SETTINGS_ERROR"), 500);
@@ -1043,13 +1192,13 @@ adminRoutes.post("/api/tokens/test", requireAdminAuth, async (c) => {
 
     const result = await checkRateLimits(cookie, settings.grok, "grok-4-fast");
     if (result) {
-      const remaining = (result as any).remainingTokens ?? -1;
-      const limit = (result as any).limit ?? -1;
+      const remaining = getRemainingTokens(result) ?? -1;
+      const limit = getLimitValue(result) ?? -1;
 
       let heavyRemaining: number | null = null;
       if (token_type === "ssoSuper") {
         const heavy = await checkRateLimits(cookie, settings.grok, "grok-4-heavy");
-        const v = (heavy as any)?.remainingTokens;
+        const v = getRemainingTokens(heavy);
         if (typeof v === "number") heavyRemaining = v;
       }
       await updateTokenLimits(c.env.DB, token, {
@@ -1135,11 +1284,11 @@ adminRoutes.post("/api/tokens/refresh-all", requireAdminAuth, async (c) => {
           const cookie = cf ? `sso-rw=${t.token};sso=${t.token};${cf}` : `sso-rw=${t.token};sso=${t.token}`;
           const r = await checkRateLimits(cookie, settings.grok, "grok-4-fast");
           if (r) {
-            const remaining = (r as any).remainingTokens;
+            const remaining = getRemainingTokens(r);
             let heavyRemaining: number | null = null;
             if (t.token_type === "ssoSuper") {
               const rh = await checkRateLimits(cookie, settings.grok, "grok-4-heavy");
-              const hv = (rh as any)?.remainingTokens;
+              const hv = getRemainingTokens(rh);
               if (typeof hv === "number") heavyRemaining = hv;
             }
             if (typeof remaining === "number") {
@@ -1243,22 +1392,23 @@ adminRoutes.get("/api/v1/admin/keys", requireAdminAuth, async (c) => {
     const usageMap = new Map(usageRows.map((r) => [r.key, r]));
 
     const data = keys.map((k) => {
-      const used = usageMap.get(k.key) ?? { chat_used: 0, heavy_used: 0, image_used: 0, video_used: 0 };
+      const used: Pick<ApiKeyUsageRow, "chat_used" | "heavy_used" | "image_used" | "video_used"> =
+        usageMap.get(k.key) ?? { chat_used: 0, heavy_used: 0, image_used: 0, video_used: 0 };
       const remaining = {
-        chat: k.chat_limit < 0 ? null : Math.max(0, k.chat_limit - Number((used as any).chat_used ?? 0)),
-        heavy: k.heavy_limit < 0 ? null : Math.max(0, k.heavy_limit - Number((used as any).heavy_used ?? 0)),
-        image: k.image_limit < 0 ? null : Math.max(0, k.image_limit - Number((used as any).image_used ?? 0)),
-        video: k.video_limit < 0 ? null : Math.max(0, k.video_limit - Number((used as any).video_used ?? 0)),
+        chat: k.chat_limit < 0 ? null : Math.max(0, k.chat_limit - Number(used.chat_used ?? 0)),
+        heavy: k.heavy_limit < 0 ? null : Math.max(0, k.heavy_limit - Number(used.heavy_used ?? 0)),
+        image: k.image_limit < 0 ? null : Math.max(0, k.image_limit - Number(used.image_used ?? 0)),
+        video: k.video_limit < 0 ? null : Math.max(0, k.video_limit - Number(used.video_used ?? 0)),
       };
       return {
         ...k,
         is_active: Boolean(k.is_active),
         display_key: displayKey(k.key),
         usage_today: {
-          chat_used: Number((used as any).chat_used ?? 0),
-          heavy_used: Number((used as any).heavy_used ?? 0),
-          image_used: Number((used as any).image_used ?? 0),
-          video_used: Number((used as any).video_used ?? 0),
+          chat_used: Number(used.chat_used ?? 0),
+          heavy_used: Number(used.heavy_used ?? 0),
+          image_used: Number(used.image_used ?? 0),
+          video_used: Number(used.video_used ?? 0),
         },
         remaining_today: remaining,
       };
@@ -1272,18 +1422,26 @@ adminRoutes.get("/api/v1/admin/keys", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/keys", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
+    const body = (await c.req.json()) as AdminApiKeyCreateBody;
     const name = String(body?.name ?? "").trim() || randomKeyName();
     const key = String(body?.key ?? "").trim();
-    const limits = body?.limits && typeof body.limits === "object" ? body.limits : {};
+    const limits =
+      body.limits && typeof body.limits === "object" && !Array.isArray(body.limits)
+        ? (body.limits as AdminApiKeyLimitsInput)
+        : {};
+
+    const chatLimit = parseOptionalNumber(limits.chat_per_day ?? limits.chat_limit);
+    const heavyLimit = parseOptionalNumber(limits.heavy_per_day ?? limits.heavy_limit);
+    const imageLimit = parseOptionalNumber(limits.image_per_day ?? limits.image_limit);
+    const videoLimit = parseOptionalNumber(limits.video_per_day ?? limits.video_limit);
 
     const row = await addApiKey(c.env.DB, name, {
       ...(key ? { key } : {}),
       limits: {
-        chat_limit: limits.chat_per_day ?? limits.chat_limit,
-        heavy_limit: limits.heavy_per_day ?? limits.heavy_limit,
-        image_limit: limits.image_per_day ?? limits.image_limit,
-        video_limit: limits.video_per_day ?? limits.video_limit,
+        ...(chatLimit !== undefined ? { chat_limit: chatLimit } : {}),
+        ...(heavyLimit !== undefined ? { heavy_limit: heavyLimit } : {}),
+        ...(imageLimit !== undefined ? { image_limit: imageLimit } : {}),
+        ...(videoLimit !== undefined ? { video_limit: videoLimit } : {}),
       },
     });
 
@@ -1300,7 +1458,7 @@ adminRoutes.post("/api/v1/admin/keys", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/keys/update", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
+    const body = (await c.req.json()) as AdminApiKeyUpdateBody;
     const key = String(body?.key ?? "").trim();
     if (!key) return c.json(jsonError("Missing key", "MISSING_KEY"), 400);
     const existed = await dbFirst<{ key: string }>(c.env.DB, "SELECT key FROM api_keys WHERE key = ?", [key]);
@@ -1315,21 +1473,17 @@ adminRoutes.post("/api/v1/admin/keys/update", requireAdminAuth, async (c) => {
       await updateApiKeyStatus(c.env.DB, key, Boolean(body.is_active));
     }
 
-    if (body?.limits && typeof body.limits === "object") {
-      const limits = body.limits;
+    if (body?.limits && typeof body.limits === "object" && !Array.isArray(body.limits)) {
+      const limits = body.limits as AdminApiKeyLimitsInput;
+      const chatLimit = parseOptionalNumber(limits.chat_per_day ?? limits.chat_limit);
+      const heavyLimit = parseOptionalNumber(limits.heavy_per_day ?? limits.heavy_limit);
+      const imageLimit = parseOptionalNumber(limits.image_per_day ?? limits.image_limit);
+      const videoLimit = parseOptionalNumber(limits.video_per_day ?? limits.video_limit);
       await updateApiKeyLimits(c.env.DB, key, {
-        ...(limits.chat_per_day !== undefined || limits.chat_limit !== undefined
-          ? { chat_limit: limits.chat_per_day ?? limits.chat_limit }
-          : {}),
-        ...(limits.heavy_per_day !== undefined || limits.heavy_limit !== undefined
-          ? { heavy_limit: limits.heavy_per_day ?? limits.heavy_limit }
-          : {}),
-        ...(limits.image_per_day !== undefined || limits.image_limit !== undefined
-          ? { image_limit: limits.image_per_day ?? limits.image_limit }
-          : {}),
-        ...(limits.video_per_day !== undefined || limits.video_limit !== undefined
-          ? { video_limit: limits.video_per_day ?? limits.video_limit }
-          : {}),
+        ...(chatLimit !== undefined ? { chat_limit: chatLimit } : {}),
+        ...(heavyLimit !== undefined ? { heavy_limit: heavyLimit } : {}),
+        ...(imageLimit !== undefined ? { image_limit: imageLimit } : {}),
+        ...(videoLimit !== undefined ? { video_limit: videoLimit } : {}),
       });
     }
 
@@ -1341,7 +1495,7 @@ adminRoutes.post("/api/v1/admin/keys/update", requireAdminAuth, async (c) => {
 
 adminRoutes.post("/api/v1/admin/keys/delete", requireAdminAuth, async (c) => {
   try {
-    const body = (await c.req.json()) as any;
+    const body = (await c.req.json()) as AdminApiKeyDeleteBody;
     const key = String(body?.key ?? "").trim();
     if (!key) return c.json(jsonError("Missing key", "MISSING_KEY"), 400);
     const ok = await deleteApiKey(c.env.DB, key);

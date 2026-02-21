@@ -14,6 +14,14 @@ export interface ApiKeyUsageRow {
 
 export type ApiKeyUsageField = "chat_used" | "heavy_used" | "image_used" | "video_used";
 
+interface D1RunMeta {
+  changes?: number;
+}
+
+interface D1RunResultLike {
+  meta?: D1RunMeta;
+}
+
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
@@ -77,7 +85,7 @@ export async function tryConsumeDailyUsage(args: {
     .bind(inc, args.atMs, args.key, args.day, args.limit, inc, args.limit)
     .run();
 
-  const changes = Number((res as any)?.meta?.changes ?? 0);
+  const changes = Number((res as D1RunResultLike).meta?.changes ?? 0);
   return changes > 0;
 }
 
@@ -127,6 +135,6 @@ export async function tryConsumeDailyUsageMulti(args: {
     WHERE key = ? AND day = ? AND ${whereParts.join(" AND ")}`;
 
   const res = await args.db.prepare(sql).bind(...params).run();
-  const changes = Number((res as any)?.meta?.changes ?? 0);
+  const changes = Number((res as D1RunResultLike).meta?.changes ?? 0);
   return changes > 0;
 }

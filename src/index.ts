@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Env } from "./env";
 import { openAiRoutes } from "./routes/openai";
 import { mediaRoutes } from "./routes/media";
@@ -8,22 +9,26 @@ import { runKvDailyClear } from "./kv/cleanup";
 const app = new Hono<{ Bindings: Env }>();
 
 function getAssets(env: Env): Fetcher | null {
-  const anyEnv = env as unknown as { ASSETS?: unknown };
-  const assets = anyEnv.ASSETS as { fetch?: unknown } | undefined;
-  return assets && typeof assets.fetch === "function" ? (assets as Fetcher) : null;
+  const assets = (env as Partial<Env>).ASSETS;
+  return assets && typeof assets.fetch === "function" ? assets : null;
 }
 
 function getBuildSha(env: Env): string {
-  const v = String((env as any)?.BUILD_SHA ?? "").trim();
+  const v = String(env.BUILD_SHA ?? "").trim();
   return v || "dev";
 }
 
-function isDebugRequest(c: any): boolean {
+function isDebugRequest(c: Context<{ Bindings: Env }>): boolean {
   try {
     return new URL(c.req.url).searchParams.get("debug") === "1";
   } catch {
     return false;
   }
+}
+
+function logError(...args: unknown[]): void {
+  // eslint-disable-next-line no-console
+  console.error(...args);
 }
 
 function withResponseHeaders(res: Response, extra: Record<string, string>): Response {
@@ -39,11 +44,11 @@ function assetFetchError(message: string, buildSha: string): Response {
   });
 }
 
-async function fetchAsset(c: any, pathname: string): Promise<Response> {
-  const assets = getAssets(c.env as Env);
-  const buildSha = getBuildSha(c.env as Env);
+async function fetchAsset(c: Context<{ Bindings: Env }>, pathname: string): Promise<Response> {
+  const assets = getAssets(c.env);
+  const buildSha = getBuildSha(c.env);
   if (!assets) {
-    console.error("ASSETS binding missing: check wrangler.toml assets binding");
+    logError("ASSETS binding missing: check wrangler.toml assets binding");
     return assetFetchError(
       'Internal Server Error: missing ASSETS binding. Check `wrangler.toml` `assets = { directory = \"./app/static\", binding = \"ASSETS\" }` and redeploy.',
       buildSha,
@@ -67,15 +72,15 @@ async function fetchAsset(c: any, pathname: string): Promise<Response> {
 
     return withResponseHeaders(res, extra);
   } catch (err) {
-    console.error(`ASSETS fetch failed (${pathname}):`, err);
+    logError(`ASSETS fetch failed (${pathname}):`, err);
     const detail = isDebugRequest(c) ? `\n\n${err instanceof Error ? err.stack || err.message : String(err)}` : "";
     return assetFetchError(`Internal Server Error: failed to fetch asset ${pathname}.${detail}`, buildSha);
   }
 }
 
 app.onError((err, c) => {
-  console.error("Unhandled error:", err);
-  const buildSha = getBuildSha(c.env as Env);
+  logError("Unhandled error:", err);
+  const buildSha = getBuildSha(c.env);
   const detail = isDebugRequest(c) ? `\n\n${err instanceof Error ? err.stack || err.message : String(err)}` : "";
   const res = c.text(`Internal Server Error${detail}`, 500);
   return withResponseHeaders(res, { "x-grok2api-build": buildSha });
@@ -176,18 +181,18 @@ app.get("/health", (c) =>
     status: "healthy",
     service: "Grok2API",
     runtime: "cloudflare-workers",
-    build: { sha: getBuildSha(c.env as Env) },
+    build: { sha: getBuildSha(c.env) },
     bindings: {
-      db: Boolean((c.env as any)?.DB),
-      kv_cache: Boolean((c.env as any)?.KV_CACHE),
-      assets: Boolean(getAssets(c.env as any)),
+      db: Boolean(c.env.DB),
+      kv_cache: Boolean(c.env.KV_CACHE),
+      assets: Boolean(getAssets(c.env)),
     },
   }),
 );
 
 app.notFound(async (c) => {
-  const assets = getAssets(c.env as any);
-  const buildSha = getBuildSha(c.env as Env);
+  const assets = getAssets(c.env);
+  const buildSha = getBuildSha(c.env);
   // Avoid calling c.notFound() here because it will invoke this handler again.
   if (!assets) return withResponseHeaders(c.text("Not Found", 404), { "x-grok2api-build": buildSha });
   try {
@@ -195,7 +200,7 @@ app.notFound(async (c) => {
     // Keep the header consistent for debugging/version checks.
     return withResponseHeaders(res, { "x-grok2api-build": buildSha });
   } catch (err) {
-    console.error("ASSETS fetch failed (notFound):", err);
+    logError("ASSETS fetch failed (notFound):", err);
     const detail = isDebugRequest(c) ? `\n\n${err instanceof Error ? err.stack || err.message : String(err)}` : "";
     return withResponseHeaders(c.text(`Internal Server Error${detail}`, 500), { "x-grok2api-build": buildSha });
   }
