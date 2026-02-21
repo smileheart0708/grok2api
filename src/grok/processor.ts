@@ -172,7 +172,7 @@ export function createOpenAiStreamFromGrokNdjson(
       };
 
       try {
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const now = Date.now();
           const elapsed = now - startTime;

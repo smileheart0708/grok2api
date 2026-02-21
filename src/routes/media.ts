@@ -108,7 +108,7 @@ function responseFromBytes(args: {
         return new Response(sliced, { status: 206, headers });
       }
 
-      let start = startStr ? Number(startStr) : 0;
+      const start = startStr ? Number(startStr) : 0;
       let end = endStr ? Number(endStr) : size - 1;
       if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < 0 || start > end) {
         return new Response(null, { status: 416 });
