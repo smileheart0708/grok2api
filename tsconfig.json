@@ -1,15 +1,25 @@
 {
   "compilerOptions": {
+    /* 基础目标 */
     "target": "ES2022",
     "lib": ["ES2022", "WebWorker"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "types": ["@cloudflare/workers-types"],
+
+    /* 核心严格模式 (开启了 8 项基础检查) */
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "skipLibCheck": true
+    "noUncheckedIndexedAccess": true, // 访问数组索引时强制检查 undefined，非常安全
+    "exactOptionalPropertyTypes": true, // 可选属性不能赋值为 undefined，必须要么有值要么没有
+    "noImplicitReturns": true,          // 函数必须有明确返回值
+    "noUnusedLocals": true,             // 禁止未使用的局部变量
+    "noUnusedParameters": true,         // 禁止未使用的参数
+    "noFallthroughCasesInSwitch": true, // 防止 switch 穿透
+    "noImplicitOverride": true,         // 覆盖父类方法必须显式声明
+    "allowUnreachableCode": false,      // 禁止死代码（永远跑不到的代码）
+    "noPropertyAccessFromIndexSignature": true, // 防止通过 . 语法访问未定义的索引属性
+    "skipLibCheck": true,               // 跳过库文件的类型检查（为了编译速度）
+    "forceConsistentCasingInFileNames": true // 强制文件名大小写一致（防止 Windows 和 Linux 协作时的惨案）
   },
   "include": ["src/**/*.ts"]
 }
-
