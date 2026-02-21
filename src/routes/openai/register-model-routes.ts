@@ -14,11 +14,6 @@ export function registerModelRoutes(openAiRoutes: OpenAiRoutesApp): void {
       owned_by: "x-ai",
       display_name: cfg.display_name,
       description: cfg.description,
-      raw_model_path: cfg.raw_model_path,
-      default_temperature: cfg.default_temperature,
-      default_max_output_tokens: cfg.default_max_output_tokens,
-      supported_max_output_tokens: cfg.supported_max_output_tokens,
-      default_top_p: cfg.default_top_p,
     }));
     return c.json({ object: "list", data });
   });
@@ -38,11 +33,6 @@ export function registerModelRoutes(openAiRoutes: OpenAiRoutesApp): void {
       owned_by: "x-ai",
       display_name: cfg.display_name,
       description: cfg.description,
-      raw_model_path: cfg.raw_model_path,
-      default_temperature: cfg.default_temperature,
-      default_max_output_tokens: cfg.default_max_output_tokens,
-      supported_max_output_tokens: cfg.supported_max_output_tokens,
-      default_top_p: cfg.default_top_p,
     });
   });
 
