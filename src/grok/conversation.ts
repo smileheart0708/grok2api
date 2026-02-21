@@ -82,7 +82,7 @@ export function buildConversationPayload(args: {
   };
   settings: GrokSettings;
 }): { payload: Record<string, unknown>; referer?: string; isVideoModel: boolean } {
-  const { requestModel, content, imgIds, imgUris, postId, settings } = args;
+  const { requestModel, content, imgIds, postId, settings } = args;
   const cfg = getModelInfo(requestModel);
   const { grokModel, mode, isVideoModel } = toGrokModel(requestModel);
 
@@ -166,8 +166,8 @@ export async function sendConversationRequest(args: {
 }): Promise<Response> {
   const { payload, cookie, settings, referer } = args;
   const headers = getDynamicHeaders(settings, "/rest/app-chat/conversations/new");
-  headers.Cookie = cookie;
-  if (referer) headers.Referer = referer;
+  headers["Cookie"] = cookie;
+  if (referer) headers["Referer"] = referer;
   const body = JSON.stringify(payload);
 
   return fetch(CONVERSATION_API, { method: "POST", headers, body });
