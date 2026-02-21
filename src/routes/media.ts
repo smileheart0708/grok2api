@@ -128,16 +128,16 @@ function responseFromBytes(args: {
 
 function toUpstreamHeaders(args: { pathname: string; cookie: string; settings: Awaited<ReturnType<typeof getSettings>>["grok"] }): Record<string, string> {
   const headers = getDynamicHeaders(args.settings, args.pathname);
-  headers.Cookie = args.cookie;
+  headers["Cookie"] = args.cookie;
   delete headers["Content-Type"];
-  headers.Accept =
+  headers["Accept"] =
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8";
   headers["Sec-Fetch-Dest"] = "document";
   headers["Sec-Fetch-Mode"] = "navigate";
   headers["Sec-Fetch-Site"] = "same-site";
   headers["Sec-Fetch-User"] = "?1";
   headers["Upgrade-Insecure-Requests"] = "1";
-  headers.Referer = "https://grok.com/";
+  headers["Referer"] = "https://grok.com/";
   return headers;
 }
 

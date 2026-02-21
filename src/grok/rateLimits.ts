@@ -11,7 +11,7 @@ export async function checkRateLimits(
 ): Promise<Record<string, unknown> | null> {
   const rateModel = toRateLimitModel(model);
   const headers = getDynamicHeaders(settings, "/rest/rate-limits");
-  headers.Cookie = cookie;
+  headers["Cookie"] = cookie;
   const body = JSON.stringify({ requestKind: "DEFAULT", modelName: rateModel });
 
   const resp = await fetch(RATE_LIMIT_API, { method: "POST", headers, body });

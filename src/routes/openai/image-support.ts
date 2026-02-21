@@ -121,13 +121,13 @@ export async function fetchImageAsBase64(args: {
   }
 
   const headers = getDynamicHeaders(args.settings, url.pathname || "/");
-  headers.Cookie = args.cookie;
+  headers["Cookie"] = args.cookie;
   delete headers["Content-Type"];
-  headers.Accept = "image/avif,image/webp,image/*,*/*;q=0.8";
+  headers["Accept"] = "image/avif,image/webp,image/*,*/*;q=0.8";
   headers["Sec-Fetch-Dest"] = "image";
   headers["Sec-Fetch-Mode"] = "no-cors";
   headers["Sec-Fetch-Site"] = "same-site";
-  headers.Referer = "https://grok.com/";
+  headers["Referer"] = "https://grok.com/";
 
   const resp = await fetch(url.toString(), { method: "GET", headers, redirect: "follow" });
   if (!resp.ok) {

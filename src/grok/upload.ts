@@ -65,7 +65,7 @@ export async function uploadImage(
   });
 
   const headers = getDynamicHeaders(settings, "/rest/app-chat/upload-file");
-  headers.Cookie = cookie;
+  headers["Cookie"] = cookie;
 
   const resp = await fetch(UPLOAD_API, { method: "POST", headers, body });
   if (!resp.ok) {
