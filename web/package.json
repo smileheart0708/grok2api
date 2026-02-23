@@ -9,16 +9,21 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint": "run-s lint:*",
-    "lint:oxlint": "oxlint . --fix",
-    "lint:eslint": "eslint . --fix --cache",
+    "lint": "run-s lint:oxlint lint:eslint",
+    "lint:oxlint": "oxlint .",
+    "lint:eslint": "eslint . --max-warnings 0",
+    "lint:style": "stylelint \"src/**/*.{css,vue,html}\" --allow-empty-input",
+    "lint:fix": "run-s lint:oxlint:fix lint:eslint:fix lint:style:fix",
+    "lint:oxlint:fix": "oxlint . --fix",
+    "lint:eslint:fix": "eslint . --fix --max-warnings 0",
+    "lint:style:fix": "stylelint \"src/**/*.{css,vue,html}\" --fix --allow-empty-input",
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
     "lucide-vue-next": "^0.575.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.28",
-    "vue-router": "^5.0.2"
+    "vue-router": "^5.0.3"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
@@ -33,6 +38,7 @@
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
     "oxlint": "~1.47.0",
+    "postcss-html": "^1.8.0",
     "prettier": "3.8.1",
     "stylelint": "^17.3.0",
     "stylelint-config-standard": "^40.0.0",

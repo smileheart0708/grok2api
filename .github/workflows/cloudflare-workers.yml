@@ -46,6 +46,15 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Web Typecheck
+        run: pnpm --dir web run type-check
+
+      - name: Web Lint
+        run: pnpm --dir web run lint
+
+      - name: Web Stylelint
+        run: pnpm --dir web run lint:style
+
       - name: Generate wrangler.ci.toml
         run: |
           set -euo pipefail
