@@ -75,6 +75,53 @@
   opacity: 0.85;
 }
 
+.config-toggle {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  cursor: pointer;
+}
+
+.config-toggle-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.config-toggle-slider {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--accents-2);
+  transition: background-color 0.2s ease;
+}
+
+.config-toggle-slider::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.config-toggle-input:checked + .config-toggle-slider {
+  background: #000;
+}
+
+.config-toggle-input:checked + .config-toggle-slider::after {
+  transform: translateX(16px);
+}
+
 @media (max-width: 768px) {
   .config-save-btn {
     width: 100%;

@@ -22,6 +22,7 @@ export default defineConfig(
       "web/dist/**",
       "web/dist-ssr/**",
       "web/coverage/**",
+      "web/public/legacy/**",
       "**/.venv/**", 
       "**/site-packages/**" 
     ],

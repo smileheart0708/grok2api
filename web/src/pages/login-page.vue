@@ -89,7 +89,7 @@ onMounted(async () => {
       </form>
 
       <footer class="login-page__footer">
-        <a class="login-page__legacy" href="/static/login/login.html">打开旧版登录页</a>
+        <a class="login-page__legacy" href="/chat">前往公开聊天</a>
       </footer>
     </section>
   </main>

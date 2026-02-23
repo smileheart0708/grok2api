@@ -1,12 +1,196 @@
 <script setup lang="ts">
-import MigrationPage from '@/components/migration-page.vue'
+import { useLegacyPage } from '@/composables/use-legacy-page'
+import '@/styles/pages/chat-page.css'
+
+useLegacyPage({
+  scripts: [
+    '/legacy/common/toast.js',
+    '/legacy/scripts/chat.js',
+  ],
+  mountName: 'mountChatPage',
+})
 </script>
 
 <template>
-  <MigrationPage
-    title="聊天页（Vue）"
-    description="该页面用于迁移原 /chat 与 /admin/chat。后续会按普通视图与管理视图拆分组件。"
-    route-path="/chat"
-    legacy-path="/static/chat/chat.html"
-  />
+  <div id="toast-container" class="toast-container"></div>
+
+  <header class="border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md sticky top-0 z-10">
+    <div class="chat-public-header max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="font-semibold tracking-tight">Grok2API</div>
+        <div class="text-xs text-[var(--accents-5)]">在线聊天</div>
+      </div>
+      <div class="chat-top-actions flex items-center gap-2">
+        <a href="/login" class="geist-button-outline text-xs px-3 py-1.5">后台登录</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 container mx-auto max-w-5xl px-6 py-6 fade-in space-y-4">
+    <div class="card">
+      <div class="card-title">连接配置</div>
+      <div class="grid grid-cols-12 gap-3 items-end">
+        <div class="col-span-12 md:col-span-5">
+          <label class="field-label">API Key（Bearer）</label>
+          <input id="api-key-input" type="password" class="geist-input font-mono" placeholder="sk-... 或你自定义的 Key">
+          <div class="text-xs text-[var(--accents-5)] mt-1">保存在浏览器本地，仅用于调用本服务 /v1/*。</div>
+        </div>
+        <div class="col-span-12 md:col-span-4">
+          <label class="field-label">模型</label>
+          <select id="model-select" class="geist-input h-[34px]"></select>
+        </div>
+        <div class="col-span-6 md:col-span-1 flex items-center gap-2">
+          <input id="stream-toggle" type="checkbox" class="checkbox" checked>
+          <label for="stream-toggle" class="text-sm">Stream</label>
+        </div>
+        <div class="col-span-12 md:col-span-2 flex flex-wrap justify-end gap-2">
+          <button class="geist-button-outline text-xs px-3" onclick="saveApiKey()" type="button">保存</button>
+          <button class="geist-button-danger text-xs px-3" onclick="clearApiKey()" type="button">清除</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button id="tab-chat" class="tab active" onclick="switchTab('chat')" type="button">聊天</button>
+        <button id="tab-image" class="tab" onclick="switchTab('image')" type="button">生图</button>
+        <button id="tab-video" class="tab" onclick="switchTab('video')" type="button">生成视频</button>
+      </div>
+
+      <div id="panel-chat" class="panel">
+        <div id="chat-messages" class="chat-messages"></div>
+
+        <div class="composer">
+          <div class="composer-row">
+            <input id="chat-file" type="file" accept="image/*" class="hidden">
+            <button class="geist-button-outline text-xs px-3" onclick="pickChatImage()" type="button">上传图片</button>
+            <div id="chat-attach-info" class="text-xs text-[var(--accents-5)]"></div>
+            <div class="flex-1"></div>
+            <button class="geist-button text-xs px-4 composer-primary" onclick="sendChat()" type="button">发送</button>
+          </div>
+          <textarea id="chat-input" class="geist-input h-24" placeholder="输入消息..."></textarea>
+          <div id="chat-attach-preview" class="attach-preview hidden"></div>
+        </div>
+      </div>
+
+      <div id="panel-image" class="panel hidden">
+        <div id="image-mode-hint" class="text-xs text-[var(--accents-5)] mb-2 hidden">当前为新生图方式：支持实时瀑布流、宽高比与并发数量。</div>
+        <div id="image-run-mode-wrap" class="grid grid-cols-12 gap-3 items-end mb-3 hidden">
+          <div class="col-span-12 md:col-span-3">
+            <label class="field-label">运行模式</label>
+            <select id="image-run-mode" class="geist-input h-[34px]">
+              <option value="single">single（单次）</option>
+              <option value="continuous">continuous（持续）</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-12 gap-3 items-end">
+          <div class="col-span-12 md:col-span-4">
+            <label class="field-label">Prompt</label>
+            <textarea id="image-prompt" class="geist-input h-24" placeholder="描述你要生成的图片..."></textarea>
+          </div>
+          <div id="image-n-wrap" class="col-span-6 md:col-span-2">
+            <label class="field-label">数量 n</label>
+            <input id="image-n" type="number" class="geist-input" min="1" max="10" value="1">
+          </div>
+          <div id="image-aspect-wrap" class="col-span-6 md:col-span-2 hidden">
+            <label class="field-label">宽高比</label>
+            <select id="image-aspect" class="geist-input h-[34px]">
+              <option value="2:3">2:3</option>
+              <option value="1:1">1:1</option>
+              <option value="3:2">3:2</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+            </select>
+          </div>
+          <div id="image-concurrency-wrap" class="col-span-6 md:col-span-2 hidden">
+            <label class="field-label">并发数量</label>
+            <select id="image-concurrency" class="geist-input h-[34px]">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <div id="image-generate-wrap" class="col-span-12 md:col-span-2 flex justify-end">
+            <button id="image-generate-btn" class="geist-button text-xs px-4" onclick="generateImage()" type="button">生成</button>
+          </div>
+        </div>
+        <div id="image-continuous-wrap" class="mt-4 hidden">
+          <div class="imagine-actions mb-3">
+            <button id="image-start-btn" class="geist-button-outline text-xs px-3" onclick="startImageContinuous()" type="button">开始</button>
+            <button id="image-stop-btn" class="geist-button-outline text-xs px-3" onclick="stopImageContinuous()" disabled type="button">
+              停止
+            </button>
+            <button id="image-clear-btn" class="geist-button-outline text-xs px-3" onclick="clearImageWaterfall()" type="button">清空</button>
+          </div>
+          <div class="imagine-metrics mb-3">
+            <div class="imagine-metric"><span>状态</span><b id="image-status-text">未连接</b></div>
+            <div class="imagine-metric"><span>图片数量</span><b id="image-count-value">0</b></div>
+            <div class="imagine-metric"><span>活跃任务</span><b id="image-active-value">0</b></div>
+            <div class="imagine-metric"><span>平均耗时</span><b id="image-latency-value">-</b></div>
+            <div class="imagine-metric"><span>最后错误</span><b id="image-error-value">-</b></div>
+          </div>
+          <div id="image-empty-state" class="result-placeholder">等待开始持续生图...</div>
+          <div id="image-waterfall" class="image-waterfall"></div>
+        </div>
+        <div id="image-results" class="results-grid mt-4"></div>
+      </div>
+
+      <div id="panel-video" class="panel hidden">
+        <div class="grid grid-cols-12 gap-3 items-end">
+          <div class="col-span-12 md:col-span-7">
+            <label class="field-label">Prompt</label>
+            <textarea id="video-prompt" class="geist-input h-24" placeholder="描述你要生成的视频..."></textarea>
+          </div>
+          <div class="col-span-12 md:col-span-5">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="field-label">比例</label>
+                <select id="video-aspect" class="geist-input h-[34px]">
+                  <option value="3:2">3:2</option>
+                  <option value="16:9">16:9</option>
+                  <option value="9:16">9:16</option>
+                  <option value="1:1">1:1</option>
+                  <option value="2:3">2:3</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">时长（秒）</label>
+                <input id="video-length" type="number" class="geist-input" min="5" max="15" value="6">
+              </div>
+              <div>
+                <label class="field-label">分辨率</label>
+                <select id="video-resolution" class="geist-input h-[34px]">
+                  <option value="SD">SD</option>
+                  <option value="HD">HD</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">预设</label>
+                <select id="video-preset" class="geist-input h-[34px]">
+                  <option value="custom">custom</option>
+                  <option value="normal">normal</option>
+                  <option value="fun">fun</option>
+                  <option value="spicy">spicy</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer mt-4">
+          <div class="composer-row">
+            <input id="video-file" type="file" accept="image/*" class="hidden">
+            <button class="geist-button-outline text-xs px-3" onclick="pickVideoImage()" type="button">上传参考图（可选）</button>
+            <div id="video-attach-info" class="text-xs text-[var(--accents-5)]"></div>
+            <div class="flex-1"></div>
+            <button class="geist-button text-xs px-4 composer-primary" onclick="generateVideo()" type="button">生成视频</button>
+          </div>
+          <div id="video-attach-preview" class="attach-preview hidden"></div>
+        </div>
+
+        <div id="video-results" class="mt-4"></div>
+      </div>
+    </div>
+  </main>
 </template>

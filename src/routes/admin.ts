@@ -447,7 +447,7 @@ adminRoutes.use("/api/v1/admin/*", async (c, next) => {
 
 // ============================================================================
 // Legacy-compatible Admin API (/api/v1/admin/*)
-// Used by the newer multi-page admin UI in app/static.
+// Used by the Vue SPA admin pages.
 // ============================================================================
 
 function legacyOk(data: Record<string, unknown> = {}): Record<string, unknown> {

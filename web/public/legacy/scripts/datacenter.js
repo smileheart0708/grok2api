@@ -266,6 +266,21 @@ function stopTimers() {
   logsTimer = null;
 }
 
+function destroyCharts() {
+  if (hourlyChart) {
+    hourlyChart.destroy();
+    hourlyChart = null;
+  }
+  if (dailyChart) {
+    dailyChart.destroy();
+    dailyChart = null;
+  }
+  if (modelsChart) {
+    modelsChart.destroy();
+    modelsChart = null;
+  }
+}
+
 async function init() {
   apiKey = await ensureApiKey();
   if (apiKey === null) return;
@@ -277,4 +292,14 @@ async function init() {
   startTimers();
 }
 
-window.onload = init;
+function mountDatacenterPage() {
+  void init();
+
+  return () => {
+    stopTimers();
+    destroyCharts();
+  };
+}
+
+window.__grok2apiLegacy = window.__grok2apiLegacy || {};
+window.__grok2apiLegacy.mountDatacenterPage = mountDatacenterPage;

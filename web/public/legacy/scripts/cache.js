@@ -777,10 +777,13 @@ async function init() {
   startLocalStatsRefresh();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    void init();
-  });
-} else {
+function mountCachePage() {
   void init();
+
+  return () => {
+    stopLocalStatsRefresh();
+  };
 }
+
+window.__grok2apiLegacy = window.__grok2apiLegacy || {};
+window.__grok2apiLegacy.mountCachePage = mountCachePage;

@@ -39,10 +39,6 @@ const routes: RouteRecordRaw[] = [
         path: 'cache',
         component: () => import('@/pages/cache-page.vue'),
       },
-      {
-        path: 'chat',
-        component: () => import('@/pages/chat-page.vue'),
-      },
     ],
   },
   {

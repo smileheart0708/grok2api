@@ -237,12 +237,6 @@ async function applyRuntimeUiFlags() {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', applyRuntimeUiFlags);
-} else {
-  applyRuntimeUiFlags();
-}
-
 async function init() {
   try {
     lastSelectedTestModel = String(localStorage.getItem(TEST_MODEL_STORAGE_KEY) || '').trim();
@@ -1710,4 +1704,97 @@ function escapeHtml(text) {
 
 
 
-window.onload = init;
+function exposeTokenGlobals() {
+  Object.assign(window, {
+    addToken,
+    openImportModal,
+    refreshAllNsfw,
+    onFilterChange,
+    resetFilters,
+    toggleSelectAll,
+    toggleSelectByKey,
+    batchExport,
+    batchUpdate,
+    batchDelete,
+    toggleBatchPause,
+    stopBatchRefresh,
+    closeAddModal,
+    switchAddTab,
+    submitManualAdd,
+    stopAutoRegister,
+    startAutoRegister,
+    closeImportModal,
+    submitImport,
+    closeEditModal,
+    saveEdit,
+    closeTestModal,
+    runTokenTest,
+    openTestModalByKey,
+    refreshStatus,
+    openEditModalByKey,
+    deleteTokenByKey,
+    copyToClipboard,
+  });
+}
+
+function hideTokenGlobals() {
+  [
+    'addToken',
+    'openImportModal',
+    'refreshAllNsfw',
+    'onFilterChange',
+    'resetFilters',
+    'toggleSelectAll',
+    'toggleSelectByKey',
+    'batchExport',
+    'batchUpdate',
+    'batchDelete',
+    'toggleBatchPause',
+    'stopBatchRefresh',
+    'closeAddModal',
+    'switchAddTab',
+    'submitManualAdd',
+    'stopAutoRegister',
+    'startAutoRegister',
+    'closeImportModal',
+    'submitImport',
+    'closeEditModal',
+    'saveEdit',
+    'closeTestModal',
+    'runTokenTest',
+    'openTestModalByKey',
+    'refreshStatus',
+    'openEditModalByKey',
+    'deleteTokenByKey',
+    'copyToClipboard',
+  ].forEach((key) => {
+    try {
+      delete window[key];
+    } catch (e) {
+      // ignore
+    }
+  });
+}
+
+function mountTokenPage() {
+  exposeTokenGlobals();
+  void applyRuntimeUiFlags();
+  void init();
+
+  return () => {
+    if (liveStatsTimer) {
+      clearInterval(liveStatsTimer);
+      liveStatsTimer = null;
+    }
+    if (autoRegisterTimer) {
+      clearInterval(autoRegisterTimer);
+      autoRegisterTimer = null;
+    }
+    autoRegisterJobId = null;
+    autoRegisterLastAdded = 0;
+    hideTokenGlobals();
+  };
+}
+
+window.__grok2apiLegacy = window.__grok2apiLegacy || {};
+window.__grok2apiLegacy.mountTokenPage = mountTokenPage;

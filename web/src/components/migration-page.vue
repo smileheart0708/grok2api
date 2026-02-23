@@ -19,7 +19,6 @@ const quickLinks = [
   '/admin/datacenter',
   '/admin/cache',
   '/chat',
-  '/admin/chat',
 ] as const
 
 const legacyHref = computed(() => props.legacyPath ?? props.routePath)

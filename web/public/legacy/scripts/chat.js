@@ -16,13 +16,10 @@ let imageContinuousActive = 0;
 let imageContinuousLastError = '';
 let imageContinuousRunToken = 0;
 let imageContinuousDesiredConcurrency = 1;
+let beforeUnloadHandler = null;
 
 function q(id) {
   return document.getElementById(id);
-}
-
-function isAdminChat() {
-  return Boolean(window.__CHAT_ADMIN__);
 }
 
 function getUserApiKey() {
@@ -194,23 +191,6 @@ function renderContent(container, content, forceText) {
 }
 
 async function init() {
-  if (isAdminChat()) {
-    const adminSession = await ensureApiKey();
-    if (adminSession === null) return;
-    try {
-      const res = await fetch('/api/v1/admin/config', { headers: buildAuthHeaders(adminSession) });
-      if (res.status === 401) return logout();
-      if (res.ok) {
-        const cfg = await res.json();
-        const k = String(cfg?.app?.api_key || '').trim();
-        if (k) {
-          q('api-key-input').value = k;
-          localStorage.setItem(STORAGE_KEY, k);
-        }
-      }
-    } catch (e) {}
-  }
-
   const saved = localStorage.getItem(STORAGE_KEY) || '';
   if (!q('api-key-input').value) q('api-key-input').value = saved;
 
@@ -221,9 +201,13 @@ async function init() {
     }
     updateImageModeUI();
   });
-  window.addEventListener('beforeunload', () => {
+  if (beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+  }
+  beforeUnloadHandler = () => {
     stopImageContinuous();
-  });
+  };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
   await refreshModels();
   await refreshImageGenerationMethod();
 
@@ -1173,9 +1157,58 @@ async function streamVideo(body, bubbleEl) {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+function exposeChatGlobals() {
+  Object.assign(window, {
+    saveApiKey,
+    clearApiKey,
+    switchTab,
+    pickChatImage,
+    sendChat,
+    generateImage,
+    startImageContinuous,
+    stopImageContinuous,
+    clearImageWaterfall,
+    pickVideoImage,
+    generateVideo,
+  });
 }
+
+function hideChatGlobals() {
+  [
+    'saveApiKey',
+    'clearApiKey',
+    'switchTab',
+    'pickChatImage',
+    'sendChat',
+    'generateImage',
+    'startImageContinuous',
+    'stopImageContinuous',
+    'clearImageWaterfall',
+    'pickVideoImage',
+    'generateVideo',
+  ].forEach((key) => {
+    try {
+      delete window[key];
+    } catch (e) {
+      // ignore
+    }
+  });
+}
+
+function mountChatPage() {
+  exposeChatGlobals();
+  void init();
+
+  return () => {
+    stopImageContinuous();
+    if (beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      beforeUnloadHandler = null;
+    }
+    hideChatGlobals();
+  };
+}
+
+window.__grok2apiLegacy = window.__grok2apiLegacy || {};
+window.__grok2apiLegacy.mountChatPage = mountChatPage;
 

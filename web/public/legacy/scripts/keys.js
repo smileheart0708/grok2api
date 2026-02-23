@@ -528,8 +528,49 @@ async function init() {
   await loadKeys();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+function exposeKeysGlobals() {
+  Object.assign(window, {
+    openCreateModal,
+    onKeyFilterChange,
+    resetKeyFilters,
+    closeKeyModal,
+    generateKeyValue,
+    applyKeyLimitPreset,
+    submitKeyModal,
+  });
 }
+
+function hideKeysGlobals() {
+  [
+    'openCreateModal',
+    'onKeyFilterChange',
+    'resetKeyFilters',
+    'closeKeyModal',
+    'generateKeyValue',
+    'applyKeyLimitPreset',
+    'submitKeyModal',
+  ].forEach((key) => {
+    try {
+      delete window[key];
+    } catch (e) {
+      // ignore
+    }
+  });
+}
+
+function mountKeysPage() {
+  exposeKeysGlobals();
+  keyModalEscBound = false;
+  void init();
+
+  return () => {
+    if (keyModalHideTimer) {
+      clearTimeout(keyModalHideTimer);
+      keyModalHideTimer = null;
+    }
+    hideKeysGlobals();
+  };
+}
+
+window.__grok2apiLegacy = window.__grok2apiLegacy || {};
+window.__grok2apiLegacy.mountKeysPage = mountKeysPage;

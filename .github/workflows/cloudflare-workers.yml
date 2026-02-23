@@ -55,8 +55,8 @@ jobs:
       - name: Web Stylelint
         run: pnpm --dir web run lint:style
 
-      - name: Web Build Login Asset
-        run: pnpm --dir web run build:login
+      - name: Web Build
+        run: pnpm --dir web run build
 
       - name: Generate wrangler.ci.toml
         run: |

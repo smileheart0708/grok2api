@@ -194,17 +194,17 @@ function renderConfig(data) {
       let input;
       if (typeof val === 'boolean') {
         const label = document.createElement('label');
-        label.className = 'relative inline-flex items-center cursor-pointer';
+        label.className = 'config-toggle';
 
         input = document.createElement('input');
         input.type = 'checkbox';
         input.checked = val;
-        input.className = 'sr-only peer';
+        input.className = 'config-toggle-input';
         input.dataset.section = section;
         input.dataset.key = key;
 
         const slider = document.createElement('div');
-        slider.className = "w-9 h-5 bg-[var(--accents-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black";
+        slider.className = 'config-toggle-slider';
 
         label.appendChild(input);
         label.appendChild(slider);
@@ -401,4 +401,30 @@ async function copyToClipboard(text, btn) {
   }
 }
 
-window.onload = init;
+function exposeConfigGlobals() {
+  Object.assign(window, {
+    saveConfig,
+  });
+}
+
+function hideConfigGlobals() {
+  ['saveConfig'].forEach((key) => {
+    try {
+      delete window[key];
+    } catch (e) {
+      // ignore
+    }
+  });
+}
+
+function mountConfigPage() {
+  exposeConfigGlobals();
+  void init();
+
+  return () => {
+    hideConfigGlobals();
+  };
+}
+
+window.__grok2apiLegacy = window.__grok2apiLegacy || {};
+window.__grok2apiLegacy.mountConfigPage = mountConfigPage;

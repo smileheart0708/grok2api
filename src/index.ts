@@ -50,7 +50,7 @@ async function fetchAsset(c: Context<{ Bindings: Env }>, pathname: string): Prom
   if (!assets) {
     logError("ASSETS binding missing: check wrangler.toml assets binding");
     return assetFetchError(
-      'Internal Server Error: missing ASSETS binding. Check `wrangler.toml` `assets = { directory = \"./app/static\", binding = \"ASSETS\" }` and redeploy.',
+      'Internal Server Error: missing ASSETS binding. Check `wrangler.toml` `assets = { directory = \"./web/dist\", binding = \"ASSETS\" }` and redeploy.',
       buildSha,
     );
   }
@@ -101,86 +101,12 @@ app.get("/v1/files/video/:imgPath{.+}", (c) =>
 
 app.get("/_worker.js", (c) => c.notFound());
 
-app.get("/", (c) => c.redirect("/login", 302));
+app.get("/manage", (c) => c.redirect("/admin/token", 302));
 
-app.get("/login", async (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const url = new URL(c.req.url);
-  const v = url.searchParams.get("v") ?? "";
-  if (v !== buildSha) {
-    url.searchParams.set("v", buildSha);
-    return c.redirect(`${url.pathname}?${url.searchParams.toString()}`, 302);
-  }
-
-  const vueLogin = await fetchAsset(c, "/login-vue/login.html");
-  if (vueLogin.status === 404) return fetchAsset(c, "/login/login.html");
-  return vueLogin;
-});
-
-// Legacy (old admin UI): keep /manage as an alias.
-app.get("/manage", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/token?v=${encodeURIComponent(buildSha)}`, 302);
-  return c.redirect(`/admin/token?v=${encodeURIComponent(buildSha)}`, 302);
-});
-
-app.get("/admin", (c) => c.redirect("/login", 302));
-
-app.get("/admin/token", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/token?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/token/token.html");
-});
-
-app.get("/admin/datacenter", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/datacenter?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/datacenter/datacenter.html");
-});
-
-app.get("/admin/config", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/config?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/config/config.html");
-});
-
-app.get("/admin/cache", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/cache?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/cache/cache.html");
-});
-
-app.get("/admin/keys", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/keys?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/keys/keys.html");
-});
-
-app.get("/chat", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/chat?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/chat/chat.html");
-});
-
+// Chat is public-only. The old internal entry is removed.
 app.get("/admin/chat", (c) => {
-  const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/admin/chat?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/chat/chat_admin.html");
-});
-
-app.get("/static/*", (c) => {
-  const url = new URL(c.req.url);
-  if (url.pathname === "/static/_worker.js") return c.notFound();
-  url.pathname = url.pathname.replace(/^\/static\//, "/");
-  return fetchAsset(c, url.pathname);
+  const buildSha = getBuildSha(c.env);
+  return withResponseHeaders(c.text("Not Found", 404), { "x-grok2api-build": buildSha });
 });
 
 app.get("/health", (c) =>
@@ -203,9 +129,28 @@ app.notFound(async (c) => {
   // Avoid calling c.notFound() here because it will invoke this handler again.
   if (!assets) return withResponseHeaders(c.text("Not Found", 404), { "x-grok2api-build": buildSha });
   try {
+    const reqUrl = new URL(c.req.url);
     const res = await assets.fetch(c.req.raw);
-    // Keep the header consistent for debugging/version checks.
-    return withResponseHeaders(res, { "x-grok2api-build": buildSha });
+    if (res.status !== 404) {
+      // Keep the header consistent for debugging/version checks.
+      return withResponseHeaders(res, { "x-grok2api-build": buildSha });
+    }
+
+    const accept = c.req.header("accept") ?? "";
+    const canServeSpa =
+      c.req.method === "GET" &&
+      accept.includes("text/html") &&
+      !reqUrl.pathname.startsWith("/api/") &&
+      !reqUrl.pathname.startsWith("/v1/") &&
+      !reqUrl.pathname.startsWith("/images/") &&
+      reqUrl.pathname !== "/admin/chat";
+
+    if (!canServeSpa) {
+      return withResponseHeaders(res, { "x-grok2api-build": buildSha });
+    }
+
+    const indexRes = await fetchAsset(c, "/index.html");
+    return withResponseHeaders(indexRes, { "x-grok2api-build": buildSha });
   } catch (err) {
     logError("ASSETS fetch failed (notFound):", err);
     const detail = isDebugRequest(c) ? `\n\n${err instanceof Error ? err.stack || err.message : String(err)}` : "";

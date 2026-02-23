@@ -3,8 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2026-01-28"
 minify = true
 
-# 静态资源（管理面板）
-assets = { directory = "./app/static", binding = "ASSETS" }
+# 静态资源（Vue SPA）
+assets = { directory = "./web/dist", binding = "ASSETS" }
 
 # 将执行位置固定在美国附近，使出口流量更稳定。
 # 文档: https://developers.cloudflare.com/workers/platform/placement/
