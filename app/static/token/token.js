@@ -1078,7 +1078,9 @@ async function runTokenTest() {
     const payload = await parseJsonSafely(res);
     const upstreamStatusRaw = Number(payload?.upstream_status);
     const upstreamStatus = Number.isFinite(upstreamStatusRaw) ? upstreamStatusRaw : res.status;
-    const success = upstreamStatus === 200;
+    const success = typeof payload?.success === 'boolean'
+      ? payload.success
+      : upstreamStatus === 200;
     const reactivated = Boolean(payload?.reactivated);
     const quotaRefresh = payload?.quota_refresh;
     const quotaText = quotaRefresh?.success ? '用量刷新成功' : `用量刷新失败: ${quotaRefresh?.error || '未知错误'}`;

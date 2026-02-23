@@ -46,6 +46,7 @@ import {
 import { generateImagineWs, resolveAspectRatio } from "../grok/imagineExperimental";
 import { checkRateLimits } from "../grok/rateLimits";
 import { buildConversationPayload, sendConversationRequest } from "../grok/conversation";
+import { parseOpenAiFromGrokNdjson } from "../grok/processor";
 import { MODEL_CONFIG } from "../grok/models";
 import { addRequestLog, clearRequestLogs, getRequestLogs, getRequestStats } from "../repo/logs";
 import { getRefreshProgress, setRefreshProgress } from "../repo/refreshProgress";
@@ -1052,7 +1053,26 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
       ...(referer ? { referer } : {}),
     });
     const upstreamStatus = upstream.status;
-    const result = await parseUpstreamResult(upstream);
+    let result: unknown = "";
+    let converted = false;
+    if (upstreamStatus === 200) {
+      const upstreamClone = upstream.clone();
+      try {
+        const origin = new URL(c.req.url).origin;
+        result = await parseOpenAiFromGrokNdjson(upstream, {
+          cookie,
+          settings: settings.grok,
+          global: settings.global,
+          origin,
+          requestedModel: model,
+        });
+        converted = true;
+      } catch {
+        result = await parseUpstreamResult(upstreamClone);
+      }
+    } else {
+      result = await parseUpstreamResult(upstream);
+    }
 
     let reactivated = false;
     let quotaRefresh: TokenQuotaRefreshResult = {
@@ -1073,7 +1093,7 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
     }
 
     return c.json({
-      success: upstreamStatus === 200,
+      success: upstreamStatus === 200 && converted,
       upstream_status: upstreamStatus,
       result,
       reactivated,
