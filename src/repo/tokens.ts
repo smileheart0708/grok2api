@@ -228,3 +228,23 @@ export async function updateTokenLimits(
   params.push(token);
   await dbRun(db, `UPDATE tokens SET ${parts.join(", ")} WHERE token = ?`, params);
 }
+
+export async function reactivateToken(
+  db: Env["DB"],
+  token: string,
+  token_type: TokenType,
+): Promise<boolean> {
+  const row = await dbFirst<{ status: string }>(
+    db,
+    "SELECT status FROM tokens WHERE token = ? AND token_type = ?",
+    [token, token_type],
+  );
+  if (!row || row.status !== "expired") return false;
+
+  await dbRun(
+    db,
+    "UPDATE tokens SET status = 'active', failed_count = 0, cooldown_until = NULL, last_failure_time = NULL, last_failure_reason = NULL WHERE token = ? AND token_type = ?",
+    [token, token_type],
+  );
+  return true;
+}

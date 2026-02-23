@@ -240,6 +240,11 @@
       padding: 0;
     }
 
+    .test-result-box {
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
     .tab-header {
       display: flex;
       gap: 8px;

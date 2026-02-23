@@ -142,7 +142,7 @@
               <th class="w-24">状态</th>
               <th class="w-20">额度</th>
               <th class="text-left">备注</th>
-              <th class="w-32 text-center">操作</th>
+              <th class="w-40 text-center">操作</th>
             </tr>
           </thead>
           <tbody id="token-table-body">
@@ -344,6 +344,40 @@
     </div>
   </div>
 
+  <div id="test-modal" class="modal-overlay hidden">
+    <div class="modal-content modal-lg" id="test-modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">测试 Token</h3>
+        <button onclick="closeTestModal()" class="modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <input type="hidden" id="test-token-value">
+        <input type="hidden" id="test-token-type">
+        <div>
+          <label class="modal-label mb-1 block">当前 Token</label>
+          <input type="text" id="test-token-display" class="geist-input font-mono bg-gray-50 text-gray-500" readonly>
+        </div>
+        <div>
+          <label class="modal-label mb-1 block">测试模型（仅聊天模型）</label>
+          <select id="test-model-select" class="geist-input"></select>
+        </div>
+        <div class="text-xs text-[var(--accents-5)]">测试消息固定为 <code>hi</code>，仅用于模拟一次下游聊天请求。</div>
+        <div id="test-result-meta" class="text-xs text-[var(--accents-5)] hidden"></div>
+        <pre id="test-result-content"
+          class="hidden test-result-box text-xs font-mono whitespace-pre-wrap bg-[var(--accents-1)] border border-[var(--border)] rounded-md p-2 max-h-64 overflow-auto"></pre>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeTestModal()" class="geist-button-outline text-xs px-3">取消</button>
+          <button id="test-run-btn" onclick="runTokenTest()" class="geist-button text-xs px-3">开始测试</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="confirm-dialog" class="modal-overlay confirm-dialog hidden">
     <div class="modal-content modal-md">
       <div class="confirm-dialog-body">
@@ -362,7 +396,7 @@
   <script src="/static/common/header.js?v=3"></script>
   <script src="/static/common/footer.js?v=1"></script>
   <script src="/static/common/toast.js"></script>
-  <script src="/static/token/token.js?v=15"></script>
+  <script src="/static/token/token.js?v=16"></script>
 </body>
 
 </html>

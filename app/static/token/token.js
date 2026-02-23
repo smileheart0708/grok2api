@@ -14,6 +14,9 @@ let autoRegisterLastAdded = 0;
 let liveStatsTimer = null;
 let isWorkersRuntime = false;
 let isNsfwRefreshAllRunning = false;
+const TEST_MODEL_STORAGE_KEY = 'grok2api-token-test-model';
+let chatTestModels = [];
+let lastSelectedTestModel = '';
 
 let displayTokens = [];
 const filterState = {
@@ -109,6 +112,12 @@ function isTokenExhausted(item) {
 
 function isTokenActive(item) {
   return !isTokenInvalid(item) && !isTokenExhausted(item);
+}
+
+function getStatusLabel(item) {
+  if (isTokenActive(item)) return '活跃';
+  if (isTokenExhausted(item)) return '额度用尽';
+  return '失效';
 }
 
 function getTokenKey(token) {
@@ -235,9 +244,15 @@ if (document.readyState === 'loading') {
 }
 
 async function init() {
+  try {
+    lastSelectedTestModel = String(localStorage.getItem(TEST_MODEL_STORAGE_KEY) || '').trim();
+  } catch (e) {
+    lastSelectedTestModel = '';
+  }
   apiKey = await ensureApiKey();
   if (apiKey === null) return;
   setupConfirmDialog();
+  setupTestModal();
   loadData();
   startLiveStats();
 }
@@ -454,7 +469,7 @@ function renderTable() {
     else if (isTokenExhausted(item)) statusClass = 'badge-orange';
     else statusClass = 'badge-red';
     tdStatus.className = 'text-center';
-    tdStatus.innerHTML = `<span class="badge ${statusClass}">${isTokenActive(item) ? 'active' : (isTokenExhausted(item) ? 'exhausted' : 'invalid')}</span>`;
+    tdStatus.innerHTML = `<span class="badge ${statusClass}">${getStatusLabel(item)}</span>`;
 
     // Quota (Center)
     const tdQuota = document.createElement('td');
@@ -471,6 +486,9 @@ function renderTable() {
     tdActions.className = 'text-center';
     tdActions.innerHTML = `
                 <div class="flex items-center justify-center gap-2">
+                     <button onclick="openTestModalByKey(decodeURIComponent('${tokenKeyEncoded}'))" class="p-1 text-gray-400 hover:text-blue-600 rounded" title="测试">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"></path><path d="M10 3v6.5L5.2 17a4 4 0 0 0 3.3 6h7a4 4 0 0 0 3.3-6L14 9.5V3"></path><path d="M8.5 14h7"></path></svg>
+                     </button>
                      <button onclick="refreshStatus(decodeURIComponent('${tokenEncoded}'), this)" class="p-1 text-gray-400 hover:text-black rounded" title="刷新状态">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                      </button>
@@ -848,6 +866,244 @@ async function pollAutoRegisterStatus() {
     }
   } catch (e) {
     // ignore transient errors
+  }
+}
+
+function setupTestModal() {
+  const modal = document.getElementById('test-modal');
+  if (!modal) return;
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) closeTestModal();
+  });
+
+  const modelSelect = document.getElementById('test-model-select');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', () => {
+      lastSelectedTestModel = String(modelSelect.value || '').trim();
+      try {
+        localStorage.setItem(TEST_MODEL_STORAGE_KEY, lastSelectedTestModel);
+      } catch (e) {
+        // ignore
+      }
+    });
+  }
+}
+
+function clearTestResult() {
+  const metaEl = document.getElementById('test-result-meta');
+  const contentEl = document.getElementById('test-result-content');
+  if (metaEl) {
+    metaEl.textContent = '';
+    metaEl.classList.add('hidden');
+  }
+  if (contentEl) {
+    contentEl.textContent = '';
+    contentEl.classList.add('hidden');
+  }
+}
+
+function renderTestResult(infoText, payload) {
+  const metaEl = document.getElementById('test-result-meta');
+  const contentEl = document.getElementById('test-result-content');
+  if (metaEl) {
+    metaEl.textContent = infoText;
+    metaEl.classList.remove('hidden');
+  }
+  if (contentEl) {
+    const text =
+      typeof payload === 'string'
+        ? payload
+        : JSON.stringify(payload, null, 2);
+    contentEl.textContent = text || '';
+    contentEl.classList.remove('hidden');
+  }
+}
+
+function fillTestModelOptions() {
+  const sel = document.getElementById('test-model-select');
+  if (!sel) return;
+  sel.innerHTML = '';
+
+  chatTestModels.forEach((item) => {
+    const opt = document.createElement('option');
+    const id = String(item.id || '');
+    const label = String(item.display_name || id);
+    opt.value = id;
+    opt.textContent = `${label} (${id})`;
+    sel.appendChild(opt);
+  });
+
+  if (!chatTestModels.length) return;
+  const preferred = lastSelectedTestModel
+    || (chatTestModels.some((it) => it.id === 'grok-4-fast') ? 'grok-4-fast' : chatTestModels[0].id);
+  sel.value = preferred;
+  lastSelectedTestModel = sel.value;
+}
+
+async function loadChatTestModels() {
+  const res = await fetch('/api/v1/admin/models/chat', {
+    headers: buildAuthHeaders(apiKey)
+  });
+  if (res.status === 401) {
+    logout();
+    return false;
+  }
+  const data = await parseJsonSafely(res);
+  if (!res.ok) {
+    throw new Error(extractApiErrorMessage(data, '加载测试模型失败'));
+  }
+
+  const rawModels = Array.isArray(data?.data) ? data.data : [];
+  chatTestModels = rawModels
+    .map((it) => {
+      const id = String(it?.id || '').trim();
+      if (!id) return null;
+      return {
+        id,
+        display_name: String(it?.display_name || id),
+        description: String(it?.description || '')
+      };
+    })
+    .filter(Boolean);
+
+  fillTestModelOptions();
+  return chatTestModels.length > 0;
+}
+
+async function openTestModalByKey(tokenKey) {
+  const idx = findTokenIndexByKey(tokenKey);
+  if (idx < 0) return;
+  const item = flatTokens[idx];
+  const modal = document.getElementById('test-modal');
+  if (!modal) return;
+
+  const tokenValueEl = document.getElementById('test-token-value');
+  const tokenTypeEl = document.getElementById('test-token-type');
+  const tokenDisplayEl = document.getElementById('test-token-display');
+  const runBtn = document.getElementById('test-run-btn');
+  if (tokenValueEl) tokenValueEl.value = normalizeSsoToken(item.token);
+  if (tokenTypeEl) tokenTypeEl.value = String(item.token_type || poolToType(item.pool));
+  if (tokenDisplayEl) tokenDisplayEl.value = item.token;
+  clearTestResult();
+
+  modal.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    modal.classList.add('is-open');
+  });
+
+  if (runBtn) {
+    runBtn.disabled = true;
+    runBtn.textContent = '加载模型中...';
+  }
+  try {
+    const ok = await loadChatTestModels();
+    if (!ok) {
+      showToast('未获取到聊天模型', 'error');
+      if (runBtn) runBtn.disabled = true;
+      return;
+    }
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.textContent = '开始测试';
+    }
+  } catch (e) {
+    if (runBtn) {
+      runBtn.disabled = true;
+      runBtn.textContent = '开始测试';
+    }
+    showToast(e?.message ? `模型加载失败: ${e.message}` : '模型加载失败', 'error');
+  }
+}
+
+function closeTestModal() {
+  const modal = document.getElementById('test-modal');
+  if (!modal) return;
+  modal.classList.remove('is-open');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    clearTestResult();
+    const runBtn = document.getElementById('test-run-btn');
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.textContent = '开始测试';
+    }
+  }, 200);
+}
+
+async function runTokenTest() {
+  const tokenValue = String(document.getElementById('test-token-value')?.value || '').trim();
+  const tokenType = String(document.getElementById('test-token-type')?.value || '').trim();
+  const model = String(document.getElementById('test-model-select')?.value || '').trim();
+  if (!tokenValue || !tokenType) {
+    showToast('测试参数缺失', 'error');
+    return;
+  }
+  if (!model) {
+    showToast('请选择测试模型', 'error');
+    return;
+  }
+
+  const runBtn = document.getElementById('test-run-btn');
+  if (runBtn) {
+    runBtn.disabled = true;
+    runBtn.textContent = '测试中...';
+  }
+
+  lastSelectedTestModel = model;
+  try {
+    localStorage.setItem(TEST_MODEL_STORAGE_KEY, model);
+  } catch (e) {
+    // ignore
+  }
+
+  clearTestResult();
+  try {
+    const res = await fetch('/api/v1/admin/tokens/test', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(apiKey)
+      },
+      body: JSON.stringify({
+        token: tokenValue,
+        token_type: tokenType,
+        model
+      })
+    });
+    if (res.status === 401) {
+      logout();
+      return;
+    }
+
+    const payload = await parseJsonSafely(res);
+    const upstreamStatusRaw = Number(payload?.upstream_status);
+    const upstreamStatus = Number.isFinite(upstreamStatusRaw) ? upstreamStatusRaw : res.status;
+    const success = upstreamStatus === 200;
+    const reactivated = Boolean(payload?.reactivated);
+    const quotaRefresh = payload?.quota_refresh;
+    const quotaText = quotaRefresh?.success ? '用量刷新成功' : `用量刷新失败: ${quotaRefresh?.error || '未知错误'}`;
+    const metaText = success
+      ? `上游状态码 ${upstreamStatus}，测试成功${reactivated ? '，已自动恢复为活跃' : ''}，${quotaText}`
+      : `上游状态码 ${upstreamStatus}，测试失败`;
+    const resultPayload = payload && Object.prototype.hasOwnProperty.call(payload, 'result')
+      ? payload.result
+      : payload;
+    renderTestResult(metaText, resultPayload || '');
+
+    if (success) {
+      showToast('测试成功', 'success');
+      loadData();
+    } else {
+      showToast(extractApiErrorMessage(payload, `测试失败（${upstreamStatus}）`), 'error');
+    }
+  } catch (e) {
+    renderTestResult('测试请求失败', { error: e?.message || String(e) });
+    showToast(e?.message ? `测试失败: ${e.message}` : '测试失败', 'error');
+  } finally {
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.textContent = '开始测试';
+    }
   }
 }
 

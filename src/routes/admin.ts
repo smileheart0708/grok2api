@@ -35,6 +35,7 @@ import {
   deleteTokens,
   getAllTags,
   listTokens,
+  reactivateToken,
   recordTokenFailure,
   selectBestToken,
   tokenRowToInfo,
@@ -44,6 +45,8 @@ import {
 } from "../repo/tokens";
 import { generateImagineWs, resolveAspectRatio } from "../grok/imagineExperimental";
 import { checkRateLimits } from "../grok/rateLimits";
+import { buildConversationPayload, sendConversationRequest } from "../grok/conversation";
+import { MODEL_CONFIG } from "../grok/models";
 import { addRequestLog, clearRequestLogs, getRequestLogs, getRequestStats } from "../repo/logs";
 import { getRefreshProgress, setRefreshProgress } from "../repo/refreshProgress";
 import {
@@ -235,6 +238,12 @@ interface AdminTokensRefreshBody {
   tokens?: unknown;
 }
 
+interface AdminTokenTestBody {
+  token?: unknown;
+  token_type?: unknown;
+  model?: unknown;
+}
+
 interface AdminCacheBody {
   type?: unknown;
   name?: unknown;
@@ -284,6 +293,96 @@ function getLimitValue(payload: Record<string, unknown> | null): number | null {
   if (!payload) return null;
   const value = payload["limit"];
   return typeof value === "number" ? value : null;
+}
+
+function buildTokenCookie(token: string, cf: string): string {
+  return cf ? `sso-rw=${token};sso=${token};${cf}` : `sso-rw=${token};sso=${token}`;
+}
+
+function isChatModel(modelId: string): boolean {
+  const cfg = MODEL_CONFIG[modelId];
+  if (!cfg) return false;
+  return !cfg.is_image_model && !cfg.is_video_model;
+}
+
+function normalizeUpstreamResultText(raw: string): unknown {
+  const text = raw.trim();
+  if (!text) return "";
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    // ignore
+  }
+
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return "";
+
+  const parsed: unknown[] = [];
+  for (const line of lines) {
+    try {
+      parsed.push(JSON.parse(line) as unknown);
+    } catch {
+      return text;
+    }
+  }
+  return parsed.length ? parsed : text;
+}
+
+async function parseUpstreamResult(upstream: Response): Promise<unknown> {
+  const raw = await upstream.text().catch(() => "");
+  if (!raw) return "";
+  return normalizeUpstreamResultText(raw);
+}
+
+interface TokenQuotaRefreshResult {
+  success: boolean;
+  remaining_queries?: number;
+  heavy_remaining_queries?: number;
+  error?: string;
+}
+
+async function refreshTokenQuotaForAdminTest(args: {
+  env: Env;
+  settings: Awaited<ReturnType<typeof getSettings>>;
+  token: string;
+  tokenType: "sso" | "ssoSuper";
+}): Promise<TokenQuotaRefreshResult> {
+  const { env, settings, token, tokenType } = args;
+  try {
+    const cf = normalizeCfCookie(settings.grok.cf_clearance ?? "");
+    const cookie = buildTokenCookie(token, cf);
+    const ratePayload = await checkRateLimits(cookie, settings.grok, "grok-4-fast");
+    const remaining = getRemainingTokens(ratePayload);
+    if (typeof remaining !== "number") {
+      return { success: false, error: "刷新失败：无法读取 chat 剩余额度" };
+    }
+
+    let heavyRemaining: number | undefined;
+    if (tokenType === "ssoSuper") {
+      const heavyPayload = await checkRateLimits(cookie, settings.grok, "grok-4-heavy");
+      const heavy = getRemainingTokens(heavyPayload);
+      if (typeof heavy === "number") heavyRemaining = heavy;
+    }
+
+    await updateTokenLimits(env.DB, token, {
+      remaining_queries: remaining,
+      ...(typeof heavyRemaining === "number" ? { heavy_remaining_queries: heavyRemaining } : {}),
+    });
+
+    return {
+      success: true,
+      remaining_queries: remaining,
+      ...(typeof heavyRemaining === "number" ? { heavy_remaining_queries: heavyRemaining } : {}),
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
 }
 
 async function verifyWsApiKeyForImagine(c: Context<{ Bindings: Env }>): Promise<boolean> {
@@ -744,6 +843,21 @@ adminRoutes.get("/api/v1/admin/imagine/ws", async (c) => {
   return new Response(null, { status: 101, webSocket: client });
 });
 
+adminRoutes.get("/api/v1/admin/models/chat", requireAdminAuth, async (c) => {
+  const ts = Math.floor(Date.now() / 1000);
+  const data = Object.entries(MODEL_CONFIG)
+    .filter(([id]) => isChatModel(id))
+    .map(([id, cfg]) => ({
+      id,
+      object: "model",
+      created: ts,
+      owned_by: "x-ai",
+      display_name: cfg.display_name,
+      description: cfg.description,
+    }));
+  return c.json({ object: "list", data });
+});
+
 adminRoutes.get("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
   try {
     const rows = await listTokens(c.env.DB);
@@ -867,7 +981,6 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
     if (!unique.length) return c.json(legacyErr("No tokens provided"), 400);
 
     const settings = await getSettings(c.env);
-    const cf = normalizeCfCookie(settings.grok.cf_clearance ?? "");
 
     const placeholders = unique.map(() => "?").join(",");
     const typeRows = placeholders
@@ -882,25 +995,14 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
     const results: Record<string, boolean> = {};
     for (const t of unique) {
       try {
-        const cookie = cf ? `sso-rw=${t};sso=${t};${cf}` : `sso-rw=${t};sso=${t}`;
-        const tokenType = tokenTypeByToken.get(t) ?? "sso";
-        const r = await checkRateLimits(cookie, settings.grok, "grok-4-fast");
-        const remaining = getRemainingTokens(r);
-        let heavyRemaining: number | null = null;
-        if (tokenType === "ssoSuper") {
-          const rh = await checkRateLimits(cookie, settings.grok, "grok-4-heavy");
-          const hv = getRemainingTokens(rh);
-          if (typeof hv === "number") heavyRemaining = hv;
-        }
-        if (typeof remaining === "number") {
-          await updateTokenLimits(c.env.DB, t, {
-            remaining_queries: remaining,
-            ...(heavyRemaining !== null ? { heavy_remaining_queries: heavyRemaining } : {}),
-          });
-          results[`sso=${t}`] = true;
-        } else {
-          results[`sso=${t}`] = false;
-        }
+        const tokenType = tokenTypeByToken.get(t) === "ssoSuper" ? "ssoSuper" : "sso";
+        const refreshed = await refreshTokenQuotaForAdminTest({
+          env: c.env,
+          settings,
+          token: t,
+          tokenType,
+        });
+        results[`sso=${t}`] = refreshed.success;
       } catch {
         results[`sso=${t}`] = false;
       }
@@ -910,6 +1012,85 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
     return c.json(legacyOk({ results }));
   } catch (e) {
     return c.json(legacyErr(`Refresh failed: ${e instanceof Error ? e.message : String(e)}`), 500);
+  }
+});
+
+adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
+  try {
+    const body = (await c.req.json()) as AdminTokenTestBody;
+    const token_type = validateTokenType(String(body.token_type ?? ""));
+    const token = normalizeSsoToken(String(body.token ?? ""));
+    const model = String(body.model ?? "").trim();
+
+    if (!token) return c.json(legacyErr("Token 不能为空"), 400);
+    if (!model) return c.json(legacyErr("测试模型不能为空"), 400);
+    if (!isChatModel(model)) return c.json(legacyErr("测试模型必须为聊天模型"), 400);
+
+    const tokenRow = await dbFirst<{ status: string }>(
+      c.env.DB,
+      "SELECT status FROM tokens WHERE token = ? AND token_type = ?",
+      [token, token_type],
+    );
+    if (!tokenRow) return c.json(legacyErr("Token 不存在"), 404);
+
+    const settings = await getSettings(c.env);
+    const cf = normalizeCfCookie(settings.grok.cf_clearance ?? "");
+    const cookie = buildTokenCookie(token, cf);
+
+    const { payload, referer } = buildConversationPayload({
+      requestModel: model,
+      content: "hi",
+      imgIds: [],
+      imgUris: [],
+      settings: settings.grok,
+    });
+
+    const upstream = await sendConversationRequest({
+      payload,
+      cookie,
+      settings: settings.grok,
+      ...(referer ? { referer } : {}),
+    });
+    const upstreamStatus = upstream.status;
+    const result = await parseUpstreamResult(upstream);
+
+    let reactivated = false;
+    let quotaRefresh: TokenQuotaRefreshResult = {
+      success: false,
+      error: "未触发用量刷新",
+    };
+
+    if (upstreamStatus === 200) {
+      if (tokenRow.status === "expired") {
+        reactivated = await reactivateToken(c.env.DB, token, token_type);
+      }
+      quotaRefresh = await refreshTokenQuotaForAdminTest({
+        env: c.env,
+        settings,
+        token,
+        tokenType: token_type,
+      });
+    }
+
+    return c.json({
+      success: upstreamStatus === 200,
+      upstream_status: upstreamStatus,
+      result,
+      reactivated,
+      quota_refresh: quotaRefresh,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return c.json(
+      {
+        success: false,
+        upstream_status: 500,
+        result: { error: message },
+        reactivated: false,
+        quota_refresh: { success: false, error: "未触发用量刷新" },
+      },
+      500,
+    );
   }
 });
 
