@@ -3,6 +3,13 @@ import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import frontendConfigs from './web/eslint.frontend.config.mjs';
+
+const ROOT_DIR = import.meta.dirname;
+const scopedFrontendConfigs = frontendConfigs.map((config) => ({
+  ...config,
+  basePath: 'web',
+}));
 
 export default defineConfig(
   {
@@ -11,6 +18,9 @@ export default defineConfig(
       "node_modules/**",
       ".wrangler/**",
       "local/**",       // 排除整个 local 文件夹
+      "web/dist/**",
+      "web/dist-ssr/**",
+      "web/coverage/**",
       "**/.venv/**", 
       "**/site-packages/**" 
     ],
@@ -28,6 +38,13 @@ export default defineConfig(
   },
 
   ...tseslint.configs.recommended,
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: ROOT_DIR,
+      },
+    },
+  },
 
   {
     files: ['src/**/*.ts'],
@@ -73,5 +90,7 @@ export default defineConfig(
       'no-useless-assignment': 'off',
       'preserve-caught-error': 'off',
     },
-  }
+  },
+
+  ...scopedFrontendConfigs
 );

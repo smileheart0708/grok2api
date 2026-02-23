@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { globalIgnores } from 'eslint/config'
 import {
   configureVueProject,
@@ -8,13 +9,16 @@ import pluginVue from 'eslint-plugin-vue'
 import pluginOxlint from 'eslint-plugin-oxlint'
 import skipFormatting from 'eslint-config-prettier/flat'
 
+const WEB_ROOT = import.meta.dirname
+const OXLINT_CONFIG_PATH = path.join(WEB_ROOT, '.oxlintrc.json')
+
 configureVueProject({
-  rootDir: import.meta.dirname,
+  rootDir: WEB_ROOT,
   scriptLangs: ['ts'],
   allowComponentTypeUnsafety: false,
 })
 
-export default defineConfigWithVueTs(
+const baseConfigs = defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{vue,ts,mts,tsx}'],
@@ -26,7 +30,7 @@ export default defineConfigWithVueTs(
   vueTsConfigs.strictTypeChecked,
   vueTsConfigs.stylisticTypeChecked,
 
-  ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
+  ...pluginOxlint.buildFromOxlintConfigFile(OXLINT_CONFIG_PATH),
 
   {
     name: 'app/custom-rules',
@@ -39,3 +43,21 @@ export default defineConfigWithVueTs(
 
   skipFormatting,
 )
+
+const withTsconfigRootDir = (configs) =>
+  configs.map((config) => {
+    if (!config.languageOptions?.parserOptions) return config
+
+    return {
+      ...config,
+      languageOptions: {
+        ...config.languageOptions,
+        parserOptions: {
+          ...config.languageOptions.parserOptions,
+          tsconfigRootDir: WEB_ROOT,
+        },
+      },
+    }
+  })
+
+export default withTsconfigRootDir(baseConfigs)
