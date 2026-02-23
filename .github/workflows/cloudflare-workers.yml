@@ -11,9 +11,18 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy-cloudflare:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,17 +31,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install pnpm
-        run: corepack enable pnpm && corepack prepare pnpm@latest --activate
-
-      - name: Cache pnpm
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -40,144 +43,21 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Ensure D1 + KV and generate wrangler.ci.toml
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Generate wrangler.ci.toml
         run: |
-          node -e "
-          const fs = require('fs');
-          const https = require('https');
-          
-          const token = process.env.CLOUDFLARE_API_TOKEN;
-          const account_id = process.env.CLOUDFLARE_ACCOUNT_ID;
-          const build_sha = process.env.GITHUB_SHA || '';
-          
-          if (!token || !account_id) {
-            throw new Error('Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID');
-          }
-          
-          const wranglerText = fs.readFileSync('wrangler.toml', 'utf-8');
-          
-          const extract = (pattern, fallback) => {
-            const m = wranglerText.match(new RegExp(pattern, 'm'));
-            return m && m[1].trim() ? m[1].trim() : fallback;
-          };
-          
-          const workerName = extract('^name\\s*=\\s*\"([^\"]+)\"\\s*\$', 'grok2api');
-          const kvTitle = workerName + '-cache';
-          const d1Name = extract('^database_name\\s*=\\s*\"([^\"]+)\"\\s*\$', workerName);
-          
-          const request = (method, path, data) => {
-            return new Promise((resolve, reject) => {
-              const body = data ? JSON.stringify(data) : null;
-              const options = {
-                hostname: 'api.cloudflare.com',
-                port: 443,
-                path: path,
-                method: method,
-                headers: {
-                  'Authorization': 'Bearer ' + token,
-                  'Content-Type': 'application/json'
-                }
-              };
-              const req = https.request(options, (res) => {
-                let responseData = '';
-                res.on('data', (chunk) => responseData += chunk);
-                res.on('end', () => {
-                  try {
-                    resolve(JSON.parse(responseData));
-                  } catch (e) {
-                    reject(new Error('Failed to parse response: ' + responseData));
-                  }
-                });
-              });
-              req.on('error', reject);
-              if (body) req.write(body);
-              req.end();
-            });
-          };
-          
-          (async () => {
-            let kvId = null;
-            let page = 1;
-            while (true) {
-              console.log('KV list page=' + page + '...');
-              const res = await request('GET', '/client/v4/accounts/' + account_id + '/storage/kv/namespaces?per_page=100&page=' + page);
-              if (!res.success) throw new Error(JSON.stringify(res));
-              for (const item of (res.result || [])) {
-                if (item.title === kvTitle) {
-                  kvId = item.id;
-                  break;
-                }
-              }
-              if (kvId) break;
-              const info = res.result_info || {};
-              if (page >= parseInt(info.total_pages || 1)) break;
-              page++;
-            }
-            
-            if (!kvId) {
-              console.log('KV namespace not found; creating...');
-              const res = await request('POST', '/client/v4/accounts/' + account_id + '/storage/kv/namespaces', { title: kvTitle });
-              if (!res.success) throw new Error(JSON.stringify(res));
-              kvId = res.result.id;
-            }
-            
-            let d1Id = null;
-            page = 1;
-            while (true) {
-              console.log('D1 list page=' + page + '...');
-              const res = await request('GET', '/client/v4/accounts/' + account_id + '/d1/database?per_page=100&page=' + page);
-              if (!res.success) throw new Error(JSON.stringify(res));
-              for (const item of (res.result || [])) {
-                if (item.name === d1Name) {
-                  d1Id = item.uuid || item.id;
-                  break;
-                }
-              }
-              if (d1Id) break;
-              const info = res.result_info || {};
-              if (page >= parseInt(info.total_pages || 1)) break;
-              page++;
-            }
-            
-            if (!d1Id) {
-              console.log('D1 database not found; creating...');
-              const res = await request('POST', '/client/v4/accounts/' + account_id + '/d1/database', { name: d1Name });
-              if (!res.success) throw new Error(JSON.stringify(res));
-              d1Id = res.result.uuid || res.result.id;
-              if (!d1Id) throw new Error('Missing D1 database id');
-            }
-            
-            console.log('Generating wrangler.ci.toml...');
-            let text2 = wranglerText;
-            text2 = text2.replace(/REPLACE_WITH_KV_NAMESPACE_ID/g, kvId);
-            text2 = text2.replace(/REPLACE_WITH_D1_DATABASE_ID/g, d1Id);
-            
-            if (build_sha) {
-              if (/^BUILD_SHA\\s*=/m.test(text2)) {
-                text2 = text2.replace(/^BUILD_SHA\\s*=\\s*\"[^\"]*\"\\s*\$/m, 'BUILD_SHA = \"' + build_sha + '\"');
-              } else {
-                text2 = text2.replace(/^(\\[vars\\]\\s*\$)/m, '[vars]\\nBUILD_SHA = \"' + build_sha + '\"');
-              }
-            }
-            
-            fs.writeFileSync('wrangler.ci.toml', text2);
-            console.log('KV namespace ready: ' + kvTitle + ' (' + kvId + ')');
-            console.log('D1 database ready: ' + d1Name + ' (' + d1Id + ')');
-            console.log('Generated wrangler.ci.toml');
-          })();
-          "
+          set -euo pipefail
+          if [ -z "${CF_D1_DATABASE_ID}" ] || [ -z "${CF_KV_NAMESPACE_ID}" ]; then
+            echo "::error::缺少 Secrets: CF_D1_DATABASE_ID 或 CF_KV_NAMESPACE_ID"
+            exit 1
+          fi
+
+          cp wrangler.toml wrangler.ci.toml
+          sed -i "s/REPLACE_WITH_D1_DATABASE_ID/${CF_D1_DATABASE_ID}/g" wrangler.ci.toml
+          sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/${CF_KV_NAMESPACE_ID}/g" wrangler.ci.toml
+          sed -i "s/^BUILD_SHA\\s*=\\s*\"[^\"]*\"/BUILD_SHA = \"${GITHUB_SHA}\"/" wrangler.ci.toml
 
       - name: Apply D1 migrations
-        run: npx wrangler d1 migrations apply DB --remote --config wrangler.ci.toml
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 migrations apply DB --remote --config wrangler.ci.toml
 
       - name: Deploy Worker
-        run: npx wrangler deploy --config wrangler.ci.toml
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy --config wrangler.ci.toml
