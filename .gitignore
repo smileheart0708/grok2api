@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -33,6 +32,11 @@ env/
 *.swp
 *.swo
 *~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 .DS_Store
 
 # Environment Variables
@@ -40,6 +44,7 @@ env/
 .env.local
 .env.*.local
 .dev.vars
+*.local
 
 # Node / Cloudflare Workers
 node_modules/
@@ -47,7 +52,14 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 wrangler.ci.toml
+
+# Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
 
 # Logs
 logs/
@@ -60,6 +72,18 @@ data/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
+__screenshots__/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# Lint cache
+.eslintcache
+
+# Vite
+*.timestamp-*-*.mjs
 
 # Project specific
 config.local.toml
