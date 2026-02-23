@@ -103,11 +103,18 @@ app.get("/_worker.js", (c) => c.notFound());
 
 app.get("/", (c) => c.redirect("/login", 302));
 
-app.get("/login", (c) => {
+app.get("/login", async (c) => {
   const buildSha = getBuildSha(c.env as Env);
-  const v = c.req.query("v") ?? "";
-  if (v !== buildSha) return c.redirect(`/login?v=${encodeURIComponent(buildSha)}`, 302);
-  return fetchAsset(c, "/login/login.html");
+  const url = new URL(c.req.url);
+  const v = url.searchParams.get("v") ?? "";
+  if (v !== buildSha) {
+    url.searchParams.set("v", buildSha);
+    return c.redirect(`${url.pathname}?${url.searchParams.toString()}`, 302);
+  }
+
+  const vueLogin = await fetchAsset(c, "/login-vue/login.html");
+  if (vueLogin.status === 404) return fetchAsset(c, "/login/login.html");
+  return vueLogin;
 });
 
 // Legacy (old admin UI): keep /manage as an alias.

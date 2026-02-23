@@ -8,6 +8,9 @@ export interface GlobalSettings {
   image_mode?: "url" | "base64" | "b64_json";
   admin_username?: string;
   admin_password?: string;
+  admin_password_hash?: string;
+  admin_password_salt?: string;
+  admin_password_iter?: number;
   image_cache_max_size_mb?: number;
   video_cache_max_size_mb?: number;
 }
@@ -86,6 +89,9 @@ const DEFAULTS: SettingsBundle = {
     image_mode: "url",
     admin_username: "admin",
     admin_password: "admin",
+    admin_password_hash: "",
+    admin_password_salt: "",
+    admin_password_iter: 120000,
     image_cache_max_size_mb: 512,
     video_cache_max_size_mb: 1024,
   },

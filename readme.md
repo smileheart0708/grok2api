@@ -68,6 +68,15 @@ pnpm exec wrangler deploy
 - 登录页：`https://<your-domain>/login`
 - 默认账号密码：`admin / admin`（请首次登录后立即修改）
 
+## 管理员认证（Cookie Session）
+
+- 后台使用 `HttpOnly + Secure + SameSite=Lax` 的会话 Cookie（`grok2api_admin_session`）
+- 会话默认 8 小时并在访问后台接口时滑动续期
+- 登录/会话相关接口：
+  - `POST /api/v1/admin/login`
+  - `GET /api/v1/admin/session`
+  - `POST /api/v1/admin/logout`
+
 ## 后台初始化（必须）
 
 登录 `/admin/token` 后至少完成：

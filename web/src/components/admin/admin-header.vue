@@ -7,7 +7,7 @@ import { cycleTheme, useTheme } from '@/composables/use-theme'
 import {
   fetchAdminStorageType,
   formatStorageLabel,
-  logoutToLegacyLogin,
+  logout,
 } from '@/lib/admin-auth'
 
 const route = useRoute()
@@ -91,8 +91,8 @@ async function refreshStorageMode(): Promise<void> {
   storageLabel.value = formatStorageLabel(storageType)
 }
 
-function onLogout(): void {
-  logoutToLegacyLogin(route.fullPath)
+async function onLogout(): Promise<void> {
+  await logout(route.fullPath)
 }
 
 watch(

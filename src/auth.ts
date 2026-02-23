@@ -4,6 +4,7 @@ import { getSettings } from "./settings";
 import { dbFirst } from "./db";
 import { validateApiKey } from "./repo/apiKeys";
 import { verifyAdminSession } from "./repo/adminSessions";
+import { clearAdminSessionCookie, getAdminSessionCookie } from "./admin-session-cookie";
 
 export interface ApiAuthInfo {
   key: string | null;
@@ -65,10 +66,13 @@ export const requireApiAuth: MiddlewareHandler<{ Bindings: Env; Variables: { api
 };
 
 export const requireAdminAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
-  const token = bearerToken(c.req.header("Authorization") ?? null);
+  const token = getAdminSessionCookie(c);
   if (!token) return c.json({ error: "缺少会话", code: "MISSING_SESSION" }, 401);
   const ok = await verifyAdminSession(c.env.DB, token);
-  if (!ok) return c.json({ error: "会话已过期", code: "SESSION_EXPIRED" }, 401);
+  if (!ok) {
+    clearAdminSessionCookie(c);
+    return c.json({ error: "会话已过期", code: "SESSION_EXPIRED" }, 401);
+  }
   return next();
 };
 

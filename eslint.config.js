@@ -18,6 +18,7 @@ export default defineConfig(
       "node_modules/**",
       ".wrangler/**",
       "local/**",       // 排除整个 local 文件夹
+      "app/static/login-vue/**",
       "web/dist/**",
       "web/dist-ssr/**",
       "web/coverage/**",

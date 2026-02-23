@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { fetchAdminBearer, logoutToLegacyLogin } from '@/lib/admin-auth'
+import { buildLoginRedirect, fetchAdminSession } from '@/lib/admin-auth'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -63,11 +63,13 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   if (!to.meta.requiresAdminAuth) return true
 
-  const bearer = await fetchAdminBearer()
-  if (bearer) return true
+  const authed = await fetchAdminSession()
+  if (authed) return true
 
   const redirectTarget = to.fullPath || '/admin/token'
-  logoutToLegacyLogin(redirectTarget)
+  if (typeof window !== 'undefined') {
+    window.location.assign(buildLoginRedirect(redirectTarget))
+  }
   return false
 })
 

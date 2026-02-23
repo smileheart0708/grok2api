@@ -60,6 +60,7 @@ wrangler.ci.toml
 dist/
 dist-ssr/
 *.tsbuildinfo
+app/static/login-vue/
 
 # Logs
 logs/
