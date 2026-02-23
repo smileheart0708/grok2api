@@ -1,0 +1,26 @@
+@import url('./theme.css');
+@import url('./common.css');
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow-y: auto;
+}
+
+a {
+  color: inherit;
+}

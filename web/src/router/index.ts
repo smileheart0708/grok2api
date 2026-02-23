@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { fetchAdminBearer, logoutToLegacyLogin } from '@/lib/admin-auth'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -11,34 +12,41 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/admin',
-    redirect: '/admin/token',
-  },
-  {
-    path: '/admin/token',
-    component: () => import('@/pages/token-page.vue'),
-  },
-  {
-    path: '/admin/keys',
-    component: () => import('@/pages/keys-page.vue'),
-  },
-  {
-    path: '/admin/config',
-    component: () => import('@/pages/config-page.vue'),
-  },
-  {
-    path: '/admin/datacenter',
-    component: () => import('@/pages/datacenter-page.vue'),
-  },
-  {
-    path: '/admin/cache',
-    component: () => import('@/pages/cache-page.vue'),
+    component: () => import('@/layouts/admin-layout.vue'),
+    meta: { requiresAdminAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: '/admin/token',
+      },
+      {
+        path: 'token',
+        component: () => import('@/pages/token-page.vue'),
+      },
+      {
+        path: 'keys',
+        component: () => import('@/pages/keys-page.vue'),
+      },
+      {
+        path: 'config',
+        component: () => import('@/pages/config-page.vue'),
+      },
+      {
+        path: 'datacenter',
+        component: () => import('@/pages/datacenter-page.vue'),
+      },
+      {
+        path: 'cache',
+        component: () => import('@/pages/cache-page.vue'),
+      },
+      {
+        path: 'chat',
+        component: () => import('@/pages/chat-page.vue'),
+      },
+    ],
   },
   {
     path: '/chat',
-    component: () => import('@/pages/chat-page.vue'),
-  },
-  {
-    path: '/admin/chat',
     component: () => import('@/pages/chat-page.vue'),
   },
   {
@@ -50,6 +58,17 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAdminAuth) return true
+
+  const bearer = await fetchAdminBearer()
+  if (bearer) return true
+
+  const redirectTarget = to.fullPath || '/admin/token'
+  logoutToLegacyLogin(redirectTarget)
+  return false
 })
 
 export default router
