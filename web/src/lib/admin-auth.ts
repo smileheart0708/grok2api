@@ -6,7 +6,7 @@ export interface AdminCreds {
 }
 
 const ADMIN_REQUESTED_WITH = 'grok2api-admin'
-const DEFAULT_REDIRECT_PATH = '/admin/token'
+export const DEFAULT_REDIRECT_PATH = '/admin/token'
 
 function buildAdminHeaders(contentType = false): HeadersInit {
   const headers: Record<string, string> = { 'X-Requested-With': ADMIN_REQUESTED_WITH }
@@ -14,11 +14,24 @@ function buildAdminHeaders(contentType = false): HeadersInit {
   return headers
 }
 
+function isAdminRedirectPath(value: string): boolean {
+  try {
+    const parsed = new URL(value, 'https://grok2api.local')
+    return parsed.pathname === '/admin' || parsed.pathname.startsWith('/admin/')
+  } catch {
+    return false
+  }
+}
+
 export function sanitizeRedirectPath(raw: string | null | undefined): string {
   const value = (raw ?? '').trim()
   if (!value) return DEFAULT_REDIRECT_PATH
   if (!value.startsWith('/')) return DEFAULT_REDIRECT_PATH
   if (value.startsWith('//')) return DEFAULT_REDIRECT_PATH
+  if (value === '/login' || value.startsWith('/login?') || value.startsWith('/login#')) return DEFAULT_REDIRECT_PATH
+  if (value === '/chat' || value.startsWith('/chat?') || value.startsWith('/chat#')) return DEFAULT_REDIRECT_PATH
+  if (value.startsWith('/api/')) return DEFAULT_REDIRECT_PATH
+  if (!isAdminRedirectPath(value)) return DEFAULT_REDIRECT_PATH
   return value
 }
 

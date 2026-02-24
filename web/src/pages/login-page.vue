@@ -1,21 +1,52 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { fetchAdminSession, loginAdmin, sanitizeRedirectPath } from '@/lib/admin-auth'
+import { DEFAULT_REDIRECT_PATH, fetchAdminSession, loginAdmin, sanitizeRedirectPath } from '@/lib/admin-auth'
 
 const username = ref('admin')
 const password = ref('')
 const isSubmitting = ref(false)
+const isRedirecting = ref(false)
 const errorMessage = ref('')
 
 const redirectTarget = computed(() => {
-  if (typeof window === 'undefined') return '/admin/token'
+  if (typeof window === 'undefined') return DEFAULT_REDIRECT_PATH
   const params = new URLSearchParams(window.location.search)
   return sanitizeRedirectPath(params.get('redirect'))
 })
 
+function isLoginPath(target: string): boolean {
+  try {
+    const parsed = new URL(target, 'https://grok2api.local')
+    return parsed.pathname === '/login'
+  } catch {
+    return false
+  }
+}
+
+function isCurrentLocation(target: string): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const current = new URL(window.location.href)
+    const next = new URL(target, current.origin)
+    return current.pathname === next.pathname && current.search === next.search && current.hash === next.hash
+  } catch {
+    return false
+  }
+}
+
+function resolveRedirectTarget(): string {
+  const target = redirectTarget.value
+  if (isLoginPath(target)) return DEFAULT_REDIRECT_PATH
+  if (isCurrentLocation(target)) return DEFAULT_REDIRECT_PATH
+  return target
+}
+
 function jumpToAdmin(): void {
   if (typeof window === 'undefined') return
-  window.location.assign(redirectTarget.value)
+  if (isRedirecting.value) return
+
+  isRedirecting.value = true
+  window.location.assign(resolveRedirectTarget())
 }
 
 async function onSubmit(): Promise<void> {
@@ -31,10 +62,18 @@ async function onSubmit(): Promise<void> {
   errorMessage.value = ''
 
   const result = await loginAdmin({ username: normalizedUsername, password: normalizedPassword })
-  isSubmitting.value = false
 
   if (!result.ok) {
+    isSubmitting.value = false
     errorMessage.value = result.message || '登录失败，请稍后重试'
+    return
+  }
+
+  const authed = await fetchAdminSession()
+  isSubmitting.value = false
+
+  if (!authed) {
+    errorMessage.value = '登录成功，但会话未生效。请检查 Cookie、反向代理或浏览器隐私设置。'
     return
   }
 

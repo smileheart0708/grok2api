@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { buildLoginRedirect, fetchAdminSession } from '@/lib/admin-auth'
+import { DEFAULT_REDIRECT_PATH, fetchAdminSession, sanitizeRedirectPath } from '@/lib/admin-auth'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -62,11 +62,16 @@ router.beforeEach(async (to) => {
   const authed = await fetchAdminSession()
   if (authed) return true
 
-  const redirectTarget = to.fullPath || '/admin/token'
-  if (typeof window !== 'undefined') {
-    window.location.assign(buildLoginRedirect(redirectTarget))
+  const redirectTarget = sanitizeRedirectPath(to.fullPath || DEFAULT_REDIRECT_PATH)
+  if (redirectTarget === DEFAULT_REDIRECT_PATH) {
+    return { path: '/login', replace: true }
   }
-  return false
+
+  return {
+    path: '/login',
+    query: { redirect: redirectTarget },
+    replace: true,
+  }
 })
 
 export default router
