@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 interface Props {
@@ -40,10 +41,7 @@ function onOverlayClick(): void {
           <h3 class="modal-title">{{ title }}</h3>
         </slot>
         <button v-if="showClose" class="modal-close" type="button" aria-label="关闭弹窗" @click="$emit('close')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
+          <X :size="20" aria-hidden="true" />
         </button>
       </div>
       <slot />

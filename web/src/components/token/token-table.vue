@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Beaker, RefreshCw, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
 import type { TokenRow } from '@/components/token/token-types'
 import { getTokenStatusClass, getTokenStatusLabel, shortenToken } from '@/components/token/token-utils'
@@ -72,10 +73,7 @@ function readChecked(event: Event): boolean {
             title="复制 Token"
             @click="emit('copy-token', item.token)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
+            <Copy :size="12" aria-hidden="true" />
           </button>
         </div>
       </td>
@@ -95,11 +93,7 @@ function readChecked(event: Event): boolean {
             title="测试"
             @click="emit('request-test', item)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 3h6"></path>
-              <path d="M10 3v6.5L5.2 17a4 4 0 0 0 3.3 6h7a4 4 0 0 0 3.3-6L14 9.5V3"></path>
-              <path d="M8.5 14h7"></path>
-            </svg>
+            <Beaker :size="14" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -107,11 +101,7 @@ function readChecked(event: Event): boolean {
             title="刷新状态"
             @click="emit('request-refresh', item)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
+            <RefreshCw :size="14" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -119,10 +109,7 @@ function readChecked(event: Event): boolean {
             title="编辑"
             @click="emit('request-edit', item)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
+            <Pencil :size="14" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -130,10 +117,7 @@ function readChecked(event: Event): boolean {
             title="删除"
             @click="emit('request-delete', item)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+            <Trash2 :size="14" aria-hidden="true" />
           </button>
         </div>
       </td>
