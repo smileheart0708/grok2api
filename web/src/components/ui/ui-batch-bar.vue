@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import UiButton from '@/components/ui/ui-button.vue'
+
 interface Props {
   selectedCount: number
   running: boolean
@@ -23,41 +25,41 @@ defineEmits<(e: 'export' | 'refresh' | 'delete' | 'pause' | 'stop') => void>()
     </div>
     <span class="toolbar-sep"></span>
     <div class="batch-actions-buttons flex items-center gap-1">
-      <button
+      <UiButton
         id="btn-batch-export"
-        type="button"
-        class="geist-button-outline text-xs px-3 gap-1 border-0 hover:bg-gray-100"
+        variant="outline"
+        size="xs"
         :disabled="running || selectedCount === 0"
         @click="$emit('export')"
       >
         导出
-      </button>
-      <button
+      </UiButton>
+      <UiButton
         id="btn-batch-update"
-        type="button"
-        class="geist-button-outline text-xs px-3 gap-1 border-0 hover:bg-gray-100 justify-center"
+        variant="outline"
+        size="xs"
         :disabled="running || selectedCount === 0"
         @click="$emit('refresh')"
       >
         刷新
-      </button>
-      <button
+      </UiButton>
+      <UiButton
         id="btn-batch-delete"
-        type="button"
-        class="geist-button-danger text-xs px-3"
+        variant="danger"
+        size="xs"
         :disabled="running || selectedCount === 0"
         @click="$emit('delete')"
       >
         删除
-      </button>
+      </UiButton>
     </div>
     <div v-if="running" id="batch-progress" class="text-xs text-[var(--accents-5)] flex items-center gap-2">
       <span class="toolbar-sep"></span>
       <span id="batch-progress-text">{{ progressText }}</span>
-      <button id="btn-pause-action" type="button" class="batch-link" @click="$emit('pause')">
+      <UiButton id="btn-pause-action" variant="link" @click="$emit('pause')">
         {{ paused ? '继续' : '暂停' }}
-      </button>
-      <button id="btn-stop-action" type="button" class="batch-link" @click="$emit('stop')">终止</button>
+      </UiButton>
+      <UiButton id="btn-stop-action" variant="link" @click="$emit('stop')">终止</UiButton>
     </div>
   </div>
 </template>

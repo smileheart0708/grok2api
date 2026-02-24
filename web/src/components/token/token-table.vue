@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { TestTubeDiagonal, RefreshCw, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
+import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { TokenRow } from '@/components/token/token-types'
 import { getTokenStatusClass, getTokenStatusLabel, shortenToken } from '@/components/token/token-utils'
 
@@ -67,14 +68,9 @@ function readChecked(event: Event): boolean {
       <td class="text-left">
         <div class="flex items-center gap-2">
           <span class="font-mono text-xs text-gray-500" :title="item.token">{{ shortenToken(item.token) }}</span>
-          <button
-            type="button"
-            class="icon-btn text-gray-400 hover:text-black"
-            title="复制 Token"
-            @click="emit('copy-token', item.token)"
-          >
+          <UiIconButton label="复制 Token" variant="ghost" size="xs" @click="emit('copy-token', item.token)">
             <Copy :size="14" aria-hidden="true" />
-          </button>
+          </UiIconButton>
         </div>
       </td>
       <td class="text-center">
@@ -87,38 +83,18 @@ function readChecked(event: Event): boolean {
       <td class="text-left text-gray-500 text-xs truncate max-w-[150px]">{{ item.note || '-' }}</td>
       <td class="text-center">
         <div class="flex items-center justify-center gap-2">
-          <button
-            type="button"
-            class="icon-btn text-gray-400 hover:text-blue-600"
-            title="测试"
-            @click="emit('request-test', item)"
-          >
+          <UiIconButton label="测试" variant="ghost" tone="brand" size="xs" @click="emit('request-test', item)">
             <TestTubeDiagonal :size="14" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class="icon-btn text-gray-400 hover:text-black"
-            title="刷新状态"
-            @click="emit('request-refresh', item)"
-          >
+          </UiIconButton>
+          <UiIconButton label="刷新状态" variant="ghost" size="xs" @click="emit('request-refresh', item)">
             <RefreshCw :size="14" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class="icon-btn text-gray-400 hover:text-black"
-            title="编辑"
-            @click="emit('request-edit', item)"
-          >
+          </UiIconButton>
+          <UiIconButton label="编辑" variant="ghost" size="xs" @click="emit('request-edit', item)">
             <Pencil :size="14" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class="icon-btn text-gray-400 hover:text-red-600"
-            title="删除"
-            @click="emit('request-delete', item)"
-          >
+          </UiIconButton>
+          <UiIconButton label="删除" variant="danger" size="xs" @click="emit('request-delete', item)">
             <Trash2 :size="14" aria-hidden="true" />
-          </button>
+          </UiIconButton>
         </div>
       </td>
     </tr>

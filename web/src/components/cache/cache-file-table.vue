@@ -3,6 +3,7 @@ import { Eye, FileImage, Trash2 } from 'lucide-vue-next'
 import { computed, useTemplateRef, watchEffect } from 'vue'
 import { formatFileSize, formatFileTime } from '@/components/cache/cache-utils'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
+import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { AdminCacheListItem, AdminCacheType } from '@/types/admin-api'
 
 interface Props {
@@ -106,12 +107,12 @@ function isRowSelected(name: string): boolean {
       <td class="text-left text-xs text-gray-500">{{ formatFileTime(row.mtime_ms) }}</td>
       <td class="text-center">
         <div class="cache-list-actions">
-          <button type="button" class="cache-icon-button" title="查看文件" @click="emit('view', row)">
+          <UiIconButton label="查看文件" variant="ghost" size="xs" @click="emit('view', row)">
             <Eye :size="14" aria-hidden="true" />
-          </button>
-          <button type="button" class="cache-icon-button danger" title="删除文件" @click="emit('delete', row)">
+          </UiIconButton>
+          <UiIconButton label="删除文件" variant="danger" size="xs" @click="emit('delete', row)">
             <Trash2 :size="14" aria-hidden="true" />
-          </button>
+          </UiIconButton>
         </div>
       </td>
     </tr>

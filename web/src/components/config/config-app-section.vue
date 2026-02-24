@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Copy, Settings2 } from 'lucide-vue-next'
 import ConfigSectionCard from '@/components/config/config-section-card.vue'
+import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { AdminConfigApp } from '@/types/admin-api'
 
 interface Props {
@@ -74,9 +75,9 @@ const imageFormat = computed({
       <div class="config-field-input">
         <div class="config-secret-row">
           <input v-model="apiKey" type="text" class="geist-input">
-          <button type="button" class="config-copy-btn" @click="$emit('copy-value', apiKey)">
+          <UiIconButton label="复制 API 密钥" variant="outline" tone="brand" size="md" @click="$emit('copy-value', apiKey)">
             <Copy :size="14" aria-hidden="true" />
-          </button>
+          </UiIconButton>
         </div>
       </div>
     </div>
@@ -95,9 +96,9 @@ const imageFormat = computed({
       <div class="config-field-input">
         <div class="config-secret-row">
           <input v-model="appKey" type="text" class="geist-input">
-          <button type="button" class="config-copy-btn" @click="$emit('copy-value', appKey)">
+          <UiIconButton label="复制后台密码" variant="outline" tone="brand" size="md" @click="$emit('copy-value', appKey)">
             <Copy :size="14" aria-hidden="true" />
-          </button>
+          </UiIconButton>
         </div>
       </div>
     </div>

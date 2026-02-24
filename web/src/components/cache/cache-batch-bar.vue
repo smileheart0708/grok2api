@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { GripVertical, RotateCcw, Trash2 } from 'lucide-vue-next'
 import { computed, onUnmounted, ref, useTemplateRef } from 'vue'
+import UiButton from '@/components/ui/ui-button.vue'
 
 interface Props {
   selectedCount: number
@@ -113,24 +114,24 @@ onUnmounted(() => {
     </div>
     <span class="toolbar-sep"></span>
     <div class="batch-actions-buttons flex items-center gap-1">
-      <button
-        type="button"
-        class="geist-button-outline text-xs px-3 gap-1 border-0 hover:bg-gray-100"
+      <UiButton
+        variant="outline"
+        size="xs"
         :disabled="loadDisabled"
         @click="$emit('load')"
       >
         <RotateCcw :size="12" aria-hidden="true" />
         {{ loading ? '加载中...' : '加载' }}
-      </button>
-      <button
-        type="button"
-        class="geist-button-danger text-xs px-3 gap-1"
+      </UiButton>
+      <UiButton
+        variant="danger"
+        size="xs"
         :disabled="deleteDisabled"
         @click="$emit('delete')"
       >
         <Trash2 :size="12" aria-hidden="true" />
         {{ deleteLabel }}
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>

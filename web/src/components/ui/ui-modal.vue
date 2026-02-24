@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next'
 import { computed } from 'vue'
+import UiIconButton from '@/components/ui/ui-icon-button.vue'
 
 interface Props {
   open: boolean
@@ -40,9 +41,15 @@ function onOverlayClick(): void {
         <slot name="header">
           <h3 class="modal-title">{{ title }}</h3>
         </slot>
-        <button v-if="showClose" class="modal-close" type="button" aria-label="关闭弹窗" @click="$emit('close')">
+        <UiIconButton
+          v-if="showClose"
+          label="关闭弹窗"
+          variant="ghost"
+          size="sm"
+          @click="$emit('close')"
+        >
           <X :size="20" aria-hidden="true" />
-        </button>
+        </UiIconButton>
       </div>
       <slot />
     </div>

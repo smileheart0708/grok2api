@@ -9,6 +9,7 @@ import ConfigGrokSection from '@/components/config/config-grok-section.vue'
 import ConfigPerformanceSection from '@/components/config/config-performance-section.vue'
 import ConfigTokenSection from '@/components/config/config-token-section.vue'
 import UiToastHost from '@/components/ui/ui-toast-host.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 import { useToast } from '@/composables/use-toast'
 import { isRecord } from '@/lib/guards'
 import {
@@ -320,15 +321,17 @@ onMounted(() => {
           <h2 class="text-2xl font-semibold tracking-tight">配置管理</h2>
           <p class="text-[var(--accents-4)] mt-1 text-sm">管理 API 密钥及系统参数设置。</p>
         </div>
-        <button
-          type="button"
-          class="geist-button gap-2 config-save-btn"
+        <UiButton
+          variant="solid"
+          tone="brand"
+          size="sm"
+          class="gap-2 config-save-btn"
           :disabled="isLoading || isSaving"
           @click="saveConfigForm"
         >
           <Save :size="14" aria-hidden="true" />
           {{ isSaving ? '保存中...' : '保存' }}
-        </button>
+        </UiButton>
       </div>
 
       <div class="h-px bg-[var(--border)] my-6"></div>

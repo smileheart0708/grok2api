@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { Infinity as InfinityIcon, KeyRound, Sparkles } from 'lucide-vue-next'
 import UiModal from '@/components/ui/ui-modal.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 import {
   DEFAULT_KEY_LIMIT_DRAFT,
   generateRandomApiKey,
@@ -110,15 +111,16 @@ function onSubmit(): void {
               :disabled="saving || isEditMode"
               placeholder="留空=随机生成 sk-..."
             >
-            <button
-              type="button"
-              class="geist-button-outline text-xs px-3 gap-1"
+            <UiButton
+              variant="outline"
+              size="xs"
+              class="gap-1"
               :disabled="saving || isEditMode"
               @click="onGenerateKey"
             >
               <Sparkles :size="12" aria-hidden="true" />
               自动生成
-            </button>
+            </UiButton>
           </div>
           <div class="text-xs text-[var(--accents-5)] mt-1">允许任意字符串；建议使用 sk- 前缀。</div>
         </div>
@@ -126,14 +128,14 @@ function onSubmit(): void {
 
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs text-[var(--accents-5)]">额度预设</span>
-        <button type="button" class="geist-button-outline text-xs px-3 gap-1" :disabled="saving" @click="applyRecommendedPreset">
+        <UiButton variant="outline" size="xs" class="gap-1" :disabled="saving" @click="applyRecommendedPreset">
           <KeyRound :size="12" aria-hidden="true" />
           推荐
-        </button>
-        <button type="button" class="geist-button-outline text-xs px-3 gap-1" :disabled="saving" @click="applyUnlimitedPreset">
+        </UiButton>
+        <UiButton variant="outline" size="xs" class="gap-1" :disabled="saving" @click="applyUnlimitedPreset">
           <InfinityIcon :size="12" aria-hidden="true" />
           不限
-        </button>
+        </UiButton>
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -163,10 +165,10 @@ function onSubmit(): void {
       <p v-if="errorText" class="text-xs text-red-600">{{ errorText }}</p>
 
       <div class="flex justify-end gap-2 pt-2">
-        <button type="button" class="geist-button-outline text-xs px-3" :disabled="saving" @click="$emit('close')">取消</button>
-        <button type="button" class="geist-button text-xs px-3" :disabled="saving" @click="onSubmit">
+        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')">取消</UiButton>
+        <UiButton variant="solid" tone="brand" size="xs" :disabled="saving" @click="onSubmit">
           {{ saving ? '提交中...' : submitText }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </UiModal>

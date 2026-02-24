@@ -222,8 +222,8 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     }
 
-    #batch-actions .geist-button-outline:hover {
-      background: #f3f4f6;
+    #batch-actions .ui-button[data-variant='outline']:hover {
+      background: var(--surface-muted);
     }
 
     .confirm-dialog-body {
@@ -312,7 +312,7 @@
         flex-wrap: wrap;
       }
 
-      #token-filter-bar .filter-summary .geist-button-outline {
+      #token-filter-bar .filter-summary .ui-button {
         width: 100%;
       }
 

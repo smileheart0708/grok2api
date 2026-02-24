@@ -27,18 +27,15 @@
 }
 
 .tab {
-  font-size: 13px;
-  padding: 6px 10px;
-  border-radius: 9999px;
-  border: 1px solid var(--border);
-  background: white;
-  color: var(--accents-5);
+  color: var(--btn-tab-fg);
+  background: var(--btn-tab-bg);
+  border-color: var(--btn-tab-border);
 }
 
 .tab.active {
-  background: black;
-  color: white;
-  border-color: black;
+  color: var(--btn-neutral-solid-fg);
+  background: var(--btn-neutral-solid-bg);
+  border-color: var(--btn-neutral-solid-border);
 }
 
 .chat-messages {

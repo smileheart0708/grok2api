@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import UiModal from '@/components/ui/ui-modal.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 import type { AdminTokenPool } from '@/types/admin-api'
 import type { TokenImportSubmitPayload } from '@/components/token/token-types'
 
@@ -69,10 +70,10 @@ function onSubmit(): void {
       </div>
       <p v-if="errorText" class="text-xs text-red-600">{{ errorText }}</p>
       <div class="flex justify-end gap-2 pt-2">
-        <button type="button" class="geist-button-outline text-xs px-3" :disabled="saving" @click="$emit('close')">取消</button>
-        <button type="button" class="geist-button text-xs px-3" :disabled="saving" @click="onSubmit">
+        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')">取消</UiButton>
+        <UiButton variant="solid" tone="brand" size="xs" :disabled="saving" @click="onSubmit">
           {{ saving ? '导入中...' : '开始导入' }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </UiModal>

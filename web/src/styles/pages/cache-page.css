@@ -153,8 +153,8 @@
   box-shadow: 0 18px 40px rgb(0 0 0 / 18%);
 }
 
-#batch-actions .geist-button-outline:hover {
-  background: #f3f4f6;
+#batch-actions .ui-button[data-variant='outline']:hover {
+  background: var(--surface-muted);
 }
 
 .geist-table {

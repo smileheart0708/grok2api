@@ -1,5 +1,6 @@
 @import url('./theme.css');
 @import url('./common.css');
+@import url('./ui/button.css');
 @import url('./legacy-utilities.css');
 @import url('./ui/toast.css');
 

@@ -4,6 +4,8 @@ import { Github, Menu, X } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
 import { ADMIN_NAV_ITEMS } from '@/constants/admin-nav'
 import { cycleTheme, useTheme } from '@/composables/use-theme'
+import UiButton from '@/components/ui/ui-button.vue'
+import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import {
   fetchAdminStorageType,
   formatStorageLabel,
@@ -155,39 +157,38 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="nav-actions nav-desktop-actions">
-        <button
-          type="button"
-          class="nav-action-btn"
-          :class="{ 'storage-ready': isStorageReady }"
-          title="存储模式"
-          @click="refreshStorageMode"
-        >
+        <UiButton variant="nav" size="xs" :tone="isStorageReady ? 'brand' : 'neutral'" title="存储模式" @click="refreshStorageMode">
           {{ storageLabel }}
-        </button>
-        <button type="button" class="nav-action-btn" title="切换主题" @click="onThemeToggle">
+        </UiButton>
+        <UiButton variant="nav" size="xs" title="切换主题" @click="onThemeToggle">
           {{ themeButtonText }}
-        </button>
+        </UiButton>
         <a
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="nav-action-btn"
+          class="ui-button"
+          data-variant="nav"
+          data-tone="neutral"
+          data-size="xs"
         >
           反馈
         </a>
-        <button type="button" class="nav-action-btn" @click="onLogout">退出</button>
+        <UiButton variant="nav" size="xs" @click="onLogout">退出</UiButton>
       </div>
 
-      <button
-        type="button"
+      <UiIconButton
         class="mobile-nav-toggle"
-        aria-label="打开导航菜单"
+        label="打开导航菜单"
+        variant="outline"
+        size="md"
         aria-controls="mobile-nav-drawer"
-        :aria-expanded="isMobileMenuOpen"
+        :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
+        :pressed="isMobileMenuOpen"
         @click="toggleMobileMenu"
       >
         <Menu :size="18" aria-hidden="true" />
-      </button>
+      </UiIconButton>
     </div>
 
     <div
@@ -206,9 +207,9 @@ onBeforeUnmount(() => {
     >
       <div class="mobile-nav-header">
         <div class="admin-header__mobile-title">管理菜单</div>
-        <button type="button" class="mobile-nav-close" aria-label="关闭导航菜单" @click="closeMobileMenu">
+        <UiIconButton label="关闭导航菜单" class="mobile-nav-close" variant="ghost" size="sm" @click="closeMobileMenu">
           <X :size="16" aria-hidden="true" />
-        </button>
+        </UiIconButton>
       </div>
 
       <div class="mobile-nav-links">
@@ -225,27 +226,33 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="mobile-nav-actions">
-        <button
-          type="button"
-          class="nav-action-btn mobile-action-btn"
-          :class="{ 'storage-ready': isStorageReady }"
+        <UiButton
+          variant="nav"
+          size="sm"
+          class="mobile-action-btn"
+          :tone="isStorageReady ? 'brand' : 'neutral'"
+          block
           title="存储模式"
           @click="refreshStorageMode"
         >
           {{ storageLabel }}
-        </button>
-        <button type="button" class="nav-action-btn mobile-action-btn" @click="onThemeToggle">
+        </UiButton>
+        <UiButton variant="nav" size="sm" class="mobile-action-btn" block @click="onThemeToggle">
           {{ themeButtonText }}
-        </button>
+        </UiButton>
         <a
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="nav-action-btn mobile-action-btn"
+          class="ui-button mobile-action-btn"
+          data-variant="nav"
+          data-tone="neutral"
+          data-size="sm"
+          data-block="true"
         >
           反馈
         </a>
-        <button type="button" class="nav-action-btn mobile-action-btn" @click="onLogout">退出</button>
+        <UiButton variant="nav" size="sm" class="mobile-action-btn" block @click="onLogout">退出</UiButton>
       </div>
     </aside>
   </header>

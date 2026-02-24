@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UiButton from '@/components/ui/ui-button.vue'
 import UiToastHost from '@/components/ui/ui-toast-host.vue'
 import { useLegacyPage } from '@/composables/use-legacy-page'
 import { useLegacyCommonBridge } from '@/legacy/common-bridge'
@@ -10,6 +11,50 @@ useLegacyPage({
   scripts: ['/legacy/scripts/chat.js'],
   mountName: 'mountChatPage',
 })
+
+function saveApiKey(): void {
+  window.saveApiKey?.()
+}
+
+function clearApiKey(): void {
+  window.clearApiKey?.()
+}
+
+function switchTab(tab: 'chat' | 'image' | 'video'): void {
+  window.switchTab?.(tab)
+}
+
+function pickChatImage(): void {
+  window.pickChatImage?.()
+}
+
+function sendChat(): void {
+  void window.sendChat?.()
+}
+
+function generateImage(): void {
+  void window.generateImage?.()
+}
+
+function startImageContinuous(): void {
+  void window.startImageContinuous?.()
+}
+
+function stopImageContinuous(): void {
+  window.stopImageContinuous?.()
+}
+
+function clearImageWaterfall(): void {
+  window.clearImageWaterfall?.()
+}
+
+function pickVideoImage(): void {
+  window.pickVideoImage?.()
+}
+
+function generateVideo(): void {
+  void window.generateVideo?.()
+}
 </script>
 
 <template>
@@ -20,7 +65,7 @@ useLegacyPage({
         <div class="text-xs text-[var(--accents-5)]">在线聊天</div>
       </div>
       <div class="chat-top-actions flex items-center gap-2">
-        <a href="/login" class="geist-button-outline text-xs px-3 py-1.5">后台登录</a>
+        <a href="/login" class="ui-button text-xs px-3 py-1.5" data-variant="outline" data-tone="neutral" data-size="xs">后台登录</a>
       </div>
     </div>
   </header>
@@ -43,17 +88,17 @@ useLegacyPage({
           <label for="stream-toggle" class="text-sm">Stream</label>
         </div>
         <div class="col-span-12 md:col-span-2 flex flex-wrap justify-end gap-2">
-          <button class="geist-button-outline text-xs px-3" onclick="saveApiKey()" type="button">保存</button>
-          <button class="geist-button-danger text-xs px-3" onclick="clearApiKey()" type="button">清除</button>
+          <UiButton variant="outline" size="xs" @click="saveApiKey">保存</UiButton>
+          <UiButton variant="danger" size="xs" @click="clearApiKey">清除</UiButton>
         </div>
       </div>
     </div>
 
     <div class="card">
       <div class="tabs">
-        <button id="tab-chat" class="tab active" onclick="switchTab('chat')" type="button">聊天</button>
-        <button id="tab-image" class="tab" onclick="switchTab('image')" type="button">生图</button>
-        <button id="tab-video" class="tab" onclick="switchTab('video')" type="button">生成视频</button>
+        <UiButton id="tab-chat" class="tab active" variant="tab" size="sm" @click="switchTab('chat')">聊天</UiButton>
+        <UiButton id="tab-image" class="tab" variant="tab" size="sm" @click="switchTab('image')">生图</UiButton>
+        <UiButton id="tab-video" class="tab" variant="tab" size="sm" @click="switchTab('video')">生成视频</UiButton>
       </div>
 
       <div id="panel-chat" class="panel">
@@ -62,10 +107,10 @@ useLegacyPage({
         <div class="composer">
           <div class="composer-row">
             <input id="chat-file" type="file" accept="image/*" class="hidden">
-            <button class="geist-button-outline text-xs px-3" onclick="pickChatImage()" type="button">上传图片</button>
+            <UiButton variant="outline" size="xs" @click="pickChatImage">上传图片</UiButton>
             <div id="chat-attach-info" class="text-xs text-[var(--accents-5)]"></div>
             <div class="flex-1"></div>
-            <button class="geist-button text-xs px-4 composer-primary" onclick="sendChat()" type="button">发送</button>
+            <UiButton variant="solid" tone="brand" size="xs" class="px-4 composer-primary" @click="sendChat">发送</UiButton>
           </div>
           <textarea id="chat-input" class="geist-input h-24" placeholder="输入消息..."></textarea>
           <div id="chat-attach-preview" class="attach-preview hidden"></div>
@@ -111,16 +156,16 @@ useLegacyPage({
             </select>
           </div>
           <div id="image-generate-wrap" class="col-span-12 md:col-span-2 flex justify-end">
-            <button id="image-generate-btn" class="geist-button text-xs px-4" onclick="generateImage()" type="button">生成</button>
+            <UiButton id="image-generate-btn" variant="solid" tone="brand" size="xs" class="px-4" @click="generateImage">生成</UiButton>
           </div>
         </div>
         <div id="image-continuous-wrap" class="mt-4 hidden">
           <div class="imagine-actions mb-3">
-            <button id="image-start-btn" class="geist-button-outline text-xs px-3" onclick="startImageContinuous()" type="button">开始</button>
-            <button id="image-stop-btn" class="geist-button-outline text-xs px-3" onclick="stopImageContinuous()" disabled type="button">
+            <UiButton id="image-start-btn" variant="outline" size="xs" @click="startImageContinuous">开始</UiButton>
+            <UiButton id="image-stop-btn" variant="outline" size="xs" disabled @click="stopImageContinuous">
               停止
-            </button>
-            <button id="image-clear-btn" class="geist-button-outline text-xs px-3" onclick="clearImageWaterfall()" type="button">清空</button>
+            </UiButton>
+            <UiButton id="image-clear-btn" variant="outline" size="xs" @click="clearImageWaterfall">清空</UiButton>
           </div>
           <div class="imagine-metrics mb-3">
             <div class="imagine-metric"><span>状态</span><b id="image-status-text">未连接</b></div>
@@ -180,10 +225,10 @@ useLegacyPage({
         <div class="composer mt-4">
           <div class="composer-row">
             <input id="video-file" type="file" accept="image/*" class="hidden">
-            <button class="geist-button-outline text-xs px-3" onclick="pickVideoImage()" type="button">上传参考图（可选）</button>
+            <UiButton variant="outline" size="xs" @click="pickVideoImage">上传参考图（可选）</UiButton>
             <div id="video-attach-info" class="text-xs text-[var(--accents-5)]"></div>
             <div class="flex-1"></div>
-            <button class="geist-button text-xs px-4 composer-primary" onclick="generateVideo()" type="button">生成视频</button>
+            <UiButton variant="solid" tone="brand" size="xs" class="px-4 composer-primary" @click="generateVideo">生成视频</UiButton>
           </div>
           <div id="video-attach-preview" class="attach-preview hidden"></div>
         </div>

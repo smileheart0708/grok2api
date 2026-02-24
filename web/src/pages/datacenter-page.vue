@@ -2,6 +2,7 @@
 import Chart from 'chart.js/auto'
 import UiToastHost from '@/components/ui/ui-toast-host.vue'
 import AdminPageShell from '@/components/admin/admin-page-shell.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 import { useLegacyPage } from '@/composables/use-legacy-page'
 import { useLegacyCommonBridge } from '@/legacy/common-bridge'
 import '@/styles/pages/datacenter-page.css'
@@ -30,7 +31,7 @@ useLegacyPage({
           <p class="text-[var(--accents-4)] mt-1 text-sm">常用指标与后台日志。</p>
         </div>
         <div class="datacenter-controls flex items-center gap-2">
-          <button id="btn-refresh" class="geist-button-outline text-xs px-3" type="button">刷新</button>
+          <UiButton id="btn-refresh" variant="outline" size="xs">刷新</UiButton>
           <label class="dc-toggle text-xs text-[var(--accents-4)]">
             <input id="auto-refresh" type="checkbox" class="checkbox" checked>
             自动刷新
@@ -123,7 +124,7 @@ useLegacyPage({
             <select id="log-file" class="geist-input text-xs w-56"></select>
             <input id="log-lines" type="number" min="50" max="5000" value="500" class="geist-input text-xs w-24" title="尾部行数">
             <input id="log-filter" type="text" placeholder="过滤关键词…" class="geist-input text-xs w-40">
-            <button id="log-refresh" class="geist-button-outline text-xs px-3" type="button">刷新</button>
+            <UiButton id="log-refresh" variant="outline" size="xs">刷新</UiButton>
           </div>
         </div>
         <div class="log-panel">

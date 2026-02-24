@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import UiModal from '@/components/ui/ui-modal.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 
 interface Props {
   open: boolean
@@ -25,17 +26,12 @@ defineEmits<(e: 'confirm' | 'cancel') => void>()
     <div class="confirm-dialog-body">
       <div class="confirm-dialog-message">{{ message }}</div>
       <div class="confirm-dialog-actions">
-        <button type="button" class="geist-button-outline text-xs px-3" @click="$emit('cancel')">
+        <UiButton variant="outline" size="xs" @click="$emit('cancel')">
           {{ cancelText }}
-        </button>
-        <button
-          type="button"
-          :class="danger ? 'geist-button-danger' : 'geist-button'"
-          class="text-xs px-3"
-          @click="$emit('confirm')"
-        >
+        </UiButton>
+        <UiButton :variant="danger ? 'danger' : 'solid'" size="xs" :tone="danger ? 'neutral' : 'brand'" @click="$emit('confirm')">
           {{ confirmText }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </UiModal>

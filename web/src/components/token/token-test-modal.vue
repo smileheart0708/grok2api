@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import UiModal from '@/components/ui/ui-modal.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 import type { AdminChatModel } from '@/types/admin-api'
 
 interface Props {
@@ -52,10 +53,10 @@ function onModelChange(event: Event): void {
         class="test-result-box text-xs font-mono whitespace-pre-wrap bg-[var(--accents-1)] border border-[var(--border)] rounded-md p-2 max-h-64 overflow-auto"
       >{{ resultText }}</pre>
       <div class="flex justify-end gap-2 pt-2">
-        <button type="button" class="geist-button-outline text-xs px-3" :disabled="running" @click="$emit('close')">取消</button>
-        <button type="button" class="geist-button text-xs px-3" :disabled="running || !selectedModel" @click="$emit('run')">
+        <UiButton variant="outline" size="xs" :disabled="running" @click="$emit('close')">取消</UiButton>
+        <UiButton variant="solid" tone="brand" size="xs" :disabled="running || !selectedModel" @click="$emit('run')">
           {{ running ? '测试中...' : '开始测试' }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </UiModal>

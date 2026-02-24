@@ -163,7 +163,7 @@
 }
 
 @media (max-width: 768px) {
-  .keys-page-header .geist-button {
+  .keys-page-header .ui-button {
     width: 100%;
   }
 
@@ -181,7 +181,7 @@
 
   .keys-toolbar-left .keys-toolbar-search,
   .keys-toolbar-left select,
-  .keys-toolbar-left .geist-button-outline {
+  .keys-toolbar-left .ui-button {
     width: 100%;
   }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Plus, RotateCcw, Search } from 'lucide-vue-next'
 import type { KeyFilterState, KeyFilterStatus } from '@/components/keys/key-utils'
+import UiButton from '@/components/ui/ui-button.vue'
 
 interface Props {
   filters: KeyFilterState
@@ -48,10 +49,10 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
         <p class="text-[var(--accents-4)] mt-1 text-sm">管理访问 /v1/* 的 API Keys（含每日额度）。</p>
       </div>
       <div class="flex items-center gap-3 w-full sm:w-auto">
-        <button type="button" class="geist-button gap-2" @click="$emit('open-create')">
+        <UiButton variant="solid" tone="brand" size="sm" class="gap-2" @click="$emit('open-create')">
           <Plus :size="14" aria-hidden="true" />
           新增 Key
-        </button>
+        </UiButton>
       </div>
     </div>
 
@@ -73,10 +74,10 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
           <option value="inactive">仅禁用</option>
           <option value="exhausted">仅额度用尽</option>
         </select>
-        <button type="button" class="geist-button-outline text-xs px-3 gap-1" @click="$emit('reset-filters')">
+        <UiButton variant="outline" size="xs" class="gap-1" @click="$emit('reset-filters')">
           <RotateCcw :size="12" aria-hidden="true" />
           重置
-        </button>
+        </UiButton>
       </div>
       <div class="keys-toolbar-right text-xs text-[var(--accents-5)]">
         结果 <span>{{ resultCount }}</span>

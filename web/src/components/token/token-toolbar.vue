@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Download, Plus } from 'lucide-vue-next'
 import type { TokenFilterState } from '@/types/admin-api'
+import UiButton from '@/components/ui/ui-button.vue'
 
 interface Props {
   filters: TokenFilterState
@@ -36,14 +37,14 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
         <p class="text-[var(--accents-4)] mt-1 text-sm">管理 Grok2API 的 Token 服务号池。</p>
       </div>
       <div class="flex items-center gap-3 w-full sm:w-auto">
-        <button type="button" class="geist-button-outline gap-2" @click="$emit('open-import')">
+        <UiButton variant="outline" size="sm" class="gap-2" @click="$emit('open-import')">
           <Download :size="14" aria-hidden="true" />
           导入
-        </button>
-        <button type="button" class="geist-button gap-2" @click="$emit('open-add')">
+        </UiButton>
+        <UiButton variant="solid" tone="brand" size="sm" class="gap-2" @click="$emit('open-add')">
           <Plus :size="14" aria-hidden="true" />
           添加
-        </button>
+        </UiButton>
       </div>
     </div>
 
@@ -86,7 +87,7 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
       </div>
       <div class="filter-summary ml-auto flex items-center gap-3">
         <span class="text-xs text-[var(--accents-5)]">结果 {{ resultCount }}</span>
-        <button type="button" class="geist-button-outline text-xs px-3 h-7" @click="$emit('reset-filters')">清空筛选</button>
+        <UiButton variant="outline" size="xs" @click="$emit('reset-filters')">清空筛选</UiButton>
       </div>
     </div>
   </div>

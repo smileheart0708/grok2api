@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import UiButton from '@/components/ui/ui-button.vue'
 import { DEFAULT_REDIRECT_PATH, fetchAdminSession, loginAdmin, sanitizeRedirectPath } from '@/lib/admin-auth'
 
 const router = useRouter()
@@ -126,9 +127,9 @@ onMounted(async () => {
 
         <p v-if="errorMessage" class="login-page__error">{{ errorMessage }}</p>
 
-        <button class="geist-button login-page__submit" type="submit" :disabled="isSubmitting">
+        <UiButton class="login-page__submit" type="submit" variant="solid" tone="brand" size="md" :disabled="isSubmitting">
           {{ isSubmitting ? '登录中...' : '登录' }}
-        </button>
+        </UiButton>
       </form>
 
       <footer class="login-page__footer">

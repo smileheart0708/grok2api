@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
+import UiButton from '@/components/ui/ui-button.vue'
 import {
   formatCreatedAt,
   formatLimitPair,
@@ -58,10 +59,10 @@ function statusClass(row: AdminApiKeyRow): string {
       </td>
       <td class="text-left">
         <div class="mono">{{ row.display_key }}</div>
-        <button type="button" class="btn-link mt-1 inline-flex items-center gap-1" @click="emit('copy', row)">
+        <UiButton variant="link" class="mt-1 inline-flex items-center gap-1" @click="emit('copy', row)">
           <Copy :size="12" aria-hidden="true" />
           复制
-        </button>
+        </UiButton>
       </td>
       <td class="text-center">
         <span class="pill" :class="statusClass(row)">{{ statusText(row) }}</span>
@@ -71,14 +72,14 @@ function statusClass(row: AdminApiKeyRow): string {
       <td class="text-center text-sm">{{ formatCreatedAt(row.created_at) }}</td>
       <td class="text-center">
         <div class="inline-flex items-center gap-2">
-          <button type="button" class="geist-button-outline text-xs px-3 py-1 gap-1" @click="emit('edit', row)">
+          <UiButton variant="outline" size="xs" class="py-1 gap-1" @click="emit('edit', row)">
             <Pencil :size="12" aria-hidden="true" />
             编辑
-          </button>
-          <button type="button" class="geist-button-danger text-xs px-3 py-1 gap-1" @click="emit('delete', row)">
+          </UiButton>
+          <UiButton variant="danger" size="xs" class="py-1 gap-1" @click="emit('delete', row)">
             <Trash2 :size="12" aria-hidden="true" />
             删除
-          </button>
+          </UiButton>
         </div>
       </td>
     </tr>

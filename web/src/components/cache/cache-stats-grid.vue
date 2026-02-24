@@ -2,6 +2,7 @@
 import { Image as ImageIcon, Trash2, Video } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { cacheSectionTitle, cacheUnit } from '@/components/cache/cache-utils'
+import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { AdminCacheType } from '@/types/admin-api'
 
 interface Props {
@@ -46,17 +47,25 @@ const sections = computed<CacheSectionItem[]>(() => [
   createSection('image', ImageIcon, imageCount, imageSizeText),
   createSection('video', Video, videoCount, videoSizeText),
 ])
+
+function onCardKeydown(event: KeyboardEvent, type: AdminCacheType): void {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  emit('select-type', type)
+}
 </script>
 
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <button
+    <div
       v-for="section in sections"
       :key="section.type"
-      type="button"
       class="stat-card cache-card text-left"
       :class="{ selected: activeType === section.type }"
+      role="button"
+      tabindex="0"
       @click="emit('select-type', section.type)"
+      @keydown="onCardKeydown($event, section.type)"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -72,17 +81,18 @@ const sections = computed<CacheSectionItem[]>(() => [
 
         <div class="text-right shrink-0">
           <div class="text-xs font-mono text-[var(--accents-4)]">{{ section.sizeText }}</div>
-          <button
-            type="button"
-            class="cache-action-btn mt-4"
+          <UiIconButton
+            class="mt-4"
+            :label="`清空${section.title}`"
+            variant="danger"
+            size="md"
             :disabled="clearingType === section.type"
-            :title="`清空${section.title}`"
             @click.stop="emit('clear-type', section.type)"
           >
             <Trash2 :size="14" aria-hidden="true" />
-          </button>
+          </UiIconButton>
         </div>
       </div>
-    </button>
+    </div>
   </div>
 </template>
