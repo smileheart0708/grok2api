@@ -72,10 +72,18 @@ pnpm exec wrangler deploy
 
 - 后台使用 `HttpOnly + Secure + SameSite=Lax` 的会话 Cookie（`grok2api_admin_session`）
 - 会话默认 8 小时并在访问后台接口时滑动续期
+- 当前未启用显式 CSRF 校验，依赖 `SameSite=Lax` Cookie 防护
 - 登录/会话相关接口：
   - `POST /api/v1/admin/login`
   - `GET /api/v1/admin/session`
   - `POST /api/v1/admin/logout`
+
+## 反向代理注意事项（Nginx/网关）
+
+- 对 `/api/` 路径禁用缓存，避免会话校验被缓存污染。
+- 透传 `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto`、`X-Forwarded-For`。
+- 不要改写或剥离 `Set-Cookie` 响应头。
+- 外部访问必须为 HTTPS（管理员 Cookie 启用了 `Secure`）。
 
 ## 后台初始化（必须）
 

@@ -48,9 +48,14 @@ export async function fetchAdminSession(): Promise<boolean> {
       method: 'GET',
       credentials: 'include',
       headers: buildAdminHeaders(),
+      cache: 'no-store',
     })
+    if (!response.ok) {
+      console.warn('[admin-auth] session check failed with status ' + String(response.status))
+    }
     return response.ok
-  } catch {
+  } catch (error) {
+    console.warn('[admin-auth] session check failed due to network error', error)
     return false
   }
 }

@@ -26,9 +26,13 @@ async function ensureApiKey() {
       method: 'GET',
       credentials: 'include',
       headers: buildAuthHeaders(),
+      cache: 'no-store',
     });
     if (res.ok) return 'cookie-session';
-  } catch (e) { }
+    console.warn('[admin-auth] session check failed with status', res.status);
+  } catch (e) {
+    console.warn('[admin-auth] session check failed due to network error', e);
+  }
 
   clearStoredAppKey();
   redirectToLogin();

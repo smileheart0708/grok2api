@@ -12,8 +12,8 @@
 ## 一、前端管理 API
 
 > 路径前缀: `/api/v1/admin/*`
-> 认证方式: Session Cookie + CSRF Token
-> CSRF 要求: 所有写操作需要 `X-Requested-With: grok2api-admin` 请求头
+> 认证方式: Session Cookie (`HttpOnly + Secure + SameSite=Lax`)
+> 安全说明: 当前未启用显式 CSRF 校验，依赖 SameSite Cookie 防护
 
 ### 1.1 认证接口
 
@@ -612,4 +612,4 @@ data: {}
 
 1. **登录:** 用户名 + 密码
 2. **会话:** Cookie 中的 session token
-3. **CSRF:** 所有写操作需要 `X-Requested-With: grok2api-admin` 请求头
+3. **防护:** 当前依赖 SameSite=Lax Cookie 防护跨站请求
