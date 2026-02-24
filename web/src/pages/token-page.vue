@@ -151,7 +151,6 @@ const tokenStats = computed<TokenStats>(() => {
     exhausted,
     invalid,
     chatQuota,
-    imageQuota: Math.floor(chatQuota / 2),
     totalCalls,
   }
 })
@@ -695,11 +694,11 @@ onMounted(() => {
       @open-add="openAddModal"
       @update:filters="onFilterUpdate"
       @reset-filters="resetFilters"
-    />
-
-    <div class="h-px bg-[var(--border)] my-6"></div>
-
-    <TokenStatsGrid :stats="tokenStats" />
+    >
+      <template #stats>
+        <TokenStatsGrid :stats="tokenStats" />
+      </template>
+    </TokenToolbar>
 
     <TokenTable
       :rows="filteredRows"

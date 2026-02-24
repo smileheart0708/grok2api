@@ -69,11 +69,11 @@ function readChecked(event: Event): boolean {
           <span class="font-mono text-xs text-gray-500" :title="item.token">{{ shortenToken(item.token) }}</span>
           <button
             type="button"
-            class="text-gray-400 hover:text-black transition-colors"
+            class="icon-btn text-gray-400 hover:text-black"
             title="复制 Token"
             @click="emit('copy-token', item.token)"
           >
-            <Copy :size="12" aria-hidden="true" />
+            <Copy :size="14" aria-hidden="true" />
           </button>
         </div>
       </td>

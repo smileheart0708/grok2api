@@ -25,7 +25,6 @@ export interface TokenStats {
   exhausted: number
   invalid: number
   chatQuota: number
-  imageQuota: number
   totalCalls: number
 }
 
@@ -43,6 +42,5 @@ export const DEFAULT_TOKEN_STATS: TokenStats = {
   exhausted: 0,
   invalid: 0,
   chatQuota: 0,
-  imageQuota: 0,
   totalCalls: 0,
 }

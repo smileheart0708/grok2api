@@ -47,6 +47,8 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
       </div>
     </div>
 
+    <slot name="stats" />
+
     <div
       id="token-filter-bar"
       class="token-filter-bar mb-4 bg-white border border-[var(--border)] rounded-lg px-4 py-3 flex flex-wrap items-center gap-4"
