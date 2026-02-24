@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { DEFAULT_REDIRECT_PATH, fetchAdminSession, loginAdmin, sanitizeRedirectPath } from '@/lib/admin-auth'
 
-const username = ref('admin')
+const username = ref('')
 const password = ref('')
 const isSubmitting = ref(false)
 const isRedirecting = ref(false)
