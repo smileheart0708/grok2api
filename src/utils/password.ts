@@ -6,9 +6,16 @@ export interface PasswordHashResult {
   iter: number;
 }
 
-const DEFAULT_PASSWORD_ITER = 120_000;
+const MAX_PASSWORD_ITER = 100_000;
+const DEFAULT_PASSWORD_ITER = MAX_PASSWORD_ITER;
 const SALT_LENGTH = 16;
 const HASH_BITS = 256;
+
+function normalizePasswordIter(iter: number): number {
+  const normalized = Math.floor(iter);
+  if (!Number.isFinite(normalized) || normalized <= 0) return DEFAULT_PASSWORD_ITER;
+  return normalized > MAX_PASSWORD_ITER ? MAX_PASSWORD_ITER : normalized;
+}
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
@@ -43,13 +50,14 @@ async function deriveHash(password: string, saltBytes: Uint8Array, iter: number)
 }
 
 export async function hashPassword(password: string, iter = DEFAULT_PASSWORD_ITER): Promise<PasswordHashResult> {
+  const safeIter = normalizePasswordIter(iter);
   const saltBytes = new Uint8Array(SALT_LENGTH);
   crypto.getRandomValues(saltBytes);
-  const hash = await deriveHash(password, saltBytes, iter);
+  const hash = await deriveHash(password, saltBytes, safeIter);
   return {
     hash,
     salt: base64UrlEncode(saltBytes),
-    iter,
+    iter: safeIter,
   };
 }
 
@@ -63,6 +71,7 @@ export async function verifyPassword(args: {
   const salt = args.salt.trim();
   const iter = Math.floor(args.iter);
   if (!expectedHash || !salt || !Number.isFinite(iter) || iter <= 0) return false;
+  if (iter > MAX_PASSWORD_ITER) return false;
 
   let saltBytes: Uint8Array;
   try {
@@ -70,6 +79,11 @@ export async function verifyPassword(args: {
   } catch {
     return false;
   }
-  const actualHash = await deriveHash(args.password, saltBytes, iter);
+  let actualHash: string;
+  try {
+    actualHash = await deriveHash(args.password, saltBytes, iter);
+  } catch {
+    return false;
+  }
   return timingSafeEqual(actualHash, expectedHash);
 }

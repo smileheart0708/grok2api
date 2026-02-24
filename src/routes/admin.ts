@@ -68,10 +68,49 @@ function isWriteMethod(method: string): boolean {
   return method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE";
 }
 
-function hasSameOrigin(originLike: string | null, expectedOrigin: string): boolean {
+function firstForwardedValue(raw: string | null): string | null {
+  if (!raw) return null;
+  const first = raw.split(",")[0];
+  const value = first ? first.trim() : "";
+  return value || null;
+}
+
+function normalizeForwardedProto(raw: string | null): "http" | "https" | null {
+  const value = (firstForwardedValue(raw) ?? "").toLowerCase();
+  if (value === "http" || value === "https") return value;
+  return null;
+}
+
+function normalizeForwardedHost(raw: string | null): string | null {
+  const value = firstForwardedValue(raw);
+  if (!value) return null;
+  if (/\s/.test(value)) return null;
+  if (/[\/\\@?#]/.test(value)) return null;
+  try {
+    const normalized = new URL(`https://${value}`);
+    if (normalized.username || normalized.password) return null;
+    if (normalized.pathname !== "/" || normalized.search || normalized.hash) return null;
+    return normalized.host;
+  } catch {
+    return null;
+  }
+}
+
+function buildForwardedOrigin(c: Context<{ Bindings: Env }>): string | null {
+  const proto = normalizeForwardedProto(c.req.header("X-Forwarded-Proto") ?? null);
+  const host = normalizeForwardedHost(c.req.header("X-Forwarded-Host") ?? null);
+  if (!proto || !host) return null;
+  try {
+    return new URL(`${proto}://${host}`).origin;
+  } catch {
+    return null;
+  }
+}
+
+function hasAnySameOrigin(originLike: string | null, expectedOrigins: Set<string>): boolean {
   if (!originLike) return false;
   try {
-    return new URL(originLike).origin === expectedOrigin;
+    return expectedOrigins.has(new URL(originLike).origin);
   } catch {
     return false;
   }
@@ -82,12 +121,20 @@ function verifyCsrfRequest(c: Context<{ Bindings: Env }>): boolean {
   const requestedWith = String(c.req.header("X-Requested-With") ?? "");
   if (requestedWith !== ADMIN_REQUESTED_WITH) return false;
 
-  const expectedOrigin = new URL(c.req.url).origin;
+  const expectedOrigins = new Set<string>();
+  try {
+    expectedOrigins.add(new URL(c.req.url).origin);
+  } catch {
+    return false;
+  }
+  const forwardedOrigin = buildForwardedOrigin(c);
+  if (forwardedOrigin) expectedOrigins.add(forwardedOrigin);
+
   const origin = c.req.header("Origin") ?? null;
-  if (hasSameOrigin(origin, expectedOrigin)) return true;
+  if (hasAnySameOrigin(origin, expectedOrigins)) return true;
 
   const referer = c.req.header("Referer") ?? null;
-  return hasSameOrigin(referer, expectedOrigin);
+  return hasAnySameOrigin(referer, expectedOrigins);
 }
 
 async function verifyAdminPasswordFromSettings(args: {

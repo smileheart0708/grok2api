@@ -91,7 +91,7 @@ const DEFAULTS: SettingsBundle = {
     admin_password: "admin",
     admin_password_hash: "",
     admin_password_salt: "",
-    admin_password_iter: 120000,
+    admin_password_iter: 100000,
     image_cache_max_size_mb: 512,
     video_cache_max_size_mb: 1024,
   },
