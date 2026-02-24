@@ -20,8 +20,8 @@
 
 | 页面 | 文件路径 | 状态 | Legacy 脚本依赖 |
 |------|----------|------|-----------------|
-| 数据中心 | `web/src/pages/datacenter-page.vue` | [WARN] 待迁移 | `datacenter.js`, `admin-auth.js`, `toast.js` |
-| 在线聊天 | `web/src/pages/chat-page.vue` | [WARN] 待迁移 | `chat.js`, `toast.js` |
+| 数据中心 | `web/src/pages/datacenter-page.vue` | [WARN] 待迁移 | `datacenter.js` |
+| 在线聊天 | `web/src/pages/chat-page.vue` | [WARN] 待迁移 | `chat.js` |
 
 ### 进度统计
 
@@ -130,9 +130,9 @@
 
 | 文件 | 功能 | 迁移状态 |
 |------|------|----------|
-| `admin-auth.js` | 管理员认证 | [WARN] 已有 Vue 版本 `lib/admin-auth.ts` |
-| `toast.js` | Toast 通知 | [WARN] 已有 Vue 版本 `composables/use-toast.ts` |
-| `draggable.js` | 拖拽功能 | [OK] 已由 `components/cache/cache-batch-bar.vue` 替代，可删除 |
+| `admin-auth.js` | 管理员认证 | [OK] 已迁移到 `src/legacy/common-bridge.ts` + `lib/admin-auth.ts`，文件已删除 |
+| `toast.js` | Toast 通知 | [OK] 已迁移到 `src/legacy/common-bridge.ts` + `composables/use-toast.ts`，文件已删除 |
+| `draggable.js` | 拖拽功能 | [OK] 已由 `components/cache/cache-batch-bar.vue` 替代，文件已删除 |
 
 ### 页面脚本 (`web/public/legacy/scripts/`)
 

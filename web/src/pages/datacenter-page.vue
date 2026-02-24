@@ -1,26 +1,27 @@
 <script setup lang="ts">
 import Chart from 'chart.js/auto'
+import UiToastHost from '@/components/ui/ui-toast-host.vue'
 import AdminPageShell from '@/components/admin/admin-page-shell.vue'
 import { useLegacyPage } from '@/composables/use-legacy-page'
+import { useLegacyCommonBridge } from '@/legacy/common-bridge'
 import '@/styles/pages/datacenter-page.css'
 
 if (typeof window !== 'undefined') {
   window.Chart = Chart
 }
 
+useLegacyCommonBridge({
+  enableAdminAuth: true,
+  logoutRedirectPath: '/admin/datacenter',
+})
+
 useLegacyPage({
-  scripts: [
-    '/legacy/common/admin-auth.js',
-    '/legacy/common/toast.js',
-    '/legacy/scripts/datacenter.js',
-  ],
+  scripts: ['/legacy/scripts/datacenter.js'],
   mountName: 'mountDatacenterPage',
 })
 </script>
 
 <template>
-  <div id="toast-container" class="toast-container"></div>
-
   <AdminPageShell max-width="960px">
     <div class="space-y-6">
       <div class="flex flex-wrap justify-between items-start gap-3">
@@ -131,4 +132,5 @@ useLegacyPage({
       </div>
     </div>
   </AdminPageShell>
+  <UiToastHost />
 </template>

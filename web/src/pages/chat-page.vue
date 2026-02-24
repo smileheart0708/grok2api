@@ -1,19 +1,18 @@
 <script setup lang="ts">
+import UiToastHost from '@/components/ui/ui-toast-host.vue'
 import { useLegacyPage } from '@/composables/use-legacy-page'
+import { useLegacyCommonBridge } from '@/legacy/common-bridge'
 import '@/styles/pages/chat-page.css'
 
+useLegacyCommonBridge()
+
 useLegacyPage({
-  scripts: [
-    '/legacy/common/toast.js',
-    '/legacy/scripts/chat.js',
-  ],
+  scripts: ['/legacy/scripts/chat.js'],
   mountName: 'mountChatPage',
 })
 </script>
 
 <template>
-  <div id="toast-container" class="toast-container"></div>
-
   <header class="border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md sticky top-0 z-10">
     <div class="chat-public-header max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -193,4 +192,5 @@ useLegacyPage({
       </div>
     </div>
   </main>
+  <UiToastHost />
 </template>
