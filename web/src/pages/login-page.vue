@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { DEFAULT_REDIRECT_PATH, fetchAdminSession, loginAdmin, sanitizeRedirectPath } from '@/lib/admin-auth'
 
+const router = useRouter()
 const username = ref('')
 const password = ref('')
 const isSubmitting = ref(false)
@@ -42,11 +44,13 @@ function resolveRedirectTarget(): string {
 }
 
 function jumpToAdmin(): void {
-  if (typeof window === 'undefined') return
   if (isRedirecting.value) return
 
   isRedirecting.value = true
-  window.location.assign(resolveRedirectTarget())
+  const target = resolveRedirectTarget()
+  void router.replace(target).catch(() => {
+    if (typeof window !== 'undefined') window.location.assign(target)
+  })
 }
 
 async function onSubmit(): Promise<void> {

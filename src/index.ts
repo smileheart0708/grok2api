@@ -44,6 +44,18 @@ function assetFetchError(message: string, buildSha: string): Response {
   });
 }
 
+function isRootRedirectResponse(res: Response, requestUrl: URL): boolean {
+  if (![301, 302, 303, 307, 308].includes(res.status)) return false;
+  const location = res.headers.get("location");
+  if (!location) return false;
+  try {
+    const target = new URL(location, requestUrl);
+    return target.pathname === "/" && target.search === "" && target.hash === "";
+  } catch {
+    return false;
+  }
+}
+
 async function fetchAsset(c: Context<{ Bindings: Env }>, pathname: string): Promise<Response> {
   const assets = getAssets(c.env);
   const buildSha = getBuildSha(c.env);
@@ -130,7 +142,12 @@ app.notFound(async (c) => {
   if (!assets) return withResponseHeaders(c.text("Not Found", 404), { "x-grok2api-build": buildSha });
   try {
     const reqUrl = new URL(c.req.url);
-    const res = await assets.fetch(c.req.raw);
+    let res = await assets.fetch(c.req.raw);
+    if (isRootRedirectResponse(res, reqUrl)) {
+      // Cloudflare ASSETS may redirect unknown extensionless paths to "/".
+      // Treat that as a miss so SPA routes can be handled by index.html.
+      res = new Response(null, { status: 404, statusText: "Not Found" });
+    }
     if (res.status !== 404) {
       // Keep the header consistent for debugging/version checks.
       return withResponseHeaders(res, { "x-grok2api-build": buildSha });
