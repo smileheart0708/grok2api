@@ -65,7 +65,7 @@ function generateVideo(): void {
         <div class="text-xs text-[var(--accents-5)]">在线聊天</div>
       </div>
       <div class="chat-top-actions flex items-center gap-2">
-        <a href="/login" class="ui-button text-xs px-3 py-1.5" data-variant="outline" data-tone="neutral" data-size="xs">后台登录</a>
+        <a href="/login" class="ui-button text-xs px-3 py-1.5" data-variant="outline" data-size="xs">后台登录</a>
       </div>
     </div>
   </header>
@@ -110,7 +110,7 @@ function generateVideo(): void {
             <UiButton variant="outline" size="xs" @click="pickChatImage">上传图片</UiButton>
             <div id="chat-attach-info" class="text-xs text-[var(--accents-5)]"></div>
             <div class="flex-1"></div>
-            <UiButton variant="solid" tone="brand" size="xs" class="px-4 composer-primary" @click="sendChat">发送</UiButton>
+            <UiButton variant="solid" size="xs" class="px-4 composer-primary" @click="sendChat">发送</UiButton>
           </div>
           <textarea id="chat-input" class="geist-input h-24" placeholder="输入消息..."></textarea>
           <div id="chat-attach-preview" class="attach-preview hidden"></div>
@@ -156,7 +156,7 @@ function generateVideo(): void {
             </select>
           </div>
           <div id="image-generate-wrap" class="col-span-12 md:col-span-2 flex justify-end">
-            <UiButton id="image-generate-btn" variant="solid" tone="brand" size="xs" class="px-4" @click="generateImage">生成</UiButton>
+            <UiButton id="image-generate-btn" variant="solid" size="xs" class="px-4" @click="generateImage">生成</UiButton>
           </div>
         </div>
         <div id="image-continuous-wrap" class="mt-4 hidden">
@@ -228,7 +228,7 @@ function generateVideo(): void {
             <UiButton variant="outline" size="xs" @click="pickVideoImage">上传参考图（可选）</UiButton>
             <div id="video-attach-info" class="text-xs text-[var(--accents-5)]"></div>
             <div class="flex-1"></div>
-            <UiButton variant="solid" tone="brand" size="xs" class="px-4 composer-primary" @click="generateVideo">生成视频</UiButton>
+            <UiButton variant="solid" size="xs" class="px-4 composer-primary" @click="generateVideo">生成视频</UiButton>
           </div>
           <div id="video-attach-preview" class="attach-preview hidden"></div>
         </div>

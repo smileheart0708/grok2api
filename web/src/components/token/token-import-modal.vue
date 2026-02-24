@@ -71,7 +71,7 @@ function onSubmit(): void {
       <p v-if="errorText" class="text-xs text-red-600">{{ errorText }}</p>
       <div class="flex justify-end gap-2 pt-2">
         <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')">取消</UiButton>
-        <UiButton variant="solid" tone="brand" size="xs" :disabled="saving" @click="onSubmit">
+        <UiButton variant="solid" size="xs" :disabled="saving" @click="onSubmit">
           {{ saving ? '导入中...' : '开始导入' }}
         </UiButton>
       </div>

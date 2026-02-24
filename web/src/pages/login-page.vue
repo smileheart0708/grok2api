@@ -127,7 +127,7 @@ onMounted(async () => {
 
         <p v-if="errorMessage" class="login-page__error">{{ errorMessage }}</p>
 
-        <UiButton class="login-page__submit" type="submit" variant="solid" tone="brand" size="md" :disabled="isSubmitting">
+        <UiButton class="login-page__submit" type="submit" variant="solid" size="md" :disabled="isSubmitting">
           {{ isSubmitting ? '登录中...' : '登录' }}
         </UiButton>
       </form>

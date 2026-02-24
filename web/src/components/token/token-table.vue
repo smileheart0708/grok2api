@@ -83,7 +83,7 @@ function readChecked(event: Event): boolean {
       <td class="text-left text-gray-500 text-xs truncate max-w-[150px]">{{ item.note || '-' }}</td>
       <td class="text-center">
         <div class="flex items-center justify-center gap-2">
-          <UiIconButton label="测试" variant="ghost" tone="brand" size="xs" @click="emit('request-test', item)">
+          <UiIconButton label="测试" variant="ghost" size="xs" @click="emit('request-test', item)">
             <TestTubeDiagonal :size="14" aria-hidden="true" />
           </UiIconButton>
           <UiIconButton label="刷新状态" variant="ghost" size="xs" @click="emit('request-refresh', item)">

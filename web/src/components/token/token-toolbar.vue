@@ -37,11 +37,11 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
         <p class="text-[var(--accents-4)] mt-1 text-sm">管理 Grok2API 的 Token 服务号池。</p>
       </div>
       <div class="flex items-center gap-3 w-full sm:w-auto">
-        <UiButton variant="outline" size="sm" class="gap-2" @click="$emit('open-import')">
+        <UiButton variant="solid" tone="neutral" size="sm" class="gap-2" @click="$emit('open-import')">
           <Download :size="14" aria-hidden="true" />
           导入
         </UiButton>
-        <UiButton variant="solid" tone="brand" size="sm" class="gap-2" @click="$emit('open-add')">
+        <UiButton variant="solid" size="sm" class="gap-2" @click="$emit('open-add')">
           <Plus :size="14" aria-hidden="true" />
           添加
         </UiButton>

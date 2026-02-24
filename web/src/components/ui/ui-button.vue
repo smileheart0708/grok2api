@@ -6,12 +6,10 @@ defineOptions({
 })
 
 type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'danger' | 'link' | 'nav' | 'tab'
-type ButtonTone = 'neutral' | 'brand'
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 
 interface UiButtonProps {
   variant?: ButtonVariant
-  tone?: ButtonTone
   size?: ButtonSize
   type?: 'button' | 'submit' | 'reset'
   disabled?: boolean
@@ -22,7 +20,6 @@ interface UiButtonProps {
 
 const {
   variant = 'solid',
-  tone = 'neutral',
   size = 'sm',
   type = 'button',
   disabled,
@@ -58,7 +55,6 @@ function onClick(event: MouseEvent): void {
     v-bind="attrs"
     class="ui-button"
     :data-variant="variant"
-    :data-tone="tone"
     :data-size="size"
     :data-block="block ? 'true' : undefined"
     :data-loading="loading ? 'true' : undefined"

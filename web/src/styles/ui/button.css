@@ -78,78 +78,41 @@
   height: 32px;
 }
 
-.ui-button[data-variant='solid'][data-tone='neutral'] {
+.ui-button[data-variant='solid'] {
   color: var(--btn-neutral-solid-fg);
   background: var(--btn-neutral-solid-bg);
   border-color: var(--btn-neutral-solid-border);
 }
 
-.ui-button[data-variant='solid'][data-tone='neutral']:hover {
+.ui-button[data-variant='solid']:hover {
   background: var(--btn-neutral-solid-hover-bg);
   border-color: var(--btn-neutral-solid-hover-bg);
 }
 
-.ui-button[data-variant='solid'][data-tone='brand'] {
-  color: var(--btn-brand-solid-fg);
-  background: var(--btn-brand-solid-bg);
-  border-color: var(--btn-brand-solid-border);
-}
-
-.ui-button[data-variant='solid'][data-tone='brand']:hover {
-  background: var(--btn-brand-solid-hover-bg);
-  border-color: var(--btn-brand-solid-hover-bg);
-}
-
-.ui-button[data-variant='outline'][data-tone='neutral'],
-.ui-icon-button[data-variant='outline'][data-tone='neutral'] {
+.ui-button[data-variant='outline'],
+.ui-icon-button[data-variant='outline'] {
   color: var(--btn-neutral-outline-fg);
   background: var(--btn-neutral-outline-bg);
   border-color: var(--btn-neutral-outline-border);
 }
 
-.ui-button[data-variant='outline'][data-tone='neutral']:hover,
-.ui-icon-button[data-variant='outline'][data-tone='neutral']:hover {
+.ui-button[data-variant='outline']:hover,
+.ui-icon-button[data-variant='outline']:hover {
   color: var(--btn-neutral-outline-hover-fg);
   background: var(--btn-neutral-outline-hover-bg);
   border-color: var(--btn-neutral-outline-hover-border);
 }
 
-.ui-button[data-variant='outline'][data-tone='brand'],
-.ui-icon-button[data-variant='outline'][data-tone='brand'] {
-  color: var(--btn-brand-outline-fg);
-  background: var(--btn-brand-outline-bg);
-  border-color: var(--btn-brand-outline-border);
-}
-
-.ui-button[data-variant='outline'][data-tone='brand']:hover,
-.ui-icon-button[data-variant='outline'][data-tone='brand']:hover {
-  color: var(--btn-brand-outline-hover-fg);
-  background: var(--btn-brand-outline-hover-bg);
-  border-color: var(--btn-brand-outline-hover-border);
-}
-
-.ui-button[data-variant='ghost'][data-tone='neutral'],
-.ui-icon-button[data-variant='ghost'][data-tone='neutral'] {
+.ui-button[data-variant='ghost'],
+.ui-icon-button[data-variant='ghost'] {
   color: var(--btn-neutral-ghost-fg);
   border-color: transparent;
 }
 
-.ui-button[data-variant='ghost'][data-tone='neutral']:hover,
-.ui-icon-button[data-variant='ghost'][data-tone='neutral']:hover {
+.ui-button[data-variant='ghost']:hover,
+.ui-icon-button[data-variant='ghost']:hover {
   color: var(--btn-neutral-ghost-hover-fg);
   background: var(--btn-neutral-ghost-hover-bg);
-}
-
-.ui-button[data-variant='ghost'][data-tone='brand'],
-.ui-icon-button[data-variant='ghost'][data-tone='brand'] {
-  color: var(--btn-brand-ghost-fg);
-  border-color: transparent;
-}
-
-.ui-button[data-variant='ghost'][data-tone='brand']:hover,
-.ui-icon-button[data-variant='ghost'][data-tone='brand']:hover {
-  color: var(--btn-brand-ghost-hover-fg);
-  background: var(--btn-brand-ghost-hover-bg);
 }
 
 .ui-button[data-variant='danger'],
@@ -215,29 +178,16 @@
   border-color: var(--btn-tab-hover-border);
 }
 
-.ui-button[data-variant='tab'][data-pressed='true'][data-tone='neutral'] {
+.ui-button[data-variant='tab'][data-pressed='true'] {
   color: var(--btn-neutral-solid-fg);
   background: var(--btn-neutral-solid-bg);
   border-color: var(--btn-neutral-solid-border);
 }
 
-.ui-button[data-variant='tab'][data-pressed='true'][data-tone='brand'] {
-  color: var(--btn-brand-solid-fg);
-  background: var(--btn-brand-solid-bg);
-  border-color: var(--btn-brand-solid-border);
-}
-
-.ui-button[data-variant='tab'].active[data-tone='neutral'],
-.ui-button[data-variant='tab'].active:not([data-tone]) {
+.ui-button[data-variant='tab'].active {
   color: var(--btn-neutral-solid-fg);
   background: var(--btn-neutral-solid-bg);
   border-color: var(--btn-neutral-solid-border);
-}
-
-.ui-button[data-variant='tab'].active[data-tone='brand'] {
-  color: var(--btn-brand-solid-fg);
-  background: var(--btn-brand-solid-bg);
-  border-color: var(--btn-brand-solid-border);
 }
 
 /* Deprecated compatibility classes: keep until complete call-site migration. */

@@ -75,7 +75,7 @@ const imageFormat = computed({
       <div class="config-field-input">
         <div class="config-secret-row">
           <input v-model="apiKey" type="text" class="geist-input">
-          <UiIconButton label="复制 API 密钥" variant="outline" tone="brand" size="md" @click="$emit('copy-value', apiKey)">
+          <UiIconButton label="复制 API 密钥" variant="outline" size="md" @click="$emit('copy-value', apiKey)">
             <Copy :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>
@@ -96,7 +96,7 @@ const imageFormat = computed({
       <div class="config-field-input">
         <div class="config-secret-row">
           <input v-model="appKey" type="text" class="geist-input">
-          <UiIconButton label="复制后台密码" variant="outline" tone="brand" size="md" @click="$emit('copy-value', appKey)">
+          <UiIconButton label="复制后台密码" variant="outline" size="md" @click="$emit('copy-value', appKey)">
             <Copy :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>

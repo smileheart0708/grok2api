@@ -169,7 +169,6 @@ onBeforeUnmount(() => {
           rel="noopener noreferrer"
           class="ui-button"
           data-variant="nav"
-          data-tone="neutral"
           data-size="xs"
         >
           反馈
@@ -246,7 +245,6 @@ onBeforeUnmount(() => {
           rel="noopener noreferrer"
           class="ui-button mobile-action-btn"
           data-variant="nav"
-          data-tone="neutral"
           data-size="sm"
           data-block="true"
         >

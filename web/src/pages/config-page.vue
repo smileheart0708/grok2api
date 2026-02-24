@@ -323,7 +323,6 @@ onMounted(() => {
         </div>
         <UiButton
           variant="solid"
-          tone="brand"
           size="sm"
           class="gap-2 config-save-btn"
           :disabled="isLoading || isSaving"

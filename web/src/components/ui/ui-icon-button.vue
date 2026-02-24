@@ -6,13 +6,11 @@ defineOptions({
 })
 
 type IconButtonVariant = 'ghost' | 'outline' | 'danger' | 'nav'
-type IconButtonTone = 'neutral' | 'brand'
 type IconButtonSize = 'xs' | 'sm' | 'md'
 
 interface UiIconButtonProps {
   label: string
   variant?: IconButtonVariant
-  tone?: IconButtonTone
   size?: IconButtonSize
   type?: 'button' | 'submit' | 'reset'
   disabled?: boolean
@@ -23,7 +21,6 @@ interface UiIconButtonProps {
 const {
   label,
   variant = 'ghost',
-  tone = 'neutral',
   size = 'sm',
   type = 'button',
   disabled,
@@ -58,7 +55,6 @@ function onClick(event: MouseEvent): void {
     v-bind="attrs"
     class="ui-icon-button"
     :data-variant="variant"
-    :data-tone="tone"
     :data-size="size"
     :data-loading="loading ? 'true' : undefined"
     :data-pressed="pressedAttr"

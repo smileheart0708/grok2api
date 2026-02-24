@@ -54,7 +54,7 @@ function onModelChange(event: Event): void {
       >{{ resultText }}</pre>
       <div class="flex justify-end gap-2 pt-2">
         <UiButton variant="outline" size="xs" :disabled="running" @click="$emit('close')">取消</UiButton>
-        <UiButton variant="solid" tone="brand" size="xs" :disabled="running || !selectedModel" @click="$emit('run')">
+        <UiButton variant="solid" size="xs" :disabled="running || !selectedModel" @click="$emit('run')">
           {{ running ? '测试中...' : '开始测试' }}
         </UiButton>
       </div>

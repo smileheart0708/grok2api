@@ -49,7 +49,7 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
         <p class="text-[var(--accents-4)] mt-1 text-sm">管理访问 /v1/* 的 API Keys（含每日额度）。</p>
       </div>
       <div class="flex items-center gap-3 w-full sm:w-auto">
-        <UiButton variant="solid" tone="brand" size="sm" class="gap-2" @click="$emit('open-create')">
+        <UiButton variant="solid" size="sm" class="gap-2" @click="$emit('open-create')">
           <Plus :size="14" aria-hidden="true" />
           新增 Key
         </UiButton>
