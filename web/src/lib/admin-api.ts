@@ -2,6 +2,10 @@ import { isRecord, readArray, readBoolean, readNumber, readRecord, readString, t
 import type {
   AdminApiError,
   AdminApiKeyCreateInput,
+  AdminCacheListItem,
+  AdminCacheListPayload,
+  AdminCacheLocalStats,
+  AdminCacheType,
   AdminApiKeyRow,
   AdminApiKeyUpdateInput,
   AdminChatModel,
@@ -282,6 +286,83 @@ function normalizeApiKeyList(payload: unknown): AdminApiKeyRow[] {
     if (row) rows.push(row)
   }
   return rows
+}
+
+function normalizeNonNegativeInteger(value: number): number {
+  if (!Number.isFinite(value) || value < 0) return 0
+  return Math.floor(value)
+}
+
+function normalizeNonNegativeNumber(value: number): number {
+  if (!Number.isFinite(value) || value < 0) return 0
+  return value
+}
+
+function normalizePositiveInteger(value: number, fallback: number): number {
+  if (!Number.isFinite(value) || value <= 0) return fallback
+  return Math.floor(value)
+}
+
+function normalizeCacheStatsSection(section: Record<string, unknown> | null): AdminCacheLocalStats['local_image'] {
+  const source = section ?? {}
+  return {
+    count: normalizeNonNegativeInteger(readNumber(source, 'count', 0)),
+    size_bytes: normalizeNonNegativeInteger(readNumber(source, 'size_bytes', 0)),
+    size_mb: normalizeNonNegativeNumber(readNumber(source, 'size_mb', 0)),
+  }
+}
+
+function normalizeCacheLocalStats(payload: unknown): AdminCacheLocalStats {
+  if (!isRecord(payload)) {
+    return {
+      local_image: normalizeCacheStatsSection(null),
+      local_video: normalizeCacheStatsSection(null),
+    }
+  }
+
+  return {
+    local_image: normalizeCacheStatsSection(readRecord(payload, 'local_image')),
+    local_video: normalizeCacheStatsSection(readRecord(payload, 'local_video')),
+  }
+}
+
+function normalizeCacheListItem(raw: unknown): AdminCacheListItem | null {
+  if (!isRecord(raw)) return null
+
+  const name = readString(raw, 'name').trim()
+  if (!name) return null
+
+  return {
+    name,
+    size_bytes: normalizeNonNegativeInteger(readNumber(raw, 'size_bytes', 0)),
+    mtime_ms: normalizeNonNegativeInteger(readNumber(raw, 'mtime_ms', 0)),
+    preview_url: readString(raw, 'preview_url'),
+  }
+}
+
+function normalizeCacheListPayload(payload: unknown): AdminCacheListPayload {
+  if (!isRecord(payload)) {
+    return {
+      total: 0,
+      page: 1,
+      page_size: 1000,
+      items: [],
+    }
+  }
+
+  const list = readArray(payload, 'items')
+  const items: AdminCacheListItem[] = []
+  for (const item of list) {
+    const normalized = normalizeCacheListItem(item)
+    if (normalized) items.push(normalized)
+  }
+
+  return {
+    total: normalizeNonNegativeInteger(readNumber(payload, 'total', items.length)),
+    page: normalizePositiveInteger(readNumber(payload, 'page', 1), 1),
+    page_size: normalizePositiveInteger(readNumber(payload, 'page_size', 1000), 1000),
+    items,
+  }
 }
 
 function cloneKnownConfig(config: AdminConfigKnownSections): AdminConfigKnownSections {
@@ -607,6 +688,62 @@ export async function deleteAdminApiKey(key: string): Promise<void> {
     true,
   )
   assertBusinessOk(payload, '删除 API Key 失败')
+}
+
+export async function fetchAdminCacheLocalStats(): Promise<AdminCacheLocalStats> {
+  const payload = await requestAdmin('/api/v1/admin/cache/local')
+  assertBusinessOk(payload, '加载缓存统计失败')
+  return normalizeCacheLocalStats(payload)
+}
+
+export async function fetchAdminCacheList(
+  type: AdminCacheType,
+  page = 1,
+  pageSize = 1000,
+): Promise<AdminCacheListPayload> {
+  const params = new URLSearchParams({
+    type,
+    page: String(normalizePositiveInteger(page, 1)),
+    page_size: String(normalizePositiveInteger(pageSize, 1000)),
+  })
+  const payload = await requestAdmin(`/api/v1/admin/cache/list?${params.toString()}`)
+  assertBusinessOk(payload, '加载缓存列表失败')
+  return normalizeCacheListPayload(payload)
+}
+
+export async function clearAdminCache(type: AdminCacheType): Promise<number> {
+  const payload = await requestAdmin(
+    '/api/v1/admin/cache/clear',
+    {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    },
+    true,
+  )
+  assertBusinessOk(payload, '清理缓存失败')
+  if (!isRecord(payload)) return 0
+  const result = readRecord(payload, 'result')
+  if (!result) return 0
+  return normalizeNonNegativeInteger(readNumber(result, 'deleted', 0))
+}
+
+export async function deleteAdminCacheItem(type: AdminCacheType, name: string): Promise<boolean> {
+  const payload = await requestAdmin(
+    '/api/v1/admin/cache/item/delete',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        type,
+        name,
+      }),
+    },
+    true,
+  )
+  assertBusinessOk(payload, '删除缓存文件失败')
+  if (!isRecord(payload)) return true
+  const result = readRecord(payload, 'result')
+  if (!result) return true
+  return readBoolean(result, 'deleted', true)
 }
 
 export async function fetchAdminConfig(): Promise<AdminConfigPayload> {

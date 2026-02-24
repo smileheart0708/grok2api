@@ -115,6 +115,33 @@ export interface AdminApiKeyUpdateInput {
   limits?: AdminApiKeyLimitsInput
 }
 
+export type AdminCacheType = 'image' | 'video'
+
+export interface AdminCacheStatsSection {
+  count: number
+  size_bytes: number
+  size_mb: number
+}
+
+export interface AdminCacheLocalStats {
+  local_image: AdminCacheStatsSection
+  local_video: AdminCacheStatsSection
+}
+
+export interface AdminCacheListItem {
+  name: string
+  size_bytes: number
+  mtime_ms: number
+  preview_url: string
+}
+
+export interface AdminCacheListPayload {
+  total: number
+  page: number
+  page_size: number
+  items: AdminCacheListItem[]
+}
+
 export type AdminConfigImageFormat = 'url' | 'base64' | 'b64_json'
 export type AdminConfigVideoFormat = 'url'
 

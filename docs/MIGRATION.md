@@ -14,20 +14,20 @@
 | Token 管理 | `web/src/pages/token-page.vue` | [OK] 完成 | 完整 Vue 组件，含所有子组件 |
 | API Key 管理 | `web/src/pages/keys-page.vue` | [OK] 完成 | 完整 Vue 组件，含筛选、统计、CRUD |
 | 配置管理 | `web/src/pages/config-page.vue` | [OK] 完成 | 完整 Vue 组件，含强类型分组与兜底 JSON |
+| 缓存管理 | `web/src/pages/cache-page.vue` | [OK] 完成 | 完整 Vue 组件，含统计、分区列表、批量清理与拖拽工具栏 |
 
 ### 部分迁移 (Vue 外壳 + Legacy JS)
 
 | 页面 | 文件路径 | 状态 | Legacy 脚本依赖 |
 |------|----------|------|-----------------|
 | 数据中心 | `web/src/pages/datacenter-page.vue` | [WARN] 待迁移 | `datacenter.js`, `admin-auth.js`, `toast.js` |
-| 缓存管理 | `web/src/pages/cache-page.vue` | [WARN] 待迁移 | `cache.js`, `admin-auth.js`, `toast.js`, `draggable.js` |
 | 在线聊天 | `web/src/pages/chat-page.vue` | [WARN] 待迁移 | `chat.js`, `toast.js` |
 
 ### 进度统计
 
-- **已迁移页面**: 4/7 (57.1%)
-- **已迁移功能点**: 登录认证、Token 管理、API Key 管理、配置管理
-- **待迁移功能点**: 数据中心、缓存管理、在线聊天
+- **已迁移页面**: 5/7 (71.4%)
+- **已迁移功能点**: 登录认证、Token 管理、API Key 管理、配置管理、缓存管理
+- **待迁移功能点**: 数据中心、在线聊天
 
 ## 已建立的 Vue 基础设施
 
@@ -39,7 +39,7 @@
 /admin/keys               -> keys-page.vue (Vue)
 /admin/config             -> config-page.vue (Vue)
 /admin/datacenter         -> datacenter-page.vue (Legacy)
-/admin/cache              -> cache-page.vue (Legacy)
+/admin/cache              -> cache-page.vue (Vue)
 /chat                     -> chat-page.vue (Legacy)
 ```
 
@@ -89,6 +89,16 @@
 | `ConfigExtraSections` | `components/config/config-extra-sections.vue` | 扩展配置区块 |
 | `ConfigSectionCard` | `components/config/config-section-card.vue` | 配置卡片容器 |
 
+### 缓存管理专用组件
+
+| 组件 | 路径 | 用途 |
+|------|------|------|
+| `CacheToolbar` | `components/cache/cache-toolbar.vue` | 缓存页头部与当前分区信息 |
+| `CacheStatsGrid` | `components/cache/cache-stats-grid.vue` | 图片/视频缓存统计卡与清空操作 |
+| `CacheFileTable` | `components/cache/cache-file-table.vue` | 缓存文件列表表格（含选择、查看、删除） |
+| `CacheBatchBar` | `components/cache/cache-batch-bar.vue` | 批量操作浮动栏（含拖拽） |
+| `cache-utils` | `components/cache/cache-utils.ts` | 缓存页格式化与常量工具 |
+
 ### Composables
 
 | Composable | 路径 | 用途 |
@@ -122,7 +132,7 @@
 |------|------|----------|
 | `admin-auth.js` | 管理员认证 | [WARN] 已有 Vue 版本 `lib/admin-auth.ts` |
 | `toast.js` | Toast 通知 | [WARN] 已有 Vue 版本 `composables/use-toast.ts` |
-| `draggable.js` | 拖拽功能 | 待迁移 |
+| `draggable.js` | 拖拽功能 | [OK] 已由 `components/cache/cache-batch-bar.vue` 替代，可删除 |
 
 ### 页面脚本 (`web/public/legacy/scripts/`)
 
@@ -132,22 +142,18 @@
 | `keys.js` | API Key 管理 | keys-page.vue | [OK] 已被 Vue 替代并删除 |
 | `config.js` | 配置管理 | config-page.vue | [OK] 已被 Vue 替代并删除 |
 | `datacenter.js` | 数据中心 | datacenter-page.vue | 高 (含 Chart.js) |
-| `cache.js` | 缓存管理 | cache-page.vue | 中等 |
+| `cache.js` | 缓存管理 | cache-page.vue | [OK] 已被 Vue 替代并删除 |
 | `chat.js` | 在线聊天 | chat-page.vue | 高 (含 SSE) |
 
 ## 后续迁移计划
 
 ### 迁移优先级
 
-1. **中优先级**: `cache-page.vue` (缓存管理)
-   - 需要实现拖拽功能或迁移 `draggable.js`
-   - 批量操作模式与 Token 页面类似
-
-2. **低优先级**: `datacenter-page.vue` (数据中心)
+1. **低优先级**: `datacenter-page.vue` (数据中心)
    - 复杂度高，含 Chart.js 图表
    - 需要设计图表组件封装方案
 
-3. **低优先级**: `chat-page.vue` (在线聊天)
+2. **低优先级**: `chat-page.vue` (在线聊天)
    - 复杂度高，含 SSE 流式响应
    - 功能独立，可延后迁移
 
