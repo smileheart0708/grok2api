@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Beaker, RefreshCw, Copy, Pencil, Trash2 } from 'lucide-vue-next'
+import { TestTubeDiagonal, RefreshCw, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
 import type { TokenRow } from '@/components/token/token-types'
 import { getTokenStatusClass, getTokenStatusLabel, shortenToken } from '@/components/token/token-utils'
@@ -89,15 +89,15 @@ function readChecked(event: Event): boolean {
         <div class="flex items-center justify-center gap-2">
           <button
             type="button"
-            class="p-1 text-gray-400 hover:text-blue-600 rounded"
+            class="icon-btn text-gray-400 hover:text-blue-600"
             title="测试"
             @click="emit('request-test', item)"
           >
-            <Beaker :size="14" aria-hidden="true" />
+            <TestTubeDiagonal :size="14" aria-hidden="true" />
           </button>
           <button
             type="button"
-            class="p-1 text-gray-400 hover:text-black rounded"
+            class="icon-btn text-gray-400 hover:text-black"
             title="刷新状态"
             @click="emit('request-refresh', item)"
           >
@@ -105,7 +105,7 @@ function readChecked(event: Event): boolean {
           </button>
           <button
             type="button"
-            class="p-1 text-gray-400 hover:text-black rounded"
+            class="icon-btn text-gray-400 hover:text-black"
             title="编辑"
             @click="emit('request-edit', item)"
           >
@@ -113,7 +113,7 @@ function readChecked(event: Event): boolean {
           </button>
           <button
             type="button"
-            class="p-1 text-gray-400 hover:text-red-600 rounded"
+            class="icon-btn text-gray-400 hover:text-red-600"
             title="删除"
             @click="emit('request-delete', item)"
           >

@@ -1,5 +1,22 @@
     /* Shared styles moved to common.css */
 
+    /* Icon button - no background or border */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: #f3f4f6;
+    }
+
     /* Table Styles */
     .geist-table {
       width: 100%;
