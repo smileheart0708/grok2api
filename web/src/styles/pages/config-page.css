@@ -1,8 +1,8 @@
 /* Config page specific styles (shared styles moved to common.css). */
 
 .config-section {
-  background: #fff;
-  border: 1px solid transparent;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -12,13 +12,51 @@
 }
 
 .config-section:hover {
-  border-color: #000;
+  border-color: var(--fg);
+}
+
+.config-section-header {
+  display: flex;
+  align-items: center;
+}
+
+.config-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.config-section-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--accents-6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.config-section-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .config-section-title {
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--accents-7);
+}
+
+.config-section-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--accents-4);
+  line-height: 1.4;
 }
 
 .config-grid {
@@ -65,14 +103,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #000;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border: 1px solid var(--primary);
   border-radius: 6px;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease;
 }
 
 .config-copy-btn:hover {
   opacity: 0.85;
+}
+
+.config-json-textarea {
+  min-height: 132px;
 }
 
 .config-toggle {

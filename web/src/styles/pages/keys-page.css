@@ -18,6 +18,18 @@
   color: var(--accents-5);
 }
 
+.pill-active {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #bbf7d0;
+}
+
+.pill-exhausted {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
 .mono {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -50,11 +62,29 @@
   flex-wrap: wrap;
 }
 
-.keys-toolbar-left #keys-search {
+.keys-toolbar-search {
+  position: relative;
   width: 220px;
 }
 
-.keys-toolbar-left #keys-status-filter {
+.keys-toolbar-search .geist-input {
+  padding-left: 1.75rem;
+}
+
+.keys-toolbar-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.55rem;
+  transform: translateY(-50%);
+  color: var(--accents-4);
+  pointer-events: none;
+}
+
+.keys-toolbar-left .keys-toolbar-search {
+  width: 220px;
+}
+
+.keys-toolbar-left select {
   width: 140px;
 }
 
@@ -149,8 +179,8 @@
     gap: 8px;
   }
 
-  .keys-toolbar-left #keys-search,
-  .keys-toolbar-left #keys-status-filter,
+  .keys-toolbar-left .keys-toolbar-search,
+  .keys-toolbar-left select,
   .keys-toolbar-left .geist-button-outline {
     width: 100%;
   }
