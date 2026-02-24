@@ -1,332 +1,775 @@
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import AdminPageShell from '@/components/admin/admin-page-shell.vue'
-import { useLegacyPage } from '@/composables/use-legacy-page'
+import TokenAddEditModal from '@/components/token/token-add-edit-modal.vue'
+import TokenImportModal from '@/components/token/token-import-modal.vue'
+import TokenStatsGrid from '@/components/token/token-stats-grid.vue'
+import TokenTable from '@/components/token/token-table.vue'
+import TokenTestModal from '@/components/token/token-test-modal.vue'
+import TokenToolbar from '@/components/token/token-toolbar.vue'
+import {
+  DEFAULT_TOKEN_FILTERS,
+  type TokenEditorMode,
+  type TokenEditorSubmitPayload,
+  type TokenImportSubmitPayload,
+  type TokenRow,
+  type TokenStats,
+} from '@/components/token/token-types'
+import {
+  createTokenKey,
+  isTokenActive,
+  isTokenExhausted,
+  isTokenInvalid,
+  normalizeSsoToken,
+  normalizeTokenStatus,
+  poolToTokenType,
+  toDisplayToken,
+} from '@/components/token/token-utils'
+import UiBatchBar from '@/components/ui/ui-batch-bar.vue'
+import UiConfirmDialog from '@/components/ui/ui-confirm-dialog.vue'
+import UiToastHost from '@/components/ui/ui-toast-host.vue'
+import { useBatchSelection } from '@/composables/use-batch-selection'
+import { useConfirm } from '@/composables/use-confirm'
+import { useToast } from '@/composables/use-toast'
+import {
+  AdminApiRequestError,
+  fetchAdminChatModels,
+  fetchAdminTokens,
+  refreshAdminTokens,
+  saveAdminTokens,
+  testAdminToken,
+} from '@/lib/admin-api'
+import { logout } from '@/lib/admin-auth'
+import type {
+  AdminChatModel,
+  AdminTokenPool,
+  AdminTokenPoolMap,
+  TokenBatchActionState,
+  TokenFilterState,
+} from '@/types/admin-api'
 import '@/styles/pages/token-page.css'
 
-useLegacyPage({
-  scripts: [
-    '/legacy/common/admin-auth.js',
-    '/legacy/common/toast.js',
-    '/legacy/common/draggable.js',
-    '/legacy/scripts/token.js',
-  ],
-  mountName: 'mountTokenPage',
+const TEST_MODEL_STORAGE_KEY = 'grok2api-token-test-model'
+const BATCH_SIZE = 50
+const BATCH_DELAY_MS = 320
+
+const { success, error, info } = useToast()
+const {
+  isOpen: confirmOpen,
+  title: confirmTitle,
+  message: confirmMessage,
+  confirmText: confirmSubmitText,
+  cancelText: confirmCancelText,
+  danger: confirmDanger,
+  requestConfirm,
+  confirm: acceptConfirm,
+  cancel: cancelConfirm,
+} = useConfirm()
+
+const isLoading = ref(true)
+const rows = ref<TokenRow[]>([])
+
+const filters = ref<TokenFilterState>({ ...DEFAULT_TOKEN_FILTERS })
+
+const isEditorOpen = ref(false)
+const editorMode = ref<TokenEditorMode>('create')
+const editingRowKey = ref('')
+const isEditorSaving = ref(false)
+
+const isImportOpen = ref(false)
+const isImportSaving = ref(false)
+
+const isTestOpen = ref(false)
+const isTestRunning = ref(false)
+const testingRowKey = ref('')
+const testMetaText = ref('')
+const testResultText = ref('')
+const chatModels = ref<AdminChatModel[]>([])
+const selectedTestModel = ref('')
+
+const batchState = ref<TokenBatchActionState>({
+  running: false,
+  paused: false,
+  action: null,
+  total: 0,
+  processed: 0,
+})
+const shouldStopBatch = ref(false)
+
+const selection = useBatchSelection(rows, (row) => row.key)
+const selectedCount = computed(() => selection.selectedCount.value)
+
+const editingRow = computed(() => rows.value.find((row) => row.key === editingRowKey.value) ?? null)
+const testingRow = computed(() => rows.value.find((row) => row.key === testingRowKey.value) ?? null)
+
+const filteredRows = computed(() => {
+  const hasTypeFilter = filters.value.typeSso || filters.value.typeSuperSso
+  const hasStatusFilter = filters.value.statusActive || filters.value.statusInvalid || filters.value.statusExhausted
+
+  return rows.value.filter((row) => {
+    const tokenType = row.token_type === 'ssoSuper' ? 'ssoSuper' : 'sso'
+    const matchesType = !hasTypeFilter
+      || (filters.value.typeSso && tokenType === 'sso')
+      || (filters.value.typeSuperSso && tokenType === 'ssoSuper')
+    if (!matchesType) return false
+
+    if (!hasStatusFilter) return true
+
+    const active = isTokenActive(row)
+    const invalid = isTokenInvalid(row)
+    const exhausted = isTokenExhausted(row)
+    return (filters.value.statusActive && active)
+      || (filters.value.statusInvalid && invalid)
+      || (filters.value.statusExhausted && exhausted)
+  })
+})
+
+const tokenStats = computed<TokenStats>(() => {
+  let active = 0
+  let exhausted = 0
+  let invalid = 0
+  let chatQuota = 0
+  let totalCalls = 0
+
+  for (const row of rows.value) {
+    if (isTokenInvalid(row)) {
+      invalid += 1
+    } else if (isTokenExhausted(row)) {
+      exhausted += 1
+    } else {
+      active += 1
+      if (row.quota_known && row.quota > 0) {
+        chatQuota += row.quota
+      }
+    }
+    totalCalls += row.use_count
+  }
+
+  return {
+    total: rows.value.length,
+    active,
+    exhausted,
+    invalid,
+    chatQuota,
+    imageQuota: Math.floor(chatQuota / 2),
+    totalCalls,
+  }
+})
+
+const allVisibleSelected = computed(() => {
+  if (filteredRows.value.length === 0) return false
+  return filteredRows.value.every((row) => selection.isSelected(row.key))
+})
+
+const tableEmptyText = computed(() => {
+  if (rows.value.length === 0) return '暂无 Token，请点击右上角导入或添加。'
+  return '当前筛选无结果。'
+})
+
+const batchProgressText = computed(() => {
+  const total = batchState.value.total
+  if (total <= 0) return '0%'
+  const percent = Math.floor((batchState.value.processed / total) * 100)
+  return `${String(percent)}% (${String(batchState.value.processed)}/${String(total)})`
+})
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
+function formatError(errorValue: unknown, fallback: string): string {
+  if (errorValue instanceof AdminApiRequestError) {
+    return errorValue.message
+  }
+  if (errorValue instanceof Error && errorValue.message.trim()) {
+    return `${fallback}: ${errorValue.message}`
+  }
+  return fallback
+}
+
+async function handleApiFailure(errorValue: unknown, fallback: string): Promise<void> {
+  if (errorValue instanceof AdminApiRequestError && errorValue.status === 401) {
+    await logout('/admin/token')
+    return
+  }
+  error(formatError(errorValue, fallback))
+}
+
+function normalizePoolMap(poolMap: AdminTokenPoolMap): TokenRow[] {
+  const out: TokenRow[] = []
+  const dedupe = new Set<string>()
+
+  const appendPool = (pool: AdminTokenPool): void => {
+    const list = poolMap[pool]
+    for (const item of list) {
+      const token = toDisplayToken(item.token)
+      const key = createTokenKey(token)
+      if (!token || !key) continue
+
+      const dedupeKey = `${pool}:${key}`
+      if (dedupe.has(dedupeKey)) continue
+      dedupe.add(dedupeKey)
+
+      out.push({
+        ...item,
+        token,
+        status: normalizeTokenStatus(item.status),
+        token_type: item.token_type === 'ssoSuper' ? 'ssoSuper' : poolToTokenType(pool),
+        note: item.note,
+        fail_count: Number.isFinite(item.fail_count) ? item.fail_count : 0,
+        use_count: Number.isFinite(item.use_count) ? item.use_count : 0,
+        pool,
+        key,
+      })
+    }
+  }
+
+  appendPool('ssoBasic')
+  appendPool('ssoSuper')
+  return out
+}
+
+function buildPoolMap(tokenRows: readonly TokenRow[]): AdminTokenPoolMap {
+  const out: AdminTokenPoolMap = { ssoBasic: [], ssoSuper: [] }
+  for (const row of tokenRows) {
+    out[row.pool].push({
+      token: row.token,
+      status: row.status,
+      quota: row.quota,
+      quota_known: row.quota_known,
+      heavy_quota: row.heavy_quota,
+      heavy_quota_known: row.heavy_quota_known,
+      token_type: row.token_type,
+      note: row.note,
+      fail_count: row.fail_count,
+      use_count: row.use_count,
+    })
+  }
+  return out
+}
+
+async function loadTokenData(): Promise<void> {
+  isLoading.value = true
+  try {
+    const poolMap = await fetchAdminTokens()
+    rows.value = normalizePoolMap(poolMap)
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, '加载 Token 失败')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function loadChatModels(): Promise<void> {
+  try {
+    chatModels.value = await fetchAdminChatModels()
+    if (chatModels.value.length === 0) {
+      selectedTestModel.value = ''
+      return
+    }
+
+    const current = selectedTestModel.value
+    if (current && chatModels.value.some((item) => item.id === current)) return
+
+    const storedValue = (() => {
+      try {
+        return window.localStorage.getItem(TEST_MODEL_STORAGE_KEY) ?? ''
+      } catch {
+        return ''
+      }
+    })()
+
+    const defaultModel = chatModels.value.some((item) => item.id === storedValue)
+      ? storedValue
+      : chatModels.value[0]?.id ?? ''
+    selectedTestModel.value = defaultModel
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, '加载测试模型失败')
+  }
+}
+
+async function persistRows(nextRows: TokenRow[], successText: string): Promise<boolean> {
+  try {
+    await saveAdminTokens(buildPoolMap(nextRows))
+    rows.value = nextRows
+    success(successText)
+    await loadTokenData()
+    return true
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, '保存 Token 失败')
+    return false
+  }
+}
+
+function resetFilters(): void {
+  filters.value = { ...DEFAULT_TOKEN_FILTERS }
+}
+
+function onFilterUpdate(nextFilters: TokenFilterState): void {
+  filters.value = nextFilters
+}
+
+function openAddModal(): void {
+  editorMode.value = 'create'
+  editingRowKey.value = ''
+  isEditorOpen.value = true
+}
+
+function openEditModal(row: TokenRow): void {
+  editorMode.value = 'edit'
+  editingRowKey.value = row.key
+  isEditorOpen.value = true
+}
+
+function closeEditorModal(): void {
+  if (isEditorSaving.value) return
+  isEditorOpen.value = false
+}
+
+async function onEditorSubmit(payload: TokenEditorSubmitPayload): Promise<void> {
+  const displayToken = toDisplayToken(payload.token)
+  const key = createTokenKey(displayToken)
+  if (!displayToken || !key) {
+    error('Token 不能为空')
+    return
+  }
+
+  const nextRows = [...rows.value]
+  if (editorMode.value === 'create') {
+    if (nextRows.some((row) => row.key === key)) {
+      error('Token 已存在')
+      return
+    }
+    nextRows.push({
+      token: displayToken,
+      status: 'active',
+      quota: payload.quota,
+      quota_known: true,
+      heavy_quota: -1,
+      heavy_quota_known: false,
+      token_type: poolToTokenType(payload.pool),
+      note: payload.note,
+      fail_count: 0,
+      use_count: 0,
+      pool: payload.pool,
+      key,
+    })
+  } else {
+    const index = nextRows.findIndex((row) => row.key === editingRowKey.value)
+    if (index < 0) {
+      error('编辑目标不存在，请刷新后重试')
+      return
+    }
+    const current = nextRows[index]
+    if (!current) {
+      error('编辑目标不存在，请刷新后重试')
+      return
+    }
+    nextRows[index] = {
+      ...current,
+      pool: payload.pool,
+      token_type: poolToTokenType(payload.pool),
+      quota: payload.quota,
+      quota_known: true,
+      note: payload.note,
+    }
+  }
+
+  isEditorSaving.value = true
+  const saved = await persistRows(nextRows, editorMode.value === 'create' ? 'Token 添加成功' : 'Token 保存成功')
+  isEditorSaving.value = false
+  if (saved) isEditorOpen.value = false
+}
+
+function openImportModal(): void {
+  isImportOpen.value = true
+}
+
+function closeImportModal(): void {
+  if (isImportSaving.value) return
+  isImportOpen.value = false
+}
+
+async function onImportSubmit(payload: TokenImportSubmitPayload): Promise<void> {
+  const existing = new Set(rows.value.map((row) => row.key))
+  const nextRows = [...rows.value]
+  let added = 0
+
+  for (const rawToken of payload.tokens) {
+    const displayToken = toDisplayToken(rawToken)
+    const key = createTokenKey(displayToken)
+    if (!displayToken || !key || existing.has(key)) continue
+    existing.add(key)
+    nextRows.push({
+      token: displayToken,
+      status: 'active',
+      quota: 80,
+      quota_known: true,
+      heavy_quota: -1,
+      heavy_quota_known: false,
+      token_type: poolToTokenType(payload.pool),
+      note: '',
+      fail_count: 0,
+      use_count: 0,
+      pool: payload.pool,
+      key,
+    })
+    added += 1
+  }
+
+  if (added === 0) {
+    info('没有可导入的新 Token')
+    return
+  }
+
+  isImportSaving.value = true
+  const saved = await persistRows(nextRows, `已导入 ${String(added)} 个 Token`)
+  isImportSaving.value = false
+  if (saved) isImportOpen.value = false
+}
+
+async function deleteSingleToken(row: TokenRow): Promise<void> {
+  const ok = await requestConfirm('确定要删除此 Token 吗？', {
+    confirmText: '删除',
+    danger: true,
+  })
+  if (!ok) return
+
+  const nextRows = rows.value.filter((item) => item.key !== row.key)
+  await persistRows(nextRows, 'Token 删除成功')
+}
+
+async function refreshSingleToken(row: TokenRow): Promise<void> {
+  try {
+    const normalizedToken = normalizeSsoToken(row.token)
+    const results = await refreshAdminTokens([normalizedToken])
+    const successValue = results[`sso=${normalizedToken}`] ?? results[normalizedToken] ?? false
+    if (successValue) {
+      success('刷新成功')
+    } else {
+      error('刷新失败')
+    }
+    await loadTokenData()
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, '刷新失败')
+  }
+}
+
+async function copyTokenToClipboard(token: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(token)
+    success('Token 已复制')
+  } catch {
+    error('复制失败，请检查浏览器权限')
+  }
+}
+
+function setTestModel(modelId: string): void {
+  selectedTestModel.value = modelId
+  try {
+    window.localStorage.setItem(TEST_MODEL_STORAGE_KEY, modelId)
+  } catch {
+    // ignore
+  }
+}
+
+async function openTestModal(row: TokenRow): Promise<void> {
+  testingRowKey.value = row.key
+  testMetaText.value = ''
+  testResultText.value = ''
+  isTestOpen.value = true
+  if (chatModels.value.length === 0) {
+    await loadChatModels()
+  }
+}
+
+function closeTestModal(): void {
+  if (isTestRunning.value) return
+  isTestOpen.value = false
+}
+
+function formatResult(value: unknown): string {
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+function resolveTokenType(row: TokenRow): 'sso' | 'ssoSuper' {
+  return row.token_type === 'ssoSuper' ? 'ssoSuper' : 'sso'
+}
+
+async function runTokenTest(): Promise<void> {
+  const row = testingRow.value
+  if (!row) {
+    error('测试目标不存在')
+    return
+  }
+  if (!selectedTestModel.value) {
+    error('请选择测试模型')
+    return
+  }
+
+  isTestRunning.value = true
+  try {
+    const result = await testAdminToken({
+      token: normalizeSsoToken(row.token),
+      tokenType: resolveTokenType(row),
+      model: selectedTestModel.value,
+    })
+
+    testMetaText.value = `HTTP ${String(result.upstreamStatus)} · 额度刷新 ${result.quotaRefreshSuccess ? '成功' : '失败'}${result.reactivated ? ' · 已恢复' : ''}`
+    testResultText.value = formatResult(result.result)
+
+    if (result.success) {
+      success('测试成功')
+      await loadTokenData()
+    } else {
+      info('测试完成，请查看返回内容')
+    }
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, '测试失败')
+  } finally {
+    isTestRunning.value = false
+  }
+}
+
+function toggleSelectAllVisible(checked: boolean): void {
+  const visibleKeys = filteredRows.value.map((row) => row.key)
+  selection.setMany(visibleKeys, checked)
+}
+
+function toggleSelect(payload: { key: string; selected: boolean }): void {
+  selection.setKeySelected(payload.key, payload.selected)
+}
+
+function exportSelectedTokens(): void {
+  const selected = selection.selectedItems.value
+  if (selected.length === 0) {
+    error('未选择 Token')
+    return
+  }
+  const content = selected.map((row) => row.token).join('\n')
+  const blob = new Blob([`${content}\n`], { type: 'text/plain' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `tokens_export_${new Date().toISOString().slice(0, 10)}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+async function runBatch(
+  action: 'refresh' | 'delete',
+  queue: string[],
+  executor: (chunk: string[]) => Promise<void>,
+): Promise<void> {
+  batchState.value = {
+    running: true,
+    paused: false,
+    action,
+    total: queue.length,
+    processed: 0,
+  }
+
+  try {
+    while (queue.length > 0) {
+      if (shouldStopBatch.value) break
+      if (batchState.value.paused) {
+        await sleep(120)
+        continue
+      }
+
+      const chunk = queue.splice(0, BATCH_SIZE)
+      await executor(chunk)
+      batchState.value = {
+        ...batchState.value,
+        processed: Math.min(batchState.value.total, batchState.value.processed + chunk.length),
+      }
+      await sleep(BATCH_DELAY_MS)
+    }
+
+    if (shouldStopBatch.value) {
+      info(action === 'delete' ? '已终止删除任务' : '已终止刷新任务')
+    } else {
+      success(action === 'delete' ? '批量删除完成' : '批量刷新完成')
+    }
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, action === 'delete' ? '批量删除失败' : '批量刷新失败')
+  } finally {
+    batchState.value = {
+      running: false,
+      paused: false,
+      action: null,
+      total: 0,
+      processed: 0,
+    }
+    shouldStopBatch.value = false
+    await loadTokenData()
+  }
+}
+
+async function startBatchRefresh(): Promise<void> {
+  if (batchState.value.running) {
+    info('当前有任务进行中')
+    return
+  }
+
+  const selected = selection.selectedItems.value
+  if (selected.length === 0) {
+    error('未选择 Token')
+    return
+  }
+
+  const queue = selected.map((row) => normalizeSsoToken(row.token))
+  shouldStopBatch.value = false
+  await runBatch('refresh', queue, async (chunk) => {
+    await refreshAdminTokens(chunk)
+  })
+}
+
+async function startBatchDelete(): Promise<void> {
+  if (batchState.value.running) {
+    info('当前有任务进行中')
+    return
+  }
+
+  const selected = selection.selectedItems.value
+  if (selected.length === 0) {
+    error('未选择 Token')
+    return
+  }
+
+  const ok = await requestConfirm(`确定要删除选中的 ${String(selected.length)} 个 Token 吗？`, {
+    confirmText: '删除',
+    danger: true,
+  })
+  if (!ok) return
+
+  let workingRows = [...rows.value]
+  const queue = selected.map((row) => row.key)
+
+  shouldStopBatch.value = false
+  await runBatch('delete', queue, async (chunk) => {
+    const removeSet = new Set(chunk)
+    workingRows = workingRows.filter((row) => !removeSet.has(row.key))
+    await saveAdminTokens(buildPoolMap(workingRows))
+    rows.value = workingRows
+    selection.setMany(chunk, false)
+  })
+}
+
+function toggleBatchPause(): void {
+  if (!batchState.value.running) return
+  batchState.value = {
+    ...batchState.value,
+    paused: !batchState.value.paused,
+  }
+}
+
+function stopBatchAction(): void {
+  if (!batchState.value.running) return
+  shouldStopBatch.value = true
+}
+
+onMounted(() => {
+  void loadTokenData()
+  void loadChatModels()
 })
 </script>
 
 <template>
-  <div id="toast-container" class="toast-container"></div>
+  <UiToastHost />
 
   <AdminPageShell max-width="1280px">
-    <div class="space-y-6">
-      <div class="flex flex-wrap justify-between items-start gap-3">
-        <div>
-          <h2 class="text-2xl font-semibold tracking-tight">Token 列表</h2>
-          <p class="text-[var(--accents-4)] mt-1 text-sm">管理 Grok2API 的 Token 服务号池。</p>
-        </div>
-        <div class="flex items-center gap-3 w-full sm:w-auto">
-          <button onclick="openImportModal()" class="geist-button-outline gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            导入
-          </button>
-          <button onclick="addToken()" class="geist-button gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            添加
-          </button>
-        </div>
-      </div>
+    <TokenToolbar
+      :filters="filters"
+      :result-count="filteredRows.length"
+      @open-import="openImportModal"
+      @open-add="openAddModal"
+      @update:filters="onFilterUpdate"
+      @reset-filters="resetFilters"
+    />
 
-      <div class="h-px bg-[var(--border)] my-6"></div>
+    <div class="h-px bg-[var(--border)] my-6"></div>
 
-      <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="stat-card">
-          <div id="stat-total" class="stat-value">-</div>
-          <div class="stat-label">Token 总数</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-active" class="stat-value text-green-600">-</div>
-          <div class="stat-label">Token 正常</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-cooling" class="stat-value text-orange-500">-</div>
-          <div class="stat-label">Token 限流</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-invalid" class="stat-value text-red-600">-</div>
-          <div class="stat-label">Token 失效</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-chat-quota" class="stat-value">-</div>
-          <div class="stat-label">Chat 剩余</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-image-quota" class="stat-value text-blue-600">-</div>
-          <div class="stat-label">Image 剩余</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-video-quota" class="stat-value text-gray-400">无法统计</div>
-          <div class="stat-label">Video 剩余</div>
-        </div>
-        <div class="stat-card">
-          <div id="stat-total-calls" class="stat-value">-</div>
-          <div class="stat-label">总调用次数</div>
-        </div>
-      </div>
+    <TokenStatsGrid :stats="tokenStats" />
 
-      <div
-        id="token-filter-bar"
-        class="token-filter-bar mb-4 bg-white border border-[var(--border)] rounded-lg px-4 py-3 flex flex-wrap items-center gap-4"
-      >
-        <div class="filter-group flex items-center gap-3">
-          <span class="text-xs text-[var(--accents-5)]">类型</span>
-          <label class="filter-chip">
-            <input id="filter-type-sso" type="checkbox" onchange="onFilterChange()">
-            <span>sso</span>
-          </label>
-          <label class="filter-chip">
-            <input id="filter-type-supersso" type="checkbox" onchange="onFilterChange()">
-            <span>supersso</span>
-          </label>
-        </div>
-        <div class="filter-group flex items-center gap-3">
-          <span class="text-xs text-[var(--accents-5)]">状态</span>
-          <label class="filter-chip">
-            <input id="filter-status-active" type="checkbox" onchange="onFilterChange()">
-            <span>活跃</span>
-          </label>
-          <label class="filter-chip">
-            <input id="filter-status-invalid" type="checkbox" onchange="onFilterChange()">
-            <span>失效</span>
-          </label>
-          <label class="filter-chip">
-            <input id="filter-status-exhausted" type="checkbox" onchange="onFilterChange()">
-            <span>额度用尽</span>
-          </label>
-        </div>
-        <div class="filter-summary ml-auto flex items-center gap-3">
-          <span class="text-xs text-[var(--accents-5)]">结果 <span id="filter-result-count">0</span></span>
-          <button onclick="resetFilters()" class="geist-button-outline text-xs px-3 h-7">清空筛选</button>
-        </div>
-      </div>
-
-      <div class="rounded-lg overflow-hidden bg-white mb-4 overflow-x-auto">
-        <table class="geist-table min-w-[800px]">
-          <thead>
-            <tr>
-              <th class="w-10"><input id="select-all" type="checkbox" class="checkbox" onclick="toggleSelectAll()"></th>
-              <th class="w-48 text-left">Token</th>
-              <th class="w-24">类型</th>
-              <th class="w-24">状态</th>
-              <th class="w-20">额度</th>
-              <th class="text-left">备注</th>
-              <th class="w-40 text-center">操作</th>
-            </tr>
-          </thead>
-          <tbody id="token-table-body"></tbody>
-        </table>
-        <div id="loading" class="text-center py-12 text-[var(--accents-4)]">加载中...</div>
-        <div id="empty-state" class="hidden text-center py-12 text-[var(--accents-4)]">暂无 Token，请点击右上角导入或添加。</div>
-      </div>
-    </div>
+    <TokenTable
+      :rows="filteredRows"
+      :loading="isLoading"
+      :empty-text="tableEmptyText"
+      :all-selected="allVisibleSelected"
+      :is-selected="selection.isSelected"
+      @toggle-select-all="toggleSelectAllVisible"
+      @toggle-select="toggleSelect"
+      @request-refresh="refreshSingleToken"
+      @request-test="openTestModal"
+      @request-edit="openEditModal"
+      @request-delete="deleteSingleToken"
+      @copy-token="copyTokenToClipboard"
+    />
   </AdminPageShell>
 
-  <div
-    id="batch-actions"
-    class="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white border border-[var(--border)] rounded-full px-3 py-2 flex items-center shadow-lg gap-3 cursor-move select-none active:cursor-grabbing whitespace-nowrap"
-  >
-    <div class="batch-actions-meta text-sm font-medium flex items-center gap-2">
-      <span class="text-[var(--accents-5)] text-xs">已选择</span>
-      <span id="selected-count" class="bg-black text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
-      <span class="text-[var(--accents-5)] text-xs">项</span>
-    </div>
-    <span class="toolbar-sep"></span>
-    <div class="batch-actions-buttons flex items-center gap-1">
-      <button id="btn-batch-export" onclick="batchExport()" class="geist-button-outline text-xs px-3 gap-1 border-0 hover:bg-gray-100">导出</button>
-      <button
-        id="btn-batch-update"
-        onclick="batchUpdate()"
-        class="geist-button-outline text-xs px-3 gap-1 border-0 hover:bg-gray-100 justify-center"
-      >
-        刷新
-      </button>
-      <button id="btn-batch-delete" onclick="batchDelete()" class="geist-button-danger text-xs px-3">删除</button>
-    </div>
-    <div id="batch-progress" class="hidden text-xs text-[var(--accents-5)] flex items-center gap-2">
-      <span class="toolbar-sep"></span>
-      <span id="batch-progress-text"></span>
-      <button id="btn-pause-action" type="button" class="batch-link hidden" onclick="toggleBatchPause()">暂停</button>
-      <button id="btn-stop-action" type="button" class="batch-link hidden" onclick="stopBatchRefresh()">终止</button>
-    </div>
-  </div>
+  <UiBatchBar
+    v-if="rows.length > 0 || batchState.running"
+    :selected-count="selectedCount"
+    :running="batchState.running"
+    :paused="batchState.paused"
+    :progress-text="batchProgressText"
+    @export="exportSelectedTokens"
+    @refresh="startBatchRefresh"
+    @delete="startBatchDelete"
+    @pause="toggleBatchPause"
+    @stop="stopBatchAction"
+  />
 
-  <div id="add-modal" class="modal-overlay hidden">
-    <div id="add-modal-content" class="modal-content modal-lg">
-      <div class="modal-header">
-        <h3 class="modal-title">添加 Token</h3>
-        <button onclick="closeAddModal()" class="modal-close" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
+  <TokenAddEditModal
+    :open="isEditorOpen"
+    :mode="editorMode"
+    :initial-token="editingRow?.token ?? ''"
+    :initial-pool="editingRow?.pool ?? 'ssoBasic'"
+    :initial-quota="editingRow?.quota ?? 80"
+    :initial-note="editingRow?.note ?? ''"
+    :saving="isEditorSaving"
+    @close="closeEditorModal"
+    @submit="onEditorSubmit"
+  />
 
-      <div id="add-tab-manual" class="tab-panel">
-        <div class="space-y-4">
-          <div>
-            <label class="modal-label mb-1 block">Token</label>
-            <input id="add-token-input" type="text" class="geist-input font-mono" placeholder="sso=...">
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label class="modal-label mb-1 block">类型</label>
-              <select id="add-token-pool" class="geist-input">
-                <option value="ssoBasic">ssoBasic</option>
-                <option value="ssoSuper">ssoSuper</option>
-              </select>
-            </div>
-            <div>
-              <label class="modal-label mb-1 block">额度</label>
-              <input id="add-token-quota" type="number" class="geist-input" min="0" value="80">
-            </div>
-          </div>
-          <div>
-            <label class="modal-label mb-1 block">备注</label>
-            <input id="add-token-note" type="text" class="geist-input" placeholder="可选备注" maxlength="50">
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button onclick="closeAddModal()" class="geist-button-outline text-xs px-3" type="button">取消</button>
-            <button onclick="submitManualAdd()" class="geist-button text-xs px-3" type="button">添加</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <TokenImportModal
+    :open="isImportOpen"
+    :saving="isImportSaving"
+    @close="closeImportModal"
+    @submit="onImportSubmit"
+  />
 
-  <div id="import-modal" class="modal-overlay hidden">
-    <div id="import-modal-content" class="modal-content modal-lg">
-      <div class="modal-header">
-        <h3 class="modal-title">批量导入 Token</h3>
-        <button onclick="closeImportModal()" class="modal-close" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="modal-label mb-1 block">目标 Pool</label>
-          <select id="import-pool" class="geist-input">
-            <option value="ssoBasic">ssoBasic</option>
-            <option value="ssoSuper">ssoSuper</option>
-          </select>
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">Token 列表（每行一个）</label>
-          <textarea id="import-text" class="geist-input font-mono h-48" placeholder="粘贴 Token，一行一个..."></textarea>
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button onclick="closeImportModal()" class="geist-button-outline text-xs px-3" type="button">取消</button>
-          <button onclick="submitImport()" class="geist-button text-xs px-3" type="button">开始导入</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <TokenTestModal
+    :open="isTestOpen"
+    :token-display="testingRow?.token ?? ''"
+    :models="chatModels"
+    :selected-model="selectedTestModel"
+    :running="isTestRunning"
+    :meta-text="testMetaText"
+    :result-text="testResultText"
+    @close="closeTestModal"
+    @run="runTokenTest"
+    @update:selected-model="setTestModel"
+  />
 
-  <div id="edit-modal" class="modal-overlay hidden">
-    <div id="edit-modal-content" class="modal-content modal-md">
-      <div class="modal-header">
-        <h3 class="modal-title">编辑 Token</h3>
-        <button onclick="closeEditModal()" class="modal-close" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <input id="edit-original-token" type="hidden">
-        <input id="edit-original-pool" type="hidden">
-        <div>
-          <label class="modal-label mb-1 block">Token</label>
-          <input id="edit-token-display" type="text" class="geist-input font-mono bg-gray-50 text-gray-500" disabled>
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">类型</label>
-          <select id="edit-pool" class="geist-input">
-            <option value="ssoBasic">ssoBasic</option>
-            <option value="ssoSuper">ssoSuper</option>
-          </select>
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">额度</label>
-          <input id="edit-quota" type="number" class="geist-input" min="0">
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">备注</label>
-          <input id="edit-note" type="text" class="geist-input" placeholder="可选备注" maxlength="50">
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button onclick="closeEditModal()" class="geist-button-outline text-xs px-3" type="button">取消</button>
-          <button onclick="saveEdit()" class="geist-button text-xs px-3" type="button">保存</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="test-modal" class="modal-overlay hidden">
-    <div id="test-modal-content" class="modal-content modal-lg">
-      <div class="modal-header">
-        <h3 class="modal-title">测试 Token</h3>
-        <button onclick="closeTestModal()" class="modal-close" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <input id="test-token-value" type="hidden">
-        <input id="test-token-type" type="hidden">
-        <div>
-          <label class="modal-label mb-1 block">当前 Token</label>
-          <input id="test-token-display" type="text" class="geist-input font-mono bg-gray-50 text-gray-500" readonly>
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">测试模型（仅聊天模型）</label>
-          <select id="test-model-select" class="geist-input"></select>
-        </div>
-        <div class="text-xs text-[var(--accents-5)]">测试消息固定为 <code>hi</code>，仅用于模拟一次下游聊天请求。</div>
-        <div id="test-result-meta" class="text-xs text-[var(--accents-5)] hidden"></div>
-        <pre
-          id="test-result-content"
-          class="hidden test-result-box text-xs font-mono whitespace-pre-wrap bg-[var(--accents-1)] border border-[var(--border)] rounded-md p-2 max-h-64 overflow-auto"
-        ></pre>
-        <div class="flex justify-end gap-2 pt-2">
-          <button onclick="closeTestModal()" class="geist-button-outline text-xs px-3" type="button">取消</button>
-          <button id="test-run-btn" onclick="runTokenTest()" class="geist-button text-xs px-3" type="button">开始测试</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="confirm-dialog" class="modal-overlay confirm-dialog hidden">
-    <div class="modal-content modal-md">
-      <div class="confirm-dialog-body">
-        <div class="confirm-dialog-title">请确认</div>
-        <div id="confirm-message" class="confirm-dialog-message"></div>
-        <div class="confirm-dialog-actions">
-          <button id="confirm-cancel" type="button" class="geist-button-outline text-xs px-3">取消</button>
-          <button id="confirm-ok" type="button" class="geist-button-danger text-xs px-3">确定</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <UiConfirmDialog
+    :open="confirmOpen"
+    :title="confirmTitle"
+    :message="confirmMessage"
+    :confirm-text="confirmSubmitText"
+    :cancel-text="confirmCancelText"
+    :danger="confirmDanger"
+    @confirm="acceptConfirm"
+    @cancel="cancelConfirm"
+  />
 </template>
