@@ -4,7 +4,15 @@ compatibility_date = "2026-01-28"
 minify = true
 
 # 静态资源（Vue SPA）
-assets = { directory = "./web/dist", binding = "ASSETS" }
+[assets]
+directory = "./web/dist"
+binding = "ASSETS"
+# SPA 路由统一回退到 index.html，避免 /admin/* 等前端路由被当作静态文件后重定向。
+not_found_handling = "single-page-application"
+# 禁用 HTML 自动斜杠规范化，避免多余 307。
+html_handling = "none"
+# 仅让动态路径进入 Worker，其余前端路由交给静态资产层。
+run_worker_first = ["/api/*", "/v1/*", "/images/*", "/health", "/manage", "/admin/chat", "/_worker.js"]
 
 # 将执行位置固定在美国附近，使出口流量更稳定。
 # 文档: https://developers.cloudflare.com/workers/platform/placement/
