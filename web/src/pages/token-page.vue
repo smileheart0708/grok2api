@@ -25,7 +25,6 @@ import {
   poolToTokenType,
   toDisplayToken,
 } from '@/components/token/token-utils'
-import UiBatchBar from '@/components/ui/ui-batch-bar.vue'
 import UiConfirmDialog from '@/components/ui/ui-confirm-dialog.vue'
 import UiToastHost from '@/components/ui/ui-toast-host.vue'
 import { useBatchSelection } from '@/composables/use-batch-selection'
@@ -697,10 +696,19 @@ onMounted(() => {
     <TokenToolbar
       :filters="filters"
       :result-count="filteredRows.length"
+      :selected-count="selectedCount"
+      :batch-running="batchState.running"
+      :batch-paused="batchState.paused"
+      :batch-progress-text="batchProgressText"
       @open-import="openImportModal"
       @open-add="openAddModal"
       @update:filters="onFilterUpdate"
       @reset-filters="resetFilters"
+      @export="exportSelectedTokens"
+      @refresh="startBatchRefresh"
+      @delete="startBatchDelete"
+      @pause="toggleBatchPause"
+      @stop="stopBatchAction"
     >
       <template #stats>
         <TokenStatsGrid :stats="tokenStats" />
@@ -722,19 +730,6 @@ onMounted(() => {
       @copy-token="copyTokenToClipboard"
     />
   </AdminPageShell>
-
-  <UiBatchBar
-    v-if="rows.length > 0 || batchState.running"
-    :selected-count="selectedCount"
-    :running="batchState.running"
-    :paused="batchState.paused"
-    :progress-text="batchProgressText"
-    @export="exportSelectedTokens"
-    @refresh="startBatchRefresh"
-    @delete="startBatchDelete"
-    @pause="toggleBatchPause"
-    @stop="stopBatchAction"
-  />
 
   <TokenAddEditModal
     :open="isEditorOpen"

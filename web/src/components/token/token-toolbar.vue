@@ -6,12 +6,16 @@ import UiButton from '@/components/ui/ui-button.vue'
 interface Props {
   filters: TokenFilterState
   resultCount: number
+  selectedCount: number
+  batchRunning: boolean
+  batchPaused: boolean
+  batchProgressText: string
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'open-import' | 'open-add' | 'reset-filters'): void
+  (e: 'open-import' | 'open-add' | 'reset-filters' | 'export' | 'refresh' | 'delete' | 'pause' | 'stop'): void
   (e: 'update:filters', value: TokenFilterState): void
 }>()
 
@@ -114,6 +118,52 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
       <div class="filter-summary ml-auto flex items-center gap-3">
         <span class="text-xs text-accent-5">结果 {{ resultCount }}</span>
         <UiButton variant="outline" size="xs" @click="$emit('reset-filters')">清空筛选</UiButton>
+      </div>
+      
+      <div v-if="selectedCount > 0 || batchRunning" class="batch-actions flex w-full items-center gap-3 pt-3 border-t border-border mt-3">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <span class="text-xs text-accent-5">已选择</span>
+          <span class="rounded-full bg-black px-1.5 py-0.5 text-xs text-white">{{ selectedCount }}</span>
+          <span class="text-xs text-accent-5">项</span>
+        </div>
+        <span class="toolbar-sep"></span>
+        <div class="flex items-center gap-1">
+          <UiButton
+            variant="outline"
+            size="xs"
+            :disabled="batchRunning || selectedCount === 0"
+            @click="$emit('export')"
+          >
+            导出
+          </UiButton>
+          <UiButton
+            variant="outline"
+            size="xs"
+            :disabled="batchRunning || selectedCount === 0"
+            @click="$emit('refresh')"
+          >
+            刷新
+          </UiButton>
+          <UiButton
+            variant="danger"
+            size="xs"
+            :disabled="batchRunning || selectedCount === 0"
+            @click="$emit('delete')"
+          >
+            删除
+          </UiButton>
+        </div>
+        <div
+          v-if="batchRunning"
+          class="flex items-center gap-2 text-xs text-accent-5"
+        >
+          <span class="toolbar-sep"></span>
+          <span>{{ batchProgressText }}</span>
+          <UiButton variant="link" @click="$emit('pause')">
+            {{ batchPaused ? '继续' : '暂停' }}
+          </UiButton>
+          <UiButton variant="link" @click="$emit('stop')">终止</UiButton>
+        </div>
       </div>
     </div>
   </div>
