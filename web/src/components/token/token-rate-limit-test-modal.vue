@@ -30,6 +30,12 @@ function handleSubmit(): void {
   if (!props.selectedModel || props.running) return
   emit('submit', props.selectedModel)
 }
+
+function onModelChange(event: Event): void {
+  const target = event.target
+  if (!(target instanceof HTMLSelectElement)) return
+  emit('update:selected-model', target.value)
+}
 </script>
 
 <template>
@@ -57,7 +63,7 @@ function handleSubmit(): void {
             class="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent-5 focus:ring-1 focus:ring-accent-5"
             :value="selectedModel"
             :disabled="running"
-            @input="emit('update:selected-model', ($event.target as HTMLSelectElement).value)"
+            @change="onModelChange"
           >
             <option
               v-for="model in models"

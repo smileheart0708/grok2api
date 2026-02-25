@@ -97,6 +97,23 @@ function setRateLimitTestModel(modelId: string): void {
   selectedRateLimitModel.value = modelId
 }
 
+function ensureRateLimitTestModel(): void {
+  if (chatModels.value.length === 0) {
+    selectedRateLimitModel.value = ''
+    return
+  }
+
+  const current = selectedRateLimitModel.value
+  if (current && chatModels.value.some((item) => item.id === current)) {
+    return
+  }
+
+  const fallback = chatModels.value.some((item) => item.id === selectedTestModel.value)
+    ? selectedTestModel.value
+    : (chatModels.value[0]?.id ?? '')
+  selectedRateLimitModel.value = fallback
+}
+
 const batchState = ref<TokenBatchActionState>({
   running: false,
   paused: false,
@@ -280,6 +297,7 @@ async function loadChatModels(): Promise<void> {
     chatModels.value = await fetchAdminChatModels()
     if (chatModels.value.length === 0) {
       selectedTestModel.value = ''
+      selectedRateLimitModel.value = ''
       return
     }
 
@@ -298,6 +316,7 @@ async function loadChatModels(): Promise<void> {
       ? storedValue
       : (chatModels.value[0]?.id ?? '')
     selectedTestModel.value = defaultModel
+    ensureRateLimitTestModel()
   } catch (errorValue) {
     await handleApiFailure(errorValue, '加载测试模型失败')
   }
@@ -557,11 +576,11 @@ async function runTokenTest(): Promise<void> {
 async function openRateLimitTestModal(row: TokenRow): Promise<void> {
   rateLimitTestRowKey.value = row.key
   rateLimitTestResult.value = null
-  selectedRateLimitModel.value = chatModels.value[0]?.id ?? ''
   isRateLimitTestOpen.value = true
   if (chatModels.value.length === 0) {
     await loadChatModels()
   }
+  ensureRateLimitTestModel()
 }
 
 function closeRateLimitTestModal(): void {
