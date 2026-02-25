@@ -12,6 +12,11 @@ export interface ApiKeyUsageRow {
   updated_at: number;
 }
 
+export interface ApiKeyLastUsedRow {
+  key: string;
+  last_used_at: number;
+}
+
 export type ApiKeyUsageField = "chat_used" | "heavy_used" | "image_used" | "video_used";
 
 interface D1RunMeta {
@@ -52,6 +57,13 @@ export async function getUsageForDay(
     db,
     "SELECT key, day, chat_used, heavy_used, image_used, video_used, updated_at FROM api_key_usage_daily WHERE key = ? AND day = ?",
     [key, day],
+  );
+}
+
+export async function listLastUsedByKey(db: Env["DB"]): Promise<ApiKeyLastUsedRow[]> {
+  return dbAll<ApiKeyLastUsedRow>(
+    db,
+    "SELECT key, MAX(updated_at) AS last_used_at FROM api_key_usage_daily GROUP BY key",
   );
 }
 

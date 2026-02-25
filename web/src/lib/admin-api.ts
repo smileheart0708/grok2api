@@ -251,11 +251,13 @@ function normalizeApiKeyRow(raw: unknown): AdminApiKeyRow | null {
   const usageSection = readRecord(raw, 'usage_today')
   const remainingSection = readRecord(raw, 'remaining_today')
   const createdAt = readNumber(raw, 'created_at', 0)
+  const lastUsedAt = readNumber(raw, 'last_used_at', 0)
 
   return {
     key,
     name: readString(raw, 'name'),
     created_at: Number.isFinite(createdAt) ? Math.max(0, Math.floor(createdAt)) : 0,
+    last_used_at: Number.isFinite(lastUsedAt) && lastUsedAt > 0 ? Math.floor(lastUsedAt) : null,
     is_active: readBoolean(raw, 'is_active', true),
     display_key: readString(raw, 'display_key') || key,
     chat_limit: normalizeLimitNumber(readNumber(raw, 'chat_limit', -1)),

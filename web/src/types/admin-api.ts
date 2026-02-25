@@ -84,6 +84,7 @@ export interface AdminApiKeyRow {
   key: string
   name: string
   created_at: number
+  last_used_at: number | null
   is_active: boolean
   display_key: string
   chat_limit: number

@@ -54,7 +54,6 @@ watch(
 function applyRecommendedPreset(): void {
   limits.value = {
     chat: '300',
-    heavy: '100',
     image: '100',
     video: '20',
   }
@@ -138,14 +137,10 @@ function onSubmit(): void {
         </UiButton>
       </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label class="modal-label mb-1 block">Chat / 天</label>
           <input v-model="limits.chat" type="number" class="geist-input" min="-1" :disabled="saving">
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">Heavy / 天</label>
-          <input v-model="limits.heavy" type="number" class="geist-input" min="-1" :disabled="saving">
         </div>
         <div>
           <label class="modal-label mb-1 block">生图 / 天</label>

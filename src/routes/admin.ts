@@ -54,7 +54,7 @@ import {
 } from "../repo/cache";
 import { dbAll, dbFirst, dbRun } from "../db";
 import { nowMs } from "../utils/time";
-import { listUsageForDay, localDayString } from "../repo/apiKeyUsage";
+import { listLastUsedByKey, listUsageForDay, localDayString } from "../repo/apiKeyUsage";
 import type { ApiKeyUsageRow } from "../repo/apiKeyUsage";
 
 function jsonError(message: string, code: string): Record<string, unknown> {
@@ -1305,10 +1305,17 @@ adminRoutes.get("/api/v1/admin/keys", requireAdminAuth, async (c) => {
     const day = localDayString(nowMs(), tz);
     const usageRows = await listUsageForDay(c.env.DB, day);
     const usageMap = new Map(usageRows.map((r) => [r.key, r]));
+    const lastUsedRows = await listLastUsedByKey(c.env.DB);
+    const lastUsedMap = new Map(lastUsedRows.map((r) => [r.key, Number(r.last_used_at)]));
 
     const data = keys.map((k) => {
       const used: Pick<ApiKeyUsageRow, "chat_used" | "heavy_used" | "image_used" | "video_used"> =
         usageMap.get(k.key) ?? { chat_used: 0, heavy_used: 0, image_used: 0, video_used: 0 };
+      const lastUsedAtRaw = lastUsedMap.get(k.key);
+      const lastUsedAt =
+        typeof lastUsedAtRaw === "number" && Number.isFinite(lastUsedAtRaw) && lastUsedAtRaw > 0
+          ? Math.floor(lastUsedAtRaw)
+          : null;
       const remaining = {
         chat: k.chat_limit < 0 ? null : Math.max(0, k.chat_limit - Number(used.chat_used ?? 0)),
         heavy: k.heavy_limit < 0 ? null : Math.max(0, k.heavy_limit - Number(used.heavy_used ?? 0)),
@@ -1319,6 +1326,7 @@ adminRoutes.get("/api/v1/admin/keys", requireAdminAuth, async (c) => {
         ...k,
         is_active: Boolean(k.is_active),
         display_key: displayKey(k.key),
+        last_used_at: lastUsedAt,
         usage_today: {
           chat_used: Number(used.chat_used ?? 0),
           heavy_used: Number(used.heavy_used ?? 0),

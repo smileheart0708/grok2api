@@ -16,7 +16,6 @@ export interface KeyStats {
 
 export interface KeyLimitDraft {
   chat: string
-  heavy: string
   image: string
   video: string
 }
@@ -35,7 +34,6 @@ export const DEFAULT_KEY_FILTERS: KeyFilterState = {
 
 export const DEFAULT_KEY_LIMIT_DRAFT: KeyLimitDraft = {
   chat: '',
-  heavy: '',
   image: '',
   video: '',
 }
@@ -50,13 +48,18 @@ export function formatCreatedAt(createdAtSec: number): string {
   return new Date(Math.floor(createdAtSec) * 1000).toLocaleString()
 }
 
+export function formatLastUsedAt(lastUsedAtMs: number | null): string {
+  if (typeof lastUsedAtMs !== 'number' || !Number.isFinite(lastUsedAtMs) || lastUsedAtMs <= 0) return '-'
+  return new Date(Math.floor(lastUsedAtMs)).toLocaleString()
+}
+
 export function formatUsagePair(row: AdminApiKeyRow): string {
   const usage = row.usage_today
-  return `${String(usage.chat_used)} / ${String(usage.heavy_used)} / ${String(usage.image_used)} / ${String(usage.video_used)}`
+  return `${String(usage.chat_used)} / ${String(usage.image_used)} / ${String(usage.video_used)}`
 }
 
 export function formatLimitPair(row: AdminApiKeyRow): string {
-  return `${formatLimit(row.chat_limit)} / ${formatLimit(row.heavy_limit)} / ${formatLimit(row.image_limit)} / ${formatLimit(row.video_limit)}`
+  return `${formatLimit(row.chat_limit)} / ${formatLimit(row.image_limit)} / ${formatLimit(row.video_limit)}`
 }
 
 function normalizeSearch(value: string): string {
@@ -66,7 +69,6 @@ function normalizeSearch(value: string): string {
 export function isApiKeyExhausted(row: AdminApiKeyRow): boolean {
   const values = [
     row.remaining_today.chat,
-    row.remaining_today.heavy,
     row.remaining_today.image,
     row.remaining_today.video,
   ].filter((item): item is number => item !== null)
@@ -124,7 +126,6 @@ export function toLimitDraft(row: AdminApiKeyRow | null): KeyLimitDraft {
   if (!row) return { ...DEFAULT_KEY_LIMIT_DRAFT }
   return {
     chat: row.chat_limit >= 0 ? String(Math.floor(row.chat_limit)) : '',
-    heavy: row.heavy_limit >= 0 ? String(Math.floor(row.heavy_limit)) : '',
     image: row.image_limit >= 0 ? String(Math.floor(row.image_limit)) : '',
     video: row.video_limit >= 0 ? String(Math.floor(row.video_limit)) : '',
   }
@@ -141,7 +142,6 @@ function parseLimitValue(value: string): number {
 export function toLimitsInput(draft: KeyLimitDraft): AdminApiKeyLimitsInput {
   return {
     chat_per_day: parseLimitValue(draft.chat),
-    heavy_per_day: parseLimitValue(draft.heavy),
     image_per_day: parseLimitValue(draft.image),
     video_per_day: parseLimitValue(draft.video),
   }
