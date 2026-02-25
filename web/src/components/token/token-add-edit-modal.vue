@@ -10,7 +10,6 @@ interface Props {
   mode: TokenEditorMode
   initialToken: string
   initialPool: AdminTokenPool
-  initialQuota: number
   initialNote: string
   saving: boolean
 }
@@ -24,7 +23,6 @@ const emit = defineEmits<{
 
 const tokenInput = ref('')
 const poolInput = ref<AdminTokenPool>('ssoBasic')
-const quotaInput = ref('80')
 const noteInput = ref('')
 const errorText = ref('')
 
@@ -38,14 +36,12 @@ watch(
     props.mode,
     props.initialToken,
     props.initialPool,
-    props.initialQuota,
     props.initialNote,
   ],
   () => {
     if (!props.open) return
     tokenInput.value = props.initialToken
     poolInput.value = props.initialPool
-    quotaInput.value = String(Math.max(0, Math.floor(props.initialQuota)))
     noteInput.value = props.initialNote
     errorText.value = ''
   },
@@ -59,13 +55,9 @@ function onSubmit(): void {
     return
   }
 
-  const parsedQuota = Number.parseInt(quotaInput.value, 10)
-  const quota = Number.isFinite(parsedQuota) && parsedQuota >= 0 ? parsedQuota : 0
-
   emit('submit', {
     token,
     pool: poolInput.value,
-    quota,
     note: noteInput.value.trim().slice(0, 50),
   })
 }
@@ -85,23 +77,13 @@ function onSubmit(): void {
           placeholder="sso=..."
         />
       </div>
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div>
         <div>
           <label class="modal-label mb-1 block">类型</label>
           <select v-model="poolInput" class="geist-input" :disabled="saving">
             <option value="ssoBasic">ssoBasic</option>
             <option value="ssoSuper">ssoSuper</option>
           </select>
-        </div>
-        <div>
-          <label class="modal-label mb-1 block">额度</label>
-          <input
-            v-model="quotaInput"
-            type="number"
-            class="geist-input"
-            min="0"
-            :disabled="saving"
-          />
         </div>
       </div>
       <div>

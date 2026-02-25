@@ -5,7 +5,11 @@ import { openAiRoutes } from "./routes/openai";
 import { mediaRoutes } from "./routes/media";
 import { adminRoutes } from "./routes/admin";
 import { runKvDailyClear } from "./kv/cleanup";
-import { consumeTokenRefreshQueueBatch, runTokenAutoRefresh } from "./kv/tokenRefresh";
+import {
+  cleanupStaleTokenQuotaArtifacts,
+  consumeTokenRefreshQueueBatch,
+  runTokenAutoRefresh,
+} from "./kv/tokenRefresh";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -176,6 +180,7 @@ const handler: ExportedHandler<Env, TokenUsageRefreshQueueMessage> = {
   scheduled: (_event, env, ctx) => {
     ctx.waitUntil(runKvDailyClear(env));
     ctx.waitUntil(runTokenAutoRefresh(env));
+    ctx.waitUntil(cleanupStaleTokenQuotaArtifacts(env));
   },
   queue: (batch, env) => consumeTokenRefreshQueueBatch(batch, env),
 };

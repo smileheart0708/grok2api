@@ -201,22 +201,77 @@ function normalizeTokenRecord(raw: unknown): AdminTokenRecord | null {
   const token = readString(raw, 'token').trim()
   if (!token) return null
 
-  const quota = readNumber(raw, 'quota', -1)
-  const quotaKnown = readBoolean(raw, 'quota_known', quota >= 0)
-  const heavyQuota = readNumber(raw, 'heavy_quota', -1)
-  const heavyQuotaKnown = readBoolean(raw, 'heavy_quota_known', heavyQuota >= 0)
+  const statusRaw = readString(raw, 'status', 'unknown').trim().toLowerCase()
+  const status =
+    statusRaw === 'active' ||
+    statusRaw === 'cooling' ||
+    statusRaw === 'exhausted' ||
+    statusRaw === 'invalid' ||
+    statusRaw === 'unknown'
+      ? statusRaw
+      : 'unknown'
+
+  const tokenTypeRaw = readString(raw, 'token_type', 'sso')
+  const tokenType = tokenTypeRaw === 'ssoSuper' ? 'ssoSuper' : 'sso'
+
+  const summarySection = readRecord(raw, 'quota_summary')
+  const knownCount = readNumber(summarySection ?? {}, 'known_count', 0)
+  const staleCount = readNumber(summarySection ?? {}, 'stale_count', 0)
+  const summaryRefreshedAt = readNumber(summarySection ?? {}, 'refreshed_at', Number.NaN)
+
+  const bucketsRaw = readArray(raw, 'quota_buckets')
+  const buckets: AdminTokenRecord['quota_buckets'] = []
+  for (const item of bucketsRaw) {
+    if (!isRecord(item)) continue
+    const rateLimitModel = readString(item, 'rate_limit_model').trim()
+    if (!rateLimitModel) continue
+    const sourceRaw = readString(item, 'source', 'unknown')
+    const source =
+      sourceRaw === 'queue' ||
+      sourceRaw === 'auto_refresh' ||
+      sourceRaw === 'manual_refresh' ||
+      sourceRaw === 'admin_test' ||
+      sourceRaw === 'probe' ||
+      sourceRaw === 'unknown'
+        ? sourceRaw
+        : 'unknown'
+    const refreshedAtRaw = readNumber(item, 'refreshed_at', Number.NaN)
+    const remainingQueriesRaw = readNumber(item, 'remaining_queries', Number.NaN)
+    const totalQueriesRaw = readNumber(item, 'total_queries', Number.NaN)
+    const remainingTokensRaw = readNumber(item, 'remaining_tokens', Number.NaN)
+    const totalTokensRaw = readNumber(item, 'total_tokens', Number.NaN)
+    const lowEffortCostRaw = readNumber(item, 'low_effort_cost', Number.NaN)
+    const highEffortCostRaw = readNumber(item, 'high_effort_cost', Number.NaN)
+    const windowSizeRaw = readNumber(item, 'window_size_seconds', Number.NaN)
+    buckets.push({
+      rate_limit_model: rateLimitModel,
+      remaining_queries: Number.isFinite(remainingQueriesRaw) ? remainingQueriesRaw : null,
+      total_queries: Number.isFinite(totalQueriesRaw) ? totalQueriesRaw : null,
+      remaining_tokens: Number.isFinite(remainingTokensRaw) ? remainingTokensRaw : null,
+      total_tokens: Number.isFinite(totalTokensRaw) ? totalTokensRaw : null,
+      low_effort_cost: Number.isFinite(lowEffortCostRaw) ? lowEffortCostRaw : null,
+      high_effort_cost: Number.isFinite(highEffortCostRaw) ? highEffortCostRaw : null,
+      window_size_seconds: Number.isFinite(windowSizeRaw) ? windowSizeRaw : null,
+      refreshed_at: Number.isFinite(refreshedAtRaw) ? refreshedAtRaw : null,
+      stale: readBoolean(item, 'stale', true),
+      source,
+      error: readString(item, 'error') || null,
+    })
+  }
 
   return {
     token,
-    status: readString(raw, 'status', 'active'),
-    quota,
-    quota_known: quotaKnown,
-    heavy_quota: heavyQuota,
-    heavy_quota_known: heavyQuotaKnown,
-    token_type: readString(raw, 'token_type', 'sso'),
+    status,
+    token_type: tokenType,
     note: readString(raw, 'note'),
     fail_count: readNumber(raw, 'fail_count', 0),
     use_count: readNumber(raw, 'use_count', 0),
+    quota_summary: {
+      known_count: Number.isFinite(knownCount) ? Math.max(0, Math.floor(knownCount)) : 0,
+      stale_count: Number.isFinite(staleCount) ? Math.max(0, Math.floor(staleCount)) : 0,
+      refreshed_at: Number.isFinite(summaryRefreshedAt) ? summaryRefreshedAt : null,
+    },
+    quota_buckets: buckets,
   }
 }
 
@@ -651,7 +706,15 @@ export async function refreshAdminTokens(
 
   const out: Record<string, boolean> = {}
   for (const [key, value] of Object.entries(resultsRecord)) {
-    out[key] = typeof value === 'boolean' ? value : false
+    if (typeof value === 'boolean') {
+      out[key] = value
+      continue
+    }
+    if (isRecord(value)) {
+      out[key] = readBoolean(value, 'success', false)
+      continue
+    }
+    out[key] = false
   }
   return out
 }
@@ -668,10 +731,15 @@ export async function fetchAdminChatModels(): Promise<AdminChatModel[]> {
     const id = readString(item, 'id').trim()
     if (!id) continue
     const displayName = readString(item, 'display_name').trim() || id
+    const effortTierRaw = readString(item, 'effort_tier', 'low')
+    const effortTier = effortTierRaw === 'high' ? 'high' : 'low'
+    const rateLimitModel = readString(item, 'rate_limit_model').trim() || id
     out.push({
       id,
       displayName,
       description: readString(item, 'description'),
+      effortTier,
+      rateLimitModel,
     })
   }
   return out
@@ -684,7 +752,11 @@ export async function testAdminTokenRateLimit(
     '/api/v1/admin/tokens/rate-limit-test',
     {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        token: payload.token,
+        token_type: payload.tokenType,
+        model: payload.model,
+      }),
     },
     true,
   )
@@ -692,16 +764,51 @@ export async function testAdminTokenRateLimit(
   assertBusinessOk(response, '查询额度失败')
   if (!isRecord(response)) {
     return {
+      success: false,
       model: payload.model,
+      rate_limit_model: payload.model,
+      effort_tier: 'low',
       remaining_queries: null,
+      total_queries: null,
+      remaining_tokens: null,
+      total_tokens: null,
+      low_effort_cost: null,
+      high_effort_cost: null,
+      window_size_seconds: null,
       raw_response: null,
+      error: '响应格式无效',
     }
   }
 
+  const effortTierRaw = readString(response, 'effort_tier', 'low')
   return {
+    success: readBoolean(response, 'success', false),
     model: readString(response, 'model') || payload.model,
-    remaining_queries: readNumber(response, 'remaining_queries', Number.NaN) || null,
+    rate_limit_model: readString(response, 'rate_limit_model') || payload.model,
+    effort_tier: effortTierRaw === 'high' ? 'high' : 'low',
+    remaining_queries: Number.isFinite(readNumber(response, 'remaining_queries', Number.NaN))
+      ? readNumber(response, 'remaining_queries', Number.NaN)
+      : null,
+    total_queries: Number.isFinite(readNumber(response, 'total_queries', Number.NaN))
+      ? readNumber(response, 'total_queries', Number.NaN)
+      : null,
+    remaining_tokens: Number.isFinite(readNumber(response, 'remaining_tokens', Number.NaN))
+      ? readNumber(response, 'remaining_tokens', Number.NaN)
+      : null,
+    total_tokens: Number.isFinite(readNumber(response, 'total_tokens', Number.NaN))
+      ? readNumber(response, 'total_tokens', Number.NaN)
+      : null,
+    low_effort_cost: Number.isFinite(readNumber(response, 'low_effort_cost', Number.NaN))
+      ? readNumber(response, 'low_effort_cost', Number.NaN)
+      : null,
+    high_effort_cost: Number.isFinite(readNumber(response, 'high_effort_cost', Number.NaN))
+      ? readNumber(response, 'high_effort_cost', Number.NaN)
+      : null,
+    window_size_seconds: Number.isFinite(readNumber(response, 'window_size_seconds', Number.NaN))
+      ? readNumber(response, 'window_size_seconds', Number.NaN)
+      : null,
     raw_response: readRecord(response, 'raw_response') ?? null,
+    error: readString(response, 'error') || null,
   }
 }
 
@@ -730,6 +837,8 @@ export async function testAdminToken(
       reactivated: false,
       quotaRefreshSuccess: false,
       quotaRefreshRemaining: null,
+      quotaRefreshRateLimitModel: null,
+      quotaRefreshRemainingTokens: null,
       quotaRefreshError: '响应格式无效',
     }
   }
@@ -741,6 +850,12 @@ export async function testAdminToken(
   const quotaRefreshRemaining = Number.isFinite(quotaRefreshRemainingValue)
     ? quotaRefreshRemainingValue
     : null
+  const quotaRefreshRemainingTokensValue = quotaRefresh
+    ? readNumber(quotaRefresh, 'remaining_tokens', Number.NaN)
+    : Number.NaN
+  const quotaRefreshRemainingTokens = Number.isFinite(quotaRefreshRemainingTokensValue)
+    ? quotaRefreshRemainingTokensValue
+    : null
   return {
     success: readBoolean(response, 'success', false),
     upstreamStatus: readNumber(response, 'upstream_status', 0),
@@ -748,6 +863,10 @@ export async function testAdminToken(
     reactivated: readBoolean(response, 'reactivated', false),
     quotaRefreshSuccess: quotaRefresh ? readBoolean(quotaRefresh, 'success', false) : false,
     quotaRefreshRemaining,
+    quotaRefreshRateLimitModel: quotaRefresh
+      ? readString(quotaRefresh, 'rate_limit_model') || null
+      : null,
+    quotaRefreshRemainingTokens,
     quotaRefreshError: quotaRefresh ? readString(quotaRefresh, 'error') || null : null,
   }
 }

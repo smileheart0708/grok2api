@@ -1,4 +1,4 @@
-import type { AdminTokenPool } from '@/types/admin-api'
+import type { AdminTokenDisplayStatus, AdminTokenPool } from '@/types/admin-api'
 import type { TokenRow } from '@/components/token/token-types'
 
 export function normalizeSsoToken(rawToken: string): string {
@@ -21,41 +21,48 @@ export function poolToTokenType(pool: AdminTokenPool): 'sso' | 'ssoSuper' {
   return pool === 'ssoSuper' ? 'ssoSuper' : 'sso'
 }
 
-export function normalizeTokenStatus(status: string): string {
+export function normalizeTokenStatus(status: string): AdminTokenDisplayStatus {
   const value = status.trim().toLowerCase()
-  if (value === 'expired') return 'invalid'
-  if (value === 'active' || value === 'cooling' || value === 'invalid' || value === 'disabled')
+  if (
+    value === 'active' ||
+    value === 'cooling' ||
+    value === 'exhausted' ||
+    value === 'invalid' ||
+    value === 'unknown'
+  ) {
     return value
-  return 'active'
+  }
+  if (value === 'expired') return 'invalid'
+  return 'unknown'
 }
 
 export function isTokenInvalid(row: TokenRow): boolean {
   const status = normalizeTokenStatus(row.status)
-  return status === 'invalid' || status === 'disabled'
+  return status === 'invalid'
 }
 
 export function isTokenExhausted(row: TokenRow): boolean {
   const status = normalizeTokenStatus(row.status)
-  if (status === 'cooling') return true
-  if (row.quota_known && row.quota <= 0) return true
-  const tokenType = row.token_type === 'ssoSuper' ? 'ssoSuper' : 'sso'
-  if (tokenType === 'ssoSuper' && row.heavy_quota_known && row.heavy_quota <= 0) return true
-  return false
+  return status === 'exhausted' || status === 'cooling'
 }
 
 export function isTokenActive(row: TokenRow): boolean {
-  return !isTokenInvalid(row) && !isTokenExhausted(row)
+  return normalizeTokenStatus(row.status) === 'active'
 }
 
 export function getTokenStatusLabel(row: TokenRow): string {
-  if (isTokenActive(row)) return '活跃'
-  if (isTokenExhausted(row)) return '额度用尽'
+  const status = normalizeTokenStatus(row.status)
+  if (status === 'active') return '活跃'
+  if (status === 'cooling') return '冷却中'
+  if (status === 'exhausted') return '额度用尽'
+  if (status === 'unknown') return '未知'
   return '失效'
 }
 
 export function getTokenStatusClass(row: TokenRow): string {
-  if (isTokenActive(row)) return 'badge-green'
-  if (isTokenExhausted(row)) return 'badge-orange'
+  const status = normalizeTokenStatus(row.status)
+  if (status === 'active') return 'badge-green'
+  if (status === 'cooling' || status === 'exhausted' || status === 'unknown') return 'badge-orange'
   return 'badge-red'
 }
 

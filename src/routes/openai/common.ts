@@ -1,10 +1,15 @@
-import { refreshTokenQuota } from "../../kv/tokenRefresh";
+import { refreshTokenQuota, refreshTokenQuotaForModel } from "../../kv/tokenRefresh";
 import {
   acquireBestTokenReservation,
   acquireUnknownTokenForProbe,
   type TokenReservation,
   type TokenReservationCost,
 } from "../../repo/tokens";
+import {
+  acquireQuotaReservation,
+  acquireUnknownQuotaTokenForProbe,
+  type TokenQuotaReservation,
+} from "../../repo/tokenQuotas";
 import type { Env } from "../../env";
 import type { SettingsBundle } from "../../settings";
 
@@ -123,5 +128,47 @@ export async function acquireTokenReservationWithProbe(args: {
     db: args.env.DB,
     model: args.model,
     cost: args.cost,
+  });
+}
+
+export async function acquireChatTokenReservationWithProbe(args: {
+  env: Env;
+  settings: SettingsBundle;
+  model: string;
+  probeWindowMs?: number;
+}): Promise<TokenQuotaReservation | null> {
+  const reserved = await acquireQuotaReservation({
+    db: args.env.DB,
+    model: args.model,
+    units: 1,
+  });
+  if (reserved) return reserved;
+
+  const candidate = await acquireUnknownQuotaTokenForProbe({
+    db: args.env.DB,
+    model: args.model,
+    probeWindowMs:
+      typeof args.probeWindowMs === "number" &&
+      Number.isFinite(args.probeWindowMs) &&
+      args.probeWindowMs > 0
+        ? Math.floor(args.probeWindowMs)
+        : DEFAULT_PROBE_WINDOW_MS,
+  });
+  if (!candidate) return null;
+
+  const refreshed = await refreshTokenQuotaForModel({
+    env: args.env,
+    token: candidate.token,
+    tokenType: candidate.token_type,
+    model: args.model,
+    source: "probe",
+    settings: args.settings,
+  });
+  if (!refreshed.success) return null;
+
+  return acquireQuotaReservation({
+    db: args.env.DB,
+    model: args.model,
+    units: 1,
   });
 }

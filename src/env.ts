@@ -4,6 +4,7 @@ export interface TokenUsageRefreshQueueMessage {
   token: string;
   source: TokenUsageRefreshSource;
   model: string;
+  rate_limit_model?: string;
   requested_at: number;
 }
 

@@ -20,6 +20,14 @@ export interface ModelInfo {
   is_video_model?: boolean;
 }
 
+export type ModelEffortTier = "low" | "high";
+
+export interface ChatModelQuotaTarget {
+  model: string;
+  rate_limit_model: string;
+  effort_tier: ModelEffortTier;
+}
+
 export const MODEL_CONFIG: Record<string, ModelInfo> = {
   "grok-3": {
     grok_model: ["grok-3", "MODEL_MODE_AUTO"],
@@ -120,4 +128,26 @@ export function toGrokModel(model: string): { grokModel: string; mode: string; i
 
 export function toRateLimitModel(model: string): string {
   return MODEL_CONFIG[model]?.rate_limit_model ?? model;
+}
+
+export function getModelEffortTier(model: string): ModelEffortTier {
+  if (model === "grok-4-heavy") return "high";
+  return "low";
+}
+
+export function listChatModelQuotaTargets(): ChatModelQuotaTarget[] {
+  const dedupe = new Set<string>();
+  const out: ChatModelQuotaTarget[] = [];
+  for (const [model, cfg] of Object.entries(MODEL_CONFIG)) {
+    if (cfg.is_image_model || cfg.is_video_model) continue;
+    const rateLimitModel = cfg.rate_limit_model;
+    if (dedupe.has(rateLimitModel)) continue;
+    dedupe.add(rateLimitModel);
+    out.push({
+      model,
+      rate_limit_model: rateLimitModel,
+      effort_tier: getModelEffortTier(model),
+    });
+  }
+  return out;
 }

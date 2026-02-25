@@ -1,17 +1,44 @@
 export type AdminTokenPool = 'ssoBasic' | 'ssoSuper'
 export type AdminTokenType = 'sso' | 'ssoSuper'
+export type AdminTokenDisplayStatus = 'active' | 'cooling' | 'exhausted' | 'invalid' | 'unknown'
+export type AdminTokenQuotaSource =
+  | 'queue'
+  | 'auto_refresh'
+  | 'manual_refresh'
+  | 'admin_test'
+  | 'probe'
+  | 'unknown'
+
+export interface AdminTokenQuotaBucket {
+  rate_limit_model: string
+  remaining_queries: number | null
+  total_queries: number | null
+  remaining_tokens: number | null
+  total_tokens: number | null
+  low_effort_cost: number | null
+  high_effort_cost: number | null
+  window_size_seconds: number | null
+  refreshed_at: number | null
+  stale: boolean
+  source: AdminTokenQuotaSource
+  error: string | null
+}
+
+export interface AdminTokenQuotaSummary {
+  known_count: number
+  stale_count: number
+  refreshed_at: number | null
+}
 
 export interface AdminTokenRecord {
   token: string
-  status: string
-  quota: number
-  quota_known: boolean
-  heavy_quota: number
-  heavy_quota_known: boolean
-  token_type: string
+  status: AdminTokenDisplayStatus
+  token_type: AdminTokenType
   note: string
   fail_count: number
   use_count: number
+  quota_summary: AdminTokenQuotaSummary
+  quota_buckets: AdminTokenQuotaBucket[]
 }
 
 export interface AdminTokenPoolMap {
@@ -48,12 +75,24 @@ export interface AdminChatModel {
   id: string
   displayName: string
   description: string
+  rateLimitModel: string
+  effortTier: 'low' | 'high'
 }
 
 export interface AdminTokenRateLimitTestResult {
+  success: boolean
   model: string
+  rate_limit_model: string
+  effort_tier: 'low' | 'high'
   remaining_queries: number | null
+  total_queries: number | null
+  remaining_tokens: number | null
+  total_tokens: number | null
+  low_effort_cost: number | null
+  high_effort_cost: number | null
+  window_size_seconds: number | null
   raw_response: Record<string, unknown> | null
+  error: string | null
 }
 
 export interface AdminTokenTestPayload {
@@ -69,6 +108,8 @@ export interface AdminTokenTestResult {
   reactivated: boolean
   quotaRefreshSuccess: boolean
   quotaRefreshRemaining: number | null
+  quotaRefreshRateLimitModel: string | null
+  quotaRefreshRemainingTokens: number | null
   quotaRefreshError: string | null
 }
 

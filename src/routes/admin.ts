@@ -34,17 +34,28 @@ import {
 import { hashPassword, verifyPassword } from "../utils/password";
 import {
   applyCooldown,
+  clearTokenInflightAfterRefresh,
   listTokens,
   reactivateToken,
   recordTokenFailure,
   selectBestToken,
-  updateTokenLimits,
 } from "../repo/tokens";
 import { generateImagineWs, resolveAspectRatio } from "../grok/imagineExperimental";
-import { checkRateLimits } from "../grok/rateLimits";
 import { buildConversationPayload, sendConversationRequest } from "../grok/conversation";
 import { parseOpenAiFromGrokNdjson } from "../grok/processor";
-import { MODEL_CONFIG } from "../grok/models";
+import {
+  MODEL_CONFIG,
+  getModelEffortTier,
+  listChatModelQuotaTargets,
+  toRateLimitModel,
+} from "../grok/models";
+import { refreshTokenQuotaForModel } from "../kv/tokenRefresh";
+import {
+  computeTokenDisplayStatus,
+  computeTokenQuotaSummary,
+  deleteTokenQuotaData,
+  listQuotaBucketsByToken,
+} from "../repo/tokenQuotas";
 import { getRequestLogs, getRequestStats } from "../repo/logs";
 import {
   deleteCacheRows,
@@ -257,12 +268,14 @@ interface AdminTokensRefreshBody {
 interface AdminTokenRateLimitTestBody {
   token?: unknown;
   token_type?: unknown;
+  tokenType?: unknown;
   model?: unknown;
 }
 
 interface AdminTokenTestBody {
   token?: unknown;
   token_type?: unknown;
+  tokenType?: unknown;
   model?: unknown;
 }
 
@@ -298,12 +311,6 @@ interface AdminApiKeyUpdateBody {
 
 interface AdminApiKeyDeleteBody {
   key?: unknown;
-}
-
-function getRemainingTokens(payload: Record<string, unknown> | null): number | null {
-  if (!payload) return null;
-  const value = payload["remainingTokens"];
-  return typeof value === "number" ? value : null;
 }
 
 function buildTokenCookie(token: string, cf: string): string {
@@ -350,50 +357,17 @@ async function parseUpstreamResult(upstream: Response): Promise<unknown> {
 
 interface TokenQuotaRefreshResult {
   success: boolean;
-  remaining_queries?: number;
-  heavy_remaining_queries?: number;
+  model: string;
+  rate_limit_model: string;
+  remaining_queries: number | null;
+  total_queries: number | null;
+  remaining_tokens: number | null;
+  total_tokens: number | null;
+  low_effort_cost: number | null;
+  high_effort_cost: number | null;
+  window_size_seconds: number | null;
+  raw_response: Record<string, unknown> | null;
   error?: string;
-}
-
-async function refreshTokenQuotaForAdminTest(args: {
-  env: Env;
-  settings: Awaited<ReturnType<typeof getSettings>>;
-  token: string;
-  tokenType: "sso" | "ssoSuper";
-}): Promise<TokenQuotaRefreshResult> {
-  const { env, settings, token, tokenType } = args;
-  try {
-    const cf = normalizeCfCookie(settings.grok.cf_clearance ?? "");
-    const cookie = buildTokenCookie(token, cf);
-    const ratePayload = await checkRateLimits(cookie, settings.grok, "grok-4-fast");
-    const remaining = getRemainingTokens(ratePayload);
-    if (typeof remaining !== "number") {
-      return { success: false, error: "刷新失败：无法读取 chat 剩余额度" };
-    }
-
-    let heavyRemaining: number | undefined;
-    if (tokenType === "ssoSuper") {
-      const heavyPayload = await checkRateLimits(cookie, settings.grok, "grok-4-heavy");
-      const heavy = getRemainingTokens(heavyPayload);
-      if (typeof heavy === "number") heavyRemaining = heavy;
-    }
-
-    await updateTokenLimits(env.DB, token, {
-      remaining_queries: remaining,
-      ...(typeof heavyRemaining === "number" ? { heavy_remaining_queries: heavyRemaining } : {}),
-    });
-
-    return {
-      success: true,
-      remaining_queries: remaining,
-      ...(typeof heavyRemaining === "number" ? { heavy_remaining_queries: heavyRemaining } : {}),
-    };
-  } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : String(e),
-    };
-  }
 }
 
 async function verifyWsApiKeyForImagine(c: Context<{ Bindings: Env }>): Promise<boolean> {
@@ -894,6 +868,8 @@ adminRoutes.get("/api/v1/admin/models/chat", requireAdminAuth, async (c) => {
       owned_by: "x-ai",
       display_name: cfg.display_name,
       description: cfg.description,
+      rate_limit_model: cfg.rate_limit_model,
+      effort_tier: getModelEffortTier(id),
     }));
   return c.json({ object: "list", data });
 });
@@ -902,6 +878,7 @@ adminRoutes.get("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
   try {
     const rows = await listTokens(c.env.DB);
     const now = nowMs();
+    const bucketMap = await listQuotaBucketsByToken(c.env.DB, rows.map((row) => row.token));
 
     const out: Record<"ssoBasic" | "ssoSuper", Array<Record<string, unknown>>> = {
       ssoBasic: [],
@@ -909,24 +886,23 @@ adminRoutes.get("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
     };
     for (const r of rows) {
       const pool = toPoolName(r.token_type);
-      const isCooling = Boolean(r.cooldown_until && r.cooldown_until > now);
-      const status = r.status === "expired" ? "invalid" : isCooling ? "cooling" : "active";
-      const quotaKnown = Number.isFinite(r.remaining_queries) && r.remaining_queries >= 0;
-      const quota = quotaKnown ? r.remaining_queries : -1;
-      const heavyQuotaKnown =
-        r.token_type === "ssoSuper" && Number.isFinite(r.heavy_remaining_queries) && r.heavy_remaining_queries >= 0;
-      const heavyQuota = heavyQuotaKnown ? r.heavy_remaining_queries : -1;
+      const buckets = (bucketMap.get(r.token) ?? []).map((bucket) => ({ ...bucket }));
+      const summary = computeTokenQuotaSummary(buckets);
+      const status = computeTokenDisplayStatus({
+        tokenStatus: r.status,
+        cooldownUntil: r.cooldown_until,
+        buckets,
+        now,
+      });
       out[pool].push({
         token: `sso=${r.token}`,
         status,
-        quota,
-        quota_known: quotaKnown,
-        heavy_quota: heavyQuota,
-        heavy_quota_known: heavyQuotaKnown,
         token_type: r.token_type,
         note: r.note ?? "",
         fail_count: r.failed_count ?? 0,
         use_count: 0,
+        quota_summary: summary,
+        quota_buckets: buckets,
       });
     }
     return c.json(out);
@@ -944,11 +920,11 @@ adminRoutes.post("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
     const byType: Record<"sso" | "ssoSuper", Set<string>> = { sso: new Set(), ssoSuper: new Set() };
     for (const r of rows) byType[r.token_type].add(r.token);
     const existingAll = new Set<string>(rows.map((r) => r.token));
-    const newlyAdded: string[] = [];
 
     const now = nowMs();
     const desiredByType: Record<"sso" | "ssoSuper", Set<string>> = { sso: new Set(), ssoSuper: new Set() };
     const stmts: D1PreparedStatement[] = [];
+    const toDeleteTokens: string[] = [];
 
     for (const [pool, items] of Object.entries(body)) {
       const tokenType = poolToTokenType(pool);
@@ -965,29 +941,22 @@ adminRoutes.post("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
         desiredByType[tokenType].add(token);
         if (!existingAll.has(token)) {
           existingAll.add(token);
-          newlyAdded.push(token);
         }
 
-        const statusRaw = typeof it === "string" ? "active" : String(item?.status ?? "active");
-        const quotaRaw = typeof it === "string" ? 0 : Number(item?.quota ?? 0);
-        const quota = Number.isFinite(quotaRaw) && quotaRaw >= 0 ? Math.floor(quotaRaw) : -1;
-        const heavyQuotaRaw =
-          typeof it === "string"
-            ? -1
-            : Number(item?.heavy_quota ?? (tokenType === "ssoSuper" ? quota : -1));
-        const heavyQuota = Number.isFinite(heavyQuotaRaw) && heavyQuotaRaw >= 0 ? Math.floor(heavyQuotaRaw) : -1;
+        if (item && ("quota" in item || "heavy_quota" in item || "quota_known" in item || "heavy_quota_known" in item)) {
+          return c.json(legacyErr("额度字段已废弃，请仅提交 token/status/note"), 400);
+        }
+
+        const statusRaw = typeof it === "string" ? "active" : String(item?.status ?? "active").trim().toLowerCase();
         const note = typeof it === "string" ? "" : String(item?.note ?? "");
 
         const status = statusRaw === "invalid" ? "expired" : "active";
         const cooldownUntil = statusRaw === "cooling" ? now + 60 * 60 * 1000 : null;
 
-        const remaining = quota >= 0 ? quota : -1;
-        const heavy = tokenType === "ssoSuper" ? heavyQuota : -1;
-
         stmts.push(
           c.env.DB.prepare(
-            "INSERT INTO tokens(token, token_type, created_time, remaining_queries, heavy_remaining_queries, status, failed_count, cooldown_until, last_failure_time, last_failure_reason, tags, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(token) DO UPDATE SET token_type=excluded.token_type, remaining_queries=excluded.remaining_queries, heavy_remaining_queries=excluded.heavy_remaining_queries, status=excluded.status, cooldown_until=excluded.cooldown_until, note=excluded.note",
-          ).bind(token, tokenType, now, remaining, heavy, status, 0, cooldownUntil, null, null, "[]", note),
+            "INSERT INTO tokens(token, token_type, created_time, remaining_queries, heavy_remaining_queries, status, failed_count, cooldown_until, last_failure_time, last_failure_reason, tags, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(token) DO UPDATE SET token_type=excluded.token_type, status=excluded.status, cooldown_until=excluded.cooldown_until, note=excluded.note",
+          ).bind(token, tokenType, now, -1, -1, status, 0, cooldownUntil, null, null, "[]", note),
         );
       }
     }
@@ -999,12 +968,14 @@ adminRoutes.post("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
       const toDel: string[] = [];
       for (const t of existing) if (!desired.has(t)) toDel.push(t);
       if (toDel.length) {
+        toDeleteTokens.push(...toDel);
         const placeholders = toDel.map(() => "?").join(",");
         stmts.push(c.env.DB.prepare(`DELETE FROM tokens WHERE token_type = ? AND token IN (${placeholders})`).bind(tokenType, ...toDel));
       }
     }
 
     if (stmts.length) await c.env.DB.batch(stmts);
+    if (toDeleteTokens.length) await deleteTokenQuotaData(c.env.DB, toDeleteTokens);
     return c.json(legacyOk({ message: "Token 已更新" }));
   } catch (e) {
     return c.json(legacyErr(`Update tokens failed: ${e instanceof Error ? e.message : String(e)}`), 500);
@@ -1032,19 +1003,50 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
       : [];
     const tokenTypeByToken = new Map(typeRows.map((r) => [r.token, r.token_type]));
 
-    const results: Record<string, boolean> = {};
+    const chatTargets = listChatModelQuotaTargets();
+    const results: Record<string, Record<string, unknown>> = {};
     for (const t of unique) {
+      const tokenKey = `sso=${t}`;
+      const modelResults: Record<string, TokenQuotaRefreshResult> = {};
+      let tokenSuccess = true;
       try {
         const tokenType = tokenTypeByToken.get(t) === "ssoSuper" ? "ssoSuper" : "sso";
-        const refreshed = await refreshTokenQuotaForAdminTest({
-          env: c.env,
-          settings,
-          token: t,
-          tokenType,
-        });
-        results[`sso=${t}`] = refreshed.success;
-      } catch {
-        results[`sso=${t}`] = false;
+        for (const target of chatTargets) {
+          const refreshed = await refreshTokenQuotaForModel({
+            env: c.env,
+            token: t,
+            tokenType,
+            model: target.model,
+            source: "manual_refresh",
+            settings,
+          });
+          if (!refreshed.success) tokenSuccess = false;
+          modelResults[target.rate_limit_model] = {
+            success: refreshed.success,
+            model: refreshed.model,
+            rate_limit_model: refreshed.rate_limit_model,
+            remaining_queries: refreshed.remaining_queries,
+            total_queries: refreshed.total_queries,
+            remaining_tokens: refreshed.remaining_tokens,
+            total_tokens: refreshed.total_tokens,
+            low_effort_cost: refreshed.low_effort_cost,
+            high_effort_cost: refreshed.high_effort_cost,
+            window_size_seconds: refreshed.window_size_seconds,
+            raw_response: refreshed.raw_response,
+            ...(refreshed.error ? { error: refreshed.error } : {}),
+          };
+        }
+        await clearTokenInflightAfterRefresh(c.env.DB, t);
+        results[tokenKey] = {
+          success: tokenSuccess,
+          models: modelResults,
+        };
+      } catch (errorValue) {
+        results[tokenKey] = {
+          success: false,
+          models: modelResults,
+          error: errorValue instanceof Error ? errorValue.message : String(errorValue),
+        };
       }
       await new Promise((res) => setTimeout(res, 50));
     }
@@ -1058,7 +1060,7 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
 adminRoutes.post("/api/v1/admin/tokens/rate-limit-test", requireAdminAuth, async (c) => {
   try {
     const body = (await c.req.json()) as AdminTokenRateLimitTestBody;
-    const token_type = validateTokenType(String(body.token_type ?? ""));
+    const token_type = validateTokenType(String(body.token_type ?? body.tokenType ?? ""));
     const token = normalizeSsoToken(String(body.token ?? ""));
     const model = String(body.model ?? "").trim();
 
@@ -1073,16 +1075,29 @@ adminRoutes.post("/api/v1/admin/tokens/rate-limit-test", requireAdminAuth, async
     if (!tokenRow) return c.json(legacyErr("Token 不存在"), 404);
 
     const settings = await getSettings(c.env);
-    const cf = normalizeCfCookie(settings.grok.cf_clearance ?? "");
-    const cookie = buildTokenCookie(token, cf);
-
-    const ratePayload = await checkRateLimits(cookie, settings.grok, model);
-    const remaining = getRemainingTokens(ratePayload);
+    const refreshed = await refreshTokenQuotaForModel({
+      env: c.env,
+      token,
+      tokenType: token_type,
+      model,
+      source: "admin_test",
+      settings,
+    });
 
     return c.json(legacyOk({
       model,
-      remaining_queries: typeof remaining === "number" ? remaining : null,
-      raw_response: ratePayload,
+      rate_limit_model: refreshed.rate_limit_model,
+      effort_tier: getModelEffortTier(model),
+      remaining_queries: refreshed.remaining_queries,
+      total_queries: refreshed.total_queries,
+      remaining_tokens: refreshed.remaining_tokens,
+      total_tokens: refreshed.total_tokens,
+      low_effort_cost: refreshed.low_effort_cost,
+      high_effort_cost: refreshed.high_effort_cost,
+      window_size_seconds: refreshed.window_size_seconds,
+      success: refreshed.success,
+      raw_response: refreshed.raw_response,
+      ...(refreshed.error ? { error: refreshed.error } : {}),
     }));
   } catch (e) {
     return c.json(legacyErr(`查询失败：${e instanceof Error ? e.message : String(e)}`), 500);
@@ -1092,7 +1107,7 @@ adminRoutes.post("/api/v1/admin/tokens/rate-limit-test", requireAdminAuth, async
 adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
   try {
     const body = (await c.req.json()) as AdminTokenTestBody;
-    const token_type = validateTokenType(String(body.token_type ?? ""));
+    const token_type = validateTokenType(String(body.token_type ?? body.tokenType ?? ""));
     const token = normalizeSsoToken(String(body.token ?? ""));
     const model = String(body.model ?? "").trim();
 
@@ -1150,6 +1165,16 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
     let reactivated = false;
     let quotaRefresh: TokenQuotaRefreshResult = {
       success: false,
+      model,
+      rate_limit_model: toRateLimitModel(model),
+      remaining_queries: null,
+      total_queries: null,
+      remaining_tokens: null,
+      total_tokens: null,
+      low_effort_cost: null,
+      high_effort_cost: null,
+      window_size_seconds: null,
+      raw_response: null,
       error: "未触发用量刷新",
     };
 
@@ -1157,12 +1182,28 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
       if (tokenRow.status === "expired") {
         reactivated = await reactivateToken(c.env.DB, token, token_type);
       }
-      quotaRefresh = await refreshTokenQuotaForAdminTest({
+      const refreshed = await refreshTokenQuotaForModel({
         env: c.env,
-        settings,
         token,
         tokenType: token_type,
+        model,
+        source: "admin_test",
+        settings,
       });
+      quotaRefresh = {
+        success: refreshed.success,
+        model: refreshed.model,
+        rate_limit_model: refreshed.rate_limit_model,
+        remaining_queries: refreshed.remaining_queries,
+        total_queries: refreshed.total_queries,
+        remaining_tokens: refreshed.remaining_tokens,
+        total_tokens: refreshed.total_tokens,
+        low_effort_cost: refreshed.low_effort_cost,
+        high_effort_cost: refreshed.high_effort_cost,
+        window_size_seconds: refreshed.window_size_seconds,
+        raw_response: refreshed.raw_response,
+        ...(refreshed.error ? { error: refreshed.error } : {}),
+      };
     }
 
     return c.json({
@@ -1180,7 +1221,20 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
         upstream_status: 500,
         result: { error: message },
         reactivated: false,
-        quota_refresh: { success: false, error: "未触发用量刷新" },
+        quota_refresh: {
+          success: false,
+          model: "",
+          rate_limit_model: "",
+          remaining_queries: null,
+          total_queries: null,
+          remaining_tokens: null,
+          total_tokens: null,
+          low_effort_cost: null,
+          high_effort_cost: null,
+          window_size_seconds: null,
+          raw_response: null,
+          error: "未触发用量刷新",
+        },
       },
       500,
     );
@@ -1273,6 +1327,7 @@ adminRoutes.get("/api/v1/admin/metrics", requireAdminAuth, async (c) => {
   try {
     const now = nowMs();
     const rows = await listTokens(c.env.DB);
+    const bucketMap = await listQuotaBucketsByToken(c.env.DB, rows.map((row) => row.token));
     let total = 0;
     let active = 0;
     let cooling = 0;
@@ -1280,16 +1335,30 @@ adminRoutes.get("/api/v1/admin/metrics", requireAdminAuth, async (c) => {
     let chatQuota = 0;
     for (const t of rows) {
       total += 1;
-      if (t.status === "expired") {
+      const buckets = bucketMap.get(t.token) ?? [];
+      const summary = computeTokenQuotaSummary(buckets);
+      const displayStatus = computeTokenDisplayStatus({
+        tokenStatus: t.status,
+        cooldownUntil: t.cooldown_until,
+        buckets,
+        now,
+      });
+
+      if (displayStatus === "invalid") {
         expired += 1;
         continue;
       }
-      if (t.cooldown_until && t.cooldown_until > now) {
+      if (displayStatus === "cooling") {
         cooling += 1;
         continue;
       }
-      active += 1;
-      if (t.remaining_queries > 0) chatQuota += t.remaining_queries;
+      if (displayStatus === "active") active += 1;
+      if (summary.known_count > 0) {
+        const firstKnown = buckets.find((bucket) => bucket.remaining_queries !== null && !bucket.stale);
+        if (firstKnown && firstKnown.remaining_queries !== null && firstKnown.remaining_queries > 0) {
+          chatQuota += firstKnown.remaining_queries;
+        }
+      }
     }
 
     const stats = await getKvStats(c.env.DB);

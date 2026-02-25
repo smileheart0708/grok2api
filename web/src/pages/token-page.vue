@@ -155,6 +155,21 @@ const filteredRows = computed(() => {
   })
 })
 
+function estimateRemainingFromRow(row: TokenRow): number {
+  const freshBucket = row.quota_buckets.find((bucket) => !bucket.stale)
+  const fallbackBucket = row.quota_buckets[0]
+  const bucket = freshBucket ?? fallbackBucket
+  if (!bucket) return 0
+  if (typeof bucket.remaining_queries === 'number' && bucket.remaining_queries > 0) {
+    return bucket.remaining_queries
+  }
+  if (typeof bucket.remaining_tokens === 'number' && bucket.remaining_tokens > 0) {
+    const cost = bucket.low_effort_cost && bucket.low_effort_cost > 0 ? bucket.low_effort_cost : 1
+    return Math.floor(bucket.remaining_tokens / cost)
+  }
+  return 0
+}
+
 const tokenStats = computed<TokenStats>(() => {
   let active = 0
   let exhausted = 0
@@ -169,9 +184,7 @@ const tokenStats = computed<TokenStats>(() => {
       exhausted += 1
     } else {
       active += 1
-      if (row.quota_known && row.quota > 0) {
-        chatQuota += row.quota
-      }
+      chatQuota += estimateRemainingFromRow(row)
     }
     totalCalls += row.use_count
   }
@@ -267,14 +280,8 @@ function buildPoolMap(tokenRows: readonly TokenRow[]): AdminTokenPoolMap {
     out[row.pool].push({
       token: row.token,
       status: row.status,
-      quota: row.quota,
-      quota_known: row.quota_known,
-      heavy_quota: row.heavy_quota,
-      heavy_quota_known: row.heavy_quota_known,
-      token_type: row.token_type,
       note: row.note,
-      fail_count: row.fail_count,
-      use_count: row.use_count,
+      token_type: row.token_type,
     })
   }
   return out
@@ -377,14 +384,16 @@ async function onEditorSubmit(payload: TokenEditorSubmitPayload): Promise<void> 
     nextRows.push({
       token: displayToken,
       status: 'active',
-      quota: payload.quota,
-      quota_known: true,
-      heavy_quota: -1,
-      heavy_quota_known: false,
       token_type: poolToTokenType(payload.pool),
       note: payload.note,
       fail_count: 0,
       use_count: 0,
+      quota_summary: {
+        known_count: 0,
+        stale_count: 0,
+        refreshed_at: null,
+      },
+      quota_buckets: [],
       pool: payload.pool,
       key,
     })
@@ -403,8 +412,6 @@ async function onEditorSubmit(payload: TokenEditorSubmitPayload): Promise<void> 
       ...current,
       pool: payload.pool,
       token_type: poolToTokenType(payload.pool),
-      quota: payload.quota,
-      quota_known: true,
       note: payload.note,
     }
   }
@@ -440,14 +447,16 @@ async function onImportSubmit(payload: TokenImportSubmitPayload): Promise<void> 
     nextRows.push({
       token: displayToken,
       status: 'active',
-      quota: 80,
-      quota_known: true,
-      heavy_quota: -1,
-      heavy_quota_known: false,
       token_type: poolToTokenType(payload.pool),
       note: '',
       fail_count: 0,
       use_count: 0,
+      quota_summary: {
+        known_count: 0,
+        stale_count: 0,
+        refreshed_at: null,
+      },
+      quota_buckets: [],
       pool: payload.pool,
       key,
     })
@@ -604,16 +613,26 @@ async function runRateLimitTest(model: string): Promise<void> {
     })
 
     rateLimitTestResult.value = {
+      success: result.success,
       model: result.model,
+      rate_limit_model: result.rate_limit_model,
+      effort_tier: result.effort_tier,
       remaining_queries: result.remaining_queries,
+      total_queries: result.total_queries,
+      remaining_tokens: result.remaining_tokens,
+      total_tokens: result.total_tokens,
+      low_effort_cost: result.low_effort_cost,
+      high_effort_cost: result.high_effort_cost,
+      window_size_seconds: result.window_size_seconds,
       raw_response: result.raw_response,
+      error: result.error,
     }
 
-    if (typeof result.remaining_queries === 'number') {
+    if (result.success && typeof result.remaining_queries === 'number') {
       success(`查询成功：剩余额度 ${String(result.remaining_queries)}`)
       await loadTokenData()
     } else {
-      error('查询成功，但未返回有效额度')
+      error(result.error ?? '查询成功，但未返回有效额度')
     }
   } catch (errorValue) {
     await handleApiFailure(errorValue, '查询失败')
@@ -814,7 +833,6 @@ onMounted(() => {
     :mode="editorMode"
     :initial-token="editingRow?.token ?? ''"
     :initial-pool="editingRow?.pool ?? 'ssoBasic'"
-    :initial-quota="editingRow?.quota ?? 80"
     :initial-note="editingRow?.note ?? ''"
     :saving="isEditorSaving"
     @close="closeEditorModal"

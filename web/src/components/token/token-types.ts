@@ -10,7 +10,6 @@ export type TokenEditorMode = 'create' | 'edit'
 export interface TokenEditorSubmitPayload {
   token: string
   pool: AdminTokenPool
-  quota: number
   note: string
 }
 
