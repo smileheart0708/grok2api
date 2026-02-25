@@ -6,7 +6,7 @@ import type {
 import { dbAll, dbFirst } from "../db";
 import { getSettings, normalizeCfCookie } from "../settings";
 import { checkRateLimits } from "../grok/rateLimits";
-import { updateTokenLimits } from "../repo/tokens";
+import { clearTokenInflightAfterRefresh, updateTokenLimits } from "../repo/tokens";
 import { getRefreshProgress, setRefreshProgress } from "../repo/refreshProgress";
 import { nowMs } from "../utils/time";
 
@@ -213,6 +213,7 @@ export async function consumeTokenRefreshQueueBatch(
 
       const ok = await refreshTokenQuota(env, token, tokenType, settings);
       if (ok) {
+        await clearTokenInflightAfterRefresh(env.DB, token);
         message.ack();
       } else {
         message.retry({ delaySeconds: TOKEN_REFRESH_RETRY_DELAY_SECONDS });

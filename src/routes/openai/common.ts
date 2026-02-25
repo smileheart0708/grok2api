@@ -1,3 +1,15 @@
+import { refreshTokenQuota } from "../../kv/tokenRefresh";
+import {
+  acquireBestTokenReservation,
+  acquireUnknownTokenForProbe,
+  type TokenReservation,
+  type TokenReservationCost,
+} from "../../repo/tokens";
+import type { Env } from "../../env";
+import type { SettingsBundle } from "../../settings";
+
+const DEFAULT_PROBE_WINDOW_MS = 3_000;
+
 export function openAiError(message: string, code: string): Record<string, unknown> {
   return { error: { message, type: "invalid_request_error", code } };
 }
@@ -71,4 +83,45 @@ export function isContentModerationMessage(message: string): boolean {
     m.includes("content-moderated") ||
     m.includes("wke=grok:content-moderated")
   );
+}
+
+export async function acquireTokenReservationWithProbe(args: {
+  env: Env;
+  settings: SettingsBundle;
+  model: string;
+  cost: TokenReservationCost;
+  probeWindowMs?: number;
+}): Promise<TokenReservation | null> {
+  const reserved = await acquireBestTokenReservation({
+    db: args.env.DB,
+    model: args.model,
+    cost: args.cost,
+  });
+  if (reserved) return reserved;
+
+  const candidate = await acquireUnknownTokenForProbe({
+    db: args.env.DB,
+    model: args.model,
+    probeWindowMs:
+      typeof args.probeWindowMs === "number" &&
+      Number.isFinite(args.probeWindowMs) &&
+      args.probeWindowMs > 0
+        ? Math.floor(args.probeWindowMs)
+        : DEFAULT_PROBE_WINDOW_MS,
+  });
+  if (!candidate) return null;
+
+  const refreshed = await refreshTokenQuota(
+    args.env,
+    candidate.token,
+    candidate.token_type,
+    args.settings,
+  );
+  if (!refreshed) return null;
+
+  return acquireBestTokenReservation({
+    db: args.env.DB,
+    model: args.model,
+    cost: args.cost,
+  });
 }

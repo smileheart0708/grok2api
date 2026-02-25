@@ -7,7 +7,12 @@ import {
 } from "../../grok/imagineExperimental";
 import { uploadImage } from "../../grok/upload";
 import { addRequestLog } from "../../repo/logs";
-import { applyCooldown, recordTokenFailure, selectBestToken } from "../../repo/tokens";
+import {
+  applyCooldown,
+  recordTokenFailure,
+  releaseTokenReservation,
+  type TokenReservation,
+} from "../../repo/tokens";
 import { arrayBufferToBase64 } from "../../utils/base64";
 import {
   IMAGE_GENERATION_MODEL_ID,
@@ -45,7 +50,13 @@ import {
   getTokenSuffix,
   IMAGE_EDIT_MODEL_ID,
 } from "./image-support";
-import { getClientIp, isContentModerationMessage, mapLimit, openAiError } from "./common";
+import {
+  acquireTokenReservationWithProbe,
+  getClientIp,
+  isContentModerationMessage,
+  mapLimit,
+  openAiError,
+} from "./common";
 import { enforceQuota } from "./quota";
 import type { OpenAiRoutesApp } from "./types";
 
@@ -125,9 +136,14 @@ openAiRoutes.post("/images/generations", async (c) => {
 
     if (stream) {
       if (imageMethod === IMAGE_METHOD_IMAGINE_WS_EXPERIMENTAL) {
-        const experimentalToken = await selectBestToken(c.env.DB, requestedModel);
-        if (experimentalToken) {
-          const experimentalCookie = buildCookie(experimentalToken.token, cf);
+        const experimentalReservation = await acquireTokenReservationWithProbe({
+          env: c.env,
+          settings: settingsBundle,
+          model: requestedModel,
+          cost: { chat: 1, heavy: 0 },
+        });
+        if (experimentalReservation) {
+          const experimentalCookie = buildCookie(experimentalReservation.token, cf);
           const streamBody = createExperimentalImageEventStream({
             prompt: imageCallPrompt("generation", prompt),
             n,
@@ -139,21 +155,24 @@ openAiRoutes.post("/images/generations", async (c) => {
             aspectRatio,
             concurrency,
             onFinish: async ({ status, duration }) => {
+              if (status !== 200) {
+                await releaseTokenReservation(c.env.DB, experimentalReservation);
+              }
               await addRequestLog(c.env.DB, {
                 ip,
                 model: requestedModel,
                 duration: Number(duration.toFixed(2)),
                 status,
                 key_name: keyName,
-                token_suffix: getTokenSuffix(experimentalToken.token),
+                token_suffix: getTokenSuffix(experimentalReservation.token),
                 error: status === 200 ? "" : "stream_error",
-                });
-              },
-            });
+              });
+            },
+          });
           scheduleDelayedTokenRefresh({
             env: c.env,
             executionCtx: c.executionCtx,
-            token: experimentalToken.token,
+            token: experimentalReservation.token,
             source: "image_generations",
             model: requestedModel,
           });
@@ -161,8 +180,13 @@ openAiRoutes.post("/images/generations", async (c) => {
         }
       }
 
-      const chosen = await selectBestToken(c.env.DB, requestedModel);
-      if (!chosen) {
+      const reservation = await acquireTokenReservationWithProbe({
+        env: c.env,
+        settings: settingsBundle,
+        model: requestedModel,
+        cost: { chat: 1, heavy: 0 },
+      });
+      if (!reservation) {
         await recordImageLog({
           env: c.env,
           ip,
@@ -180,7 +204,7 @@ openAiRoutes.post("/images/generations", async (c) => {
           { status: 200, headers: streamHeaders() },
         );
       }
-      const cookie = buildCookie(chosen.token, cf);
+      const cookie = buildCookie(reservation.token, cf);
 
       const upstream = await runImageStreamCall({
         requestModel: requestedModel,
@@ -191,8 +215,9 @@ openAiRoutes.post("/images/generations", async (c) => {
       });
       if (!upstream.ok) {
         const txt = await upstream.text().catch(() => "");
-        await recordTokenFailure(c.env.DB, chosen.token, upstream.status, txt.slice(0, 200));
-        await applyCooldown(c.env.DB, chosen.token, upstream.status);
+        await releaseTokenReservation(c.env.DB, reservation);
+        await recordTokenFailure(c.env.DB, reservation.token, upstream.status, txt.slice(0, 200));
+        await applyCooldown(c.env.DB, reservation.token, upstream.status);
         await recordImageLog({
           env: c.env,
           ip,
@@ -200,7 +225,7 @@ openAiRoutes.post("/images/generations", async (c) => {
           start,
           keyName,
           status: upstream.status,
-          tokenSuffix: getTokenSuffix(chosen.token),
+          tokenSuffix: getTokenSuffix(reservation.token),
           error: txt.slice(0, 200),
         });
         return new Response(
@@ -217,7 +242,7 @@ openAiRoutes.post("/images/generations", async (c) => {
       scheduleDelayedTokenRefresh({
         env: c.env,
         executionCtx: c.executionCtx,
-        token: chosen.token,
+        token: reservation.token,
         source: "image_generations",
         model: requestedModel,
       });
@@ -230,13 +255,16 @@ openAiRoutes.post("/images/generations", async (c) => {
         settings: settingsBundle.grok,
         n,
         onFinish: async ({ status, duration }) => {
+          if (status !== 200) {
+            await releaseTokenReservation(c.env.DB, reservation);
+          }
           await addRequestLog(c.env.DB, {
             ip,
             model: requestedModel,
             duration: Number(duration.toFixed(2)),
             status,
             key_name: keyName,
-            token_suffix: getTokenSuffix(chosen.token),
+            token_suffix: getTokenSuffix(reservation.token),
             error: status === 200 ? "" : "stream_error",
           });
         },
@@ -245,9 +273,14 @@ openAiRoutes.post("/images/generations", async (c) => {
     }
 
     if (imageMethod === IMAGE_METHOD_IMAGINE_WS_EXPERIMENTAL) {
-      const experimentalToken = await selectBestToken(c.env.DB, requestedModel);
-      if (experimentalToken) {
-        const experimentalCookie = buildCookie(experimentalToken.token, cf);
+      const experimentalReservation = await acquireTokenReservationWithProbe({
+        env: c.env,
+        settings: settingsBundle,
+        model: requestedModel,
+        cost: { chat: Math.ceil(n / 4), heavy: 0 },
+      });
+      if (experimentalReservation) {
+        const experimentalCookie = buildCookie(experimentalReservation.token, cf);
         try {
           const urls = await collectExperimentalGenerationImages({
             prompt: imageCallPrompt("generation", prompt),
@@ -263,7 +296,7 @@ openAiRoutes.post("/images/generations", async (c) => {
           scheduleDelayedTokenRefresh({
             env: c.env,
             executionCtx: c.executionCtx,
-            token: experimentalToken.token,
+            token: experimentalReservation.token,
             source: "image_generations",
             model: requestedModel,
           });
@@ -274,14 +307,15 @@ openAiRoutes.post("/images/generations", async (c) => {
             start,
             keyName,
             status: 200,
-            tokenSuffix: getTokenSuffix(experimentalToken.token),
+            tokenSuffix: getTokenSuffix(experimentalReservation.token),
             error: "",
           });
           return c.json(buildImageJsonPayload(responseField, selected));
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          await recordTokenFailure(c.env.DB, experimentalToken.token, 500, msg.slice(0, 200));
-          await applyCooldown(c.env.DB, experimentalToken.token, 500);
+          await releaseTokenReservation(c.env.DB, experimentalReservation);
+          await recordTokenFailure(c.env.DB, experimentalReservation.token, 500, msg.slice(0, 200));
+          await applyCooldown(c.env.DB, experimentalReservation.token, 500);
           logExperimentalFallback("Experimental image generation failed, fallback to legacy:", msg);
         }
       }
@@ -293,28 +327,34 @@ openAiRoutes.post("/images/generations", async (c) => {
       Array.from({ length: calls }),
       Math.min(calls, Math.max(1, concurrency)),
       async () => {
-      const chosen = await selectBestToken(c.env.DB, requestedModel);
-      if (!chosen) throw new Error("No available token");
-      const cookie = buildCookie(chosen.token, cf);
-      try {
-        const urls = await runImageCall({
-          requestModel: requestedModel,
-          prompt: imageCallPrompt("generation", prompt),
-          fileIds: [],
-          cookie,
-          settings: settingsBundle.grok,
-          responseFormat,
-          baseUrl,
+        const reservation = await acquireTokenReservationWithProbe({
+          env: c.env,
+          settings: settingsBundle,
+          model: requestedModel,
+          cost: { chat: 1, heavy: 0 },
         });
-        successfulTokens.add(chosen.token);
-        return urls;
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        await recordTokenFailure(c.env.DB, chosen.token, 500, msg.slice(0, 200));
-        await applyCooldown(c.env.DB, chosen.token, 500);
-        throw e;
-      }
-    },
+        if (!reservation) throw new Error("No available token");
+        const cookie = buildCookie(reservation.token, cf);
+        try {
+          const urls = await runImageCall({
+            requestModel: requestedModel,
+            prompt: imageCallPrompt("generation", prompt),
+            fileIds: [],
+            cookie,
+            settings: settingsBundle.grok,
+            responseFormat,
+            baseUrl,
+          });
+          successfulTokens.add(reservation.token);
+          return urls;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          await releaseTokenReservation(c.env.DB, reservation);
+          await recordTokenFailure(c.env.DB, reservation.token, 500, msg.slice(0, 200));
+          await applyCooldown(c.env.DB, reservation.token, 500);
+          throw e;
+        }
+      },
     );
     const urls = dedupeImages(urlsNested.flat().filter(Boolean));
     const selected = pickImageResults(urls, n);
@@ -374,6 +414,7 @@ openAiRoutes.post("/images/edits", async (c) => {
   const maxImageBytes = 50 * 1024 * 1024;
 
   let requestedModel = IMAGE_EDIT_MODEL_ID;
+  let chosenReservation: TokenReservation | null = null;
   try {
     const form = await c.req.formData();
     const prompt = parseImagePrompt(form.get("prompt"));
@@ -422,8 +463,13 @@ openAiRoutes.post("/images/edits", async (c) => {
     });
     if (!quota.ok) return quota.resp;
 
-    const chosen = await selectBestToken(c.env.DB, requestedModel);
-    if (!chosen) {
+    chosenReservation = await acquireTokenReservationWithProbe({
+      env: c.env,
+      settings: settingsBundle,
+      model: requestedModel,
+      cost: { chat: stream ? 1 : Math.ceil(n / 2), heavy: 0 },
+    });
+    if (!chosenReservation) {
       if (stream) {
         await recordImageLog({
           env: c.env,
@@ -444,22 +490,36 @@ openAiRoutes.post("/images/edits", async (c) => {
       }
       return c.json(openAiError("No available token", "NO_AVAILABLE_TOKEN"), 503);
     }
+    const token = chosenReservation.token;
+    const tokenSuffix = getTokenSuffix(token);
     const cf = normalizeCfCookie(settingsBundle.grok.cf_clearance ?? "");
-    const cookie = buildCookie(chosen.token, cf);
+    const cookie = buildCookie(token, cf);
 
     const fileIds: string[] = [];
     const fileUris: string[] = [];
     for (const file of files) {
       const bytes = await file.arrayBuffer();
       if (bytes.byteLength <= 0) {
+        if (chosenReservation) {
+          await releaseTokenReservation(c.env.DB, chosenReservation);
+          chosenReservation = null;
+        }
         return c.json(openAiError("File content is empty", "empty_file"), 400);
       }
       if (bytes.byteLength > maxImageBytes) {
+        if (chosenReservation) {
+          await releaseTokenReservation(c.env.DB, chosenReservation);
+          chosenReservation = null;
+        }
         return c.json(openAiError("Image file too large. Maximum is 50MB.", "file_too_large"), 400);
       }
 
       const mime = parseAllowedImageMime(file);
       if (!mime) {
+        if (chosenReservation) {
+          await releaseTokenReservation(c.env.DB, chosenReservation);
+          chosenReservation = null;
+        }
         return c.json(
           openAiError("Unsupported image type. Supported: png, jpg, webp.", "invalid_image_type"),
           400,
@@ -490,13 +550,17 @@ openAiRoutes.post("/images/edits", async (c) => {
             settings: settingsBundle.grok,
             n,
             onFinish: async ({ status, duration }) => {
+              if (status !== 200 && chosenReservation) {
+                await releaseTokenReservation(c.env.DB, chosenReservation);
+                chosenReservation = null;
+              }
               await addRequestLog(c.env.DB, {
                 ip,
                 model: requestedModel,
                 duration: Number(duration.toFixed(2)),
                 status,
                 key_name: keyName,
-                token_suffix: getTokenSuffix(chosen.token),
+                token_suffix: tokenSuffix,
                 error: status === 200 ? "" : "stream_error",
                 });
               },
@@ -504,15 +568,15 @@ openAiRoutes.post("/images/edits", async (c) => {
           scheduleDelayedTokenRefresh({
             env: c.env,
             executionCtx: c.executionCtx,
-            token: chosen.token,
+            token,
             source: "image_edits",
             model: requestedModel,
           });
           return new Response(streamBody, { status: 200, headers: streamHeaders() });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          await recordTokenFailure(c.env.DB, chosen.token, 500, msg.slice(0, 200));
-          await applyCooldown(c.env.DB, chosen.token, 500);
+          await recordTokenFailure(c.env.DB, token, 500, msg.slice(0, 200));
+          await applyCooldown(c.env.DB, token, 500);
           logExperimentalFallback("Experimental image edit stream failed, fallback to legacy:", msg);
         }
       }
@@ -526,8 +590,12 @@ openAiRoutes.post("/images/edits", async (c) => {
       });
       if (!upstream.ok) {
         const txt = await upstream.text().catch(() => "");
-        await recordTokenFailure(c.env.DB, chosen.token, upstream.status, txt.slice(0, 200));
-        await applyCooldown(c.env.DB, chosen.token, upstream.status);
+        if (chosenReservation) {
+          await releaseTokenReservation(c.env.DB, chosenReservation);
+          chosenReservation = null;
+        }
+        await recordTokenFailure(c.env.DB, token, upstream.status, txt.slice(0, 200));
+        await applyCooldown(c.env.DB, token, upstream.status);
         await recordImageLog({
           env: c.env,
           ip,
@@ -535,7 +603,7 @@ openAiRoutes.post("/images/edits", async (c) => {
           start,
           keyName,
           status: upstream.status,
-          tokenSuffix: getTokenSuffix(chosen.token),
+          tokenSuffix,
           error: txt.slice(0, 200),
         });
         return new Response(
@@ -552,7 +620,7 @@ openAiRoutes.post("/images/edits", async (c) => {
       scheduleDelayedTokenRefresh({
         env: c.env,
         executionCtx: c.executionCtx,
-        token: chosen.token,
+        token,
         source: "image_edits",
         model: requestedModel,
       });
@@ -565,13 +633,17 @@ openAiRoutes.post("/images/edits", async (c) => {
         settings: settingsBundle.grok,
         n,
         onFinish: async ({ status, duration }) => {
+          if (status !== 200 && chosenReservation) {
+            await releaseTokenReservation(c.env.DB, chosenReservation);
+            chosenReservation = null;
+          }
           await addRequestLog(c.env.DB, {
             ip,
             model: requestedModel,
             duration: Number(duration.toFixed(2)),
             status,
             key_name: keyName,
-            token_suffix: getTokenSuffix(chosen.token),
+            token_suffix: tokenSuffix,
             error: status === 200 ? "" : "stream_error",
           });
         },
@@ -598,7 +670,7 @@ openAiRoutes.post("/images/edits", async (c) => {
         scheduleDelayedTokenRefresh({
           env: c.env,
           executionCtx: c.executionCtx,
-          token: chosen.token,
+          token,
           source: "image_edits",
           model: requestedModel,
         });
@@ -610,14 +682,14 @@ openAiRoutes.post("/images/edits", async (c) => {
           start,
           keyName,
           status: 200,
-          tokenSuffix: getTokenSuffix(chosen.token),
+          tokenSuffix,
           error: "",
         });
         return c.json(buildImageJsonPayload(responseField, selected));
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        await recordTokenFailure(c.env.DB, chosen.token, 500, msg.slice(0, 200));
-        await applyCooldown(c.env.DB, chosen.token, 500);
+        await recordTokenFailure(c.env.DB, token, 500, msg.slice(0, 200));
+        await applyCooldown(c.env.DB, token, 500);
         logExperimentalFallback("Experimental image edit failed, fallback to legacy:", msg);
       }
     }
@@ -639,7 +711,7 @@ openAiRoutes.post("/images/edits", async (c) => {
     scheduleDelayedTokenRefresh({
       env: c.env,
       executionCtx: c.executionCtx,
-      token: chosen.token,
+      token,
       source: "image_edits",
       model: requestedModel,
     });
@@ -651,12 +723,16 @@ openAiRoutes.post("/images/edits", async (c) => {
       start,
       keyName,
       status: 200,
-      tokenSuffix: getTokenSuffix(chosen.token),
+      tokenSuffix,
       error: "",
     });
 
     return c.json(buildImageJsonPayload(responseField, selected));
   } catch (e) {
+    if (chosenReservation) {
+      await releaseTokenReservation(c.env.DB, chosenReservation);
+      chosenReservation = null;
+    }
     const message = e instanceof Error ? e.message : String(e);
     if (isContentModerationMessage(message)) {
       await recordImageLog({

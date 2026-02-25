@@ -10,9 +10,9 @@ import { MODEL_CONFIG, isValidModel } from "../../grok/models";
 import { createOpenAiStreamFromGrokNdjson, parseOpenAiFromGrokNdjson } from "../../grok/processor";
 import { uploadImage } from "../../grok/upload";
 import { addRequestLog } from "../../repo/logs";
-import { applyCooldown, recordTokenFailure, selectBestToken } from "../../repo/tokens";
+import { applyCooldown, recordTokenFailure, releaseTokenReservation } from "../../repo/tokens";
 import { scheduleDelayedTokenRefresh } from "../../kv/tokenRefresh";
-import { getClientIp, mapLimit, openAiError } from "./common";
+import { acquireTokenReservationWithProbe, getClientIp, mapLimit, openAiError } from "./common";
 import { enforceQuota } from "./quota";
 import type { OpenAiRoutesApp } from "./types";
 
@@ -80,10 +80,18 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
       if (!quota.ok) return quota.resp;
 
       for (let attempt = 0; attempt < maxRetry; attempt++) {
-        const chosen = await selectBestToken(c.env.DB, requestedModel);
-        if (!chosen) return c.json(openAiError("No available token", "NO_AVAILABLE_TOKEN"), 503);
+        const reservation = await acquireTokenReservationWithProbe({
+          env: c.env,
+          settings: settingsBundle,
+          model: requestedModel,
+          cost: {
+            chat: 1,
+            heavy: requestedModel === "grok-4-heavy" ? 1 : 0,
+          },
+        });
+        if (!reservation) return c.json(openAiError("No available token", "NO_AVAILABLE_TOKEN"), 503);
 
-        const jwt = chosen.token;
+        const jwt = reservation.token;
         const cf = normalizeCfCookie(settingsBundle.grok.cf_clearance ?? "");
         const cookie = cf ? `sso-rw=${jwt};sso=${jwt};${cf}` : `sso-rw=${jwt};sso=${jwt}`;
 
@@ -134,6 +142,7 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
           if (!upstream.ok) {
             const txt = await upstream.text().catch(() => "");
             lastErr = `Upstream ${upstream.status}: ${txt.slice(0, 200)}`;
+            await releaseTokenReservation(c.env.DB, reservation);
             await recordTokenFailure(c.env.DB, jwt, upstream.status, txt.slice(0, 200));
             await applyCooldown(c.env.DB, jwt, upstream.status);
             if (retryCodes.includes(upstream.status) && attempt < maxRetry - 1) continue;
@@ -202,6 +211,7 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           lastErr = msg;
+          await releaseTokenReservation(c.env.DB, reservation);
           await recordTokenFailure(c.env.DB, jwt, 500, msg);
           await applyCooldown(c.env.DB, jwt, 500);
           if (attempt < maxRetry - 1) continue;
