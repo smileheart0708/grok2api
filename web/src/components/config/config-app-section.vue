@@ -74,8 +74,13 @@ const imageFormat = computed({
       <p class="config-field-desc">调用 Grok2API 服务所需的 Bearer Token，请妥善保管。</p>
       <div class="config-field-input">
         <div class="config-secret-row">
-          <input v-model="apiKey" type="text" class="geist-input">
-          <UiIconButton label="复制 API 密钥" variant="outline" size="md" @click="$emit('copy-value', apiKey)">
+          <input v-model="apiKey" type="text" class="geist-input" />
+          <UiIconButton
+            label="复制 API 密钥"
+            variant="outline"
+            size="md"
+            @click="$emit('copy-value', apiKey)"
+          >
             <Copy :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>
@@ -86,7 +91,7 @@ const imageFormat = computed({
       <div class="config-field-title">后台账号</div>
       <p class="config-field-desc">登录 Grok2API 服务管理后台的用户名。</p>
       <div class="config-field-input">
-        <input v-model="adminUsername" type="text" class="geist-input">
+        <input v-model="adminUsername" type="text" class="geist-input" />
       </div>
     </div>
 
@@ -95,8 +100,13 @@ const imageFormat = computed({
       <p class="config-field-desc">登录 Grok2API 服务管理后台的密码，请妥善保管。</p>
       <div class="config-field-input">
         <div class="config-secret-row">
-          <input v-model="appKey" type="text" class="geist-input">
-          <UiIconButton label="复制后台密码" variant="outline" size="md" @click="$emit('copy-value', appKey)">
+          <input v-model="appKey" type="text" class="geist-input" />
+          <UiIconButton
+            label="复制后台密码"
+            variant="outline"
+            size="md"
+            @click="$emit('copy-value', appKey)"
+          >
             <Copy :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>
@@ -107,7 +117,7 @@ const imageFormat = computed({
       <div class="config-field-title">应用地址</div>
       <p class="config-field-desc">当前 Grok2API 服务的外部访问 URL。</p>
       <div class="config-field-input">
-        <input v-model="appUrl" type="text" class="geist-input">
+        <input v-model="appUrl" type="text" class="geist-input" />
       </div>
     </div>
 

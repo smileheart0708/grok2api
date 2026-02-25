@@ -1,4 +1,12 @@
-import { isRecord, readArray, readBoolean, readNumber, readRecord, readString, toStringArray } from '@/lib/guards'
+import {
+  isRecord,
+  readArray,
+  readBoolean,
+  readNumber,
+  readRecord,
+  readString,
+  toStringArray,
+} from '@/lib/guards'
 import type {
   AdminApiError,
   AdminApiKeyCreateInput,
@@ -102,10 +110,10 @@ function parseErrorPayload(payload: unknown, status: number, statusText: string)
   } else if (isRecord(payload)) {
     const nestedError = readRecord(payload, 'error')
     const rawMessage =
-      readString(payload, 'detail')
-      || readString(payload, 'message')
-      || readString(payload, 'error')
-      || (nestedError ? readString(nestedError, 'message') : '')
+      readString(payload, 'detail') ||
+      readString(payload, 'message') ||
+      readString(payload, 'error') ||
+      (nestedError ? readString(nestedError, 'message') : '')
     if (rawMessage.trim()) {
       message = rawMessage.trim()
     }
@@ -123,16 +131,20 @@ function parseErrorPayload(payload: unknown, status: number, statusText: string)
   }
 }
 
-function parseBusinessError(payload: Record<string, unknown>, fallback: string): AdminApiError | null {
+function parseBusinessError(
+  payload: Record<string, unknown>,
+  fallback: string,
+): AdminApiError | null {
   const successValue = payload['success']
   if (typeof successValue === 'boolean' && !successValue) {
     const nestedError = readRecord(payload, 'error')
     const message =
-      readString(payload, 'message')
-      || readString(payload, 'error')
-      || (nestedError ? readString(nestedError, 'message') : '')
-      || fallback
-    const code = readString(payload, 'code') || (nestedError ? readString(nestedError, 'code') : '') || null
+      readString(payload, 'message') ||
+      readString(payload, 'error') ||
+      (nestedError ? readString(nestedError, 'message') : '') ||
+      fallback
+    const code =
+      readString(payload, 'code') || (nestedError ? readString(nestedError, 'code') : '') || null
     return { message, status: 200, code, payload }
   }
 
@@ -162,7 +174,11 @@ async function parseJsonSafely(response: Response): Promise<unknown> {
   }
 }
 
-async function requestAdmin(path: string, init: RequestInit = {}, jsonBody = false): Promise<unknown> {
+async function requestAdmin(
+  path: string,
+  init: RequestInit = {},
+  jsonBody = false,
+): Promise<unknown> {
   const response = await fetch(path, {
     ...init,
     credentials: 'include',
@@ -234,7 +250,10 @@ function normalizeLimitNumber(value: number): number {
   return Math.floor(value)
 }
 
-function normalizeRemainingValue(section: Record<string, unknown> | null, key: string): number | null {
+function normalizeRemainingValue(
+  section: Record<string, unknown> | null,
+  key: string,
+): number | null {
   if (!section) return null
   const value = section[key]
   if (value === null) return null
@@ -305,7 +324,9 @@ function normalizePositiveInteger(value: number, fallback: number): number {
   return Math.floor(value)
 }
 
-function normalizeCacheStatsSection(section: Record<string, unknown> | null): AdminCacheLocalStats['local_image'] {
+function normalizeCacheStatsSection(
+  section: Record<string, unknown> | null,
+): AdminCacheLocalStats['local_image'] {
   const source = section ?? {}
   return {
     count: normalizeNonNegativeInteger(readNumber(source, 'count', 0)),
@@ -440,7 +461,10 @@ function normalizeGrokConfig(section: Record<string, unknown> | null): AdminConf
   const tagValues = toStringArray(section['filter_tags'])
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
-  const retryCodes = normalizeNumberArray(section['retry_status_codes'], defaults.retry_status_codes)
+  const retryCodes = normalizeNumberArray(
+    section['retry_status_codes'],
+    defaults.retry_status_codes,
+  )
 
   return {
     temporary: normalizeBoolean(section['temporary'], defaults.temporary),
@@ -448,14 +472,21 @@ function normalizeGrokConfig(section: Record<string, unknown> | null): AdminConf
     thinking: normalizeBoolean(section['thinking'], defaults.thinking),
     dynamic_statsig: normalizeBoolean(section['dynamic_statsig'], defaults.dynamic_statsig),
     filter_tags: tagValues,
-    video_poster_preview: normalizeBoolean(section['video_poster_preview'], defaults.video_poster_preview),
+    video_poster_preview: normalizeBoolean(
+      section['video_poster_preview'],
+      defaults.video_poster_preview,
+    ),
     timeout: normalizeNumber(section['timeout'], defaults.timeout, 1),
     base_proxy_url: readString(section, 'base_proxy_url', defaults.base_proxy_url),
     asset_proxy_url: readString(section, 'asset_proxy_url', defaults.asset_proxy_url),
     cf_clearance: readString(section, 'cf_clearance', defaults.cf_clearance),
     max_retry: normalizeNumber(section['max_retry'], defaults.max_retry, 0),
     retry_status_codes: retryCodes,
-    image_generation_method: readString(section, 'image_generation_method', defaults.image_generation_method),
+    image_generation_method: readString(
+      section,
+      'image_generation_method',
+      defaults.image_generation_method,
+    ),
   }
 }
 
@@ -465,10 +496,18 @@ function normalizeTokenConfig(section: Record<string, unknown> | null): AdminCon
 
   return {
     auto_refresh: normalizeBoolean(section['auto_refresh'], defaults.auto_refresh),
-    refresh_interval_hours: normalizeNumber(section['refresh_interval_hours'], defaults.refresh_interval_hours, 1),
+    refresh_interval_hours: normalizeNumber(
+      section['refresh_interval_hours'],
+      defaults.refresh_interval_hours,
+      1,
+    ),
     fail_threshold: normalizeNumber(section['fail_threshold'], defaults.fail_threshold, 1),
     save_delay_ms: normalizeNumber(section['save_delay_ms'], defaults.save_delay_ms, 0),
-    reload_interval_sec: normalizeNumber(section['reload_interval_sec'], defaults.reload_interval_sec, 0),
+    reload_interval_sec: normalizeNumber(
+      section['reload_interval_sec'],
+      defaults.reload_interval_sec,
+      0,
+    ),
   }
 }
 
@@ -483,23 +522,51 @@ function normalizeCacheConfig(section: Record<string, unknown> | null): AdminCon
   }
 }
 
-function normalizePerformanceConfig(section: Record<string, unknown> | null): AdminConfigPerformance {
+function normalizePerformanceConfig(
+  section: Record<string, unknown> | null,
+): AdminConfigPerformance {
   const defaults = DEFAULT_CONFIG_KNOWN.performance
   if (!section) return { ...defaults }
 
   return {
-    assets_max_concurrent: normalizeNumber(section['assets_max_concurrent'], defaults.assets_max_concurrent, 1),
-    media_max_concurrent: normalizeNumber(section['media_max_concurrent'], defaults.media_max_concurrent, 1),
-    usage_max_concurrent: normalizeNumber(section['usage_max_concurrent'], defaults.usage_max_concurrent, 1),
-    assets_delete_batch_size: normalizeNumber(section['assets_delete_batch_size'], defaults.assets_delete_batch_size, 1),
-    admin_assets_batch_size: normalizeNumber(section['admin_assets_batch_size'], defaults.admin_assets_batch_size, 1),
+    assets_max_concurrent: normalizeNumber(
+      section['assets_max_concurrent'],
+      defaults.assets_max_concurrent,
+      1,
+    ),
+    media_max_concurrent: normalizeNumber(
+      section['media_max_concurrent'],
+      defaults.media_max_concurrent,
+      1,
+    ),
+    usage_max_concurrent: normalizeNumber(
+      section['usage_max_concurrent'],
+      defaults.usage_max_concurrent,
+      1,
+    ),
+    assets_delete_batch_size: normalizeNumber(
+      section['assets_delete_batch_size'],
+      defaults.assets_delete_batch_size,
+      1,
+    ),
+    admin_assets_batch_size: normalizeNumber(
+      section['admin_assets_batch_size'],
+      defaults.admin_assets_batch_size,
+      1,
+    ),
   }
 }
 
 function normalizeExtraSections(payload: Record<string, unknown>): AdminConfigExtraSections {
   const extras: AdminConfigExtraSections = {}
   for (const [section, value] of Object.entries(payload)) {
-    if (section === 'app' || section === 'grok' || section === 'token' || section === 'cache' || section === 'performance') {
+    if (
+      section === 'app' ||
+      section === 'grok' ||
+      section === 'token' ||
+      section === 'cache' ||
+      section === 'performance'
+    ) {
       continue
     }
     if (!isRecord(value)) continue
@@ -563,7 +630,9 @@ export async function saveAdminTokens(tokens: AdminTokenPoolMap): Promise<void> 
   assertBusinessOk(payload, '保存 Token 失败')
 }
 
-export async function refreshAdminTokens(tokens: readonly string[]): Promise<Record<string, boolean>> {
+export async function refreshAdminTokens(
+  tokens: readonly string[],
+): Promise<Record<string, boolean>> {
   const payload = await requestAdmin(
     '/api/v1/admin/tokens/refresh',
     {
@@ -607,7 +676,9 @@ export async function fetchAdminChatModels(): Promise<AdminChatModel[]> {
   return out
 }
 
-export async function testAdminToken(payload: AdminTokenTestPayload): Promise<AdminTokenTestResult> {
+export async function testAdminToken(
+  payload: AdminTokenTestPayload,
+): Promise<AdminTokenTestResult> {
   const response = await requestAdmin(
     '/api/v1/admin/tokens/test',
     {
@@ -635,8 +706,12 @@ export async function testAdminToken(payload: AdminTokenTestPayload): Promise<Ad
   }
 
   const quotaRefresh = readRecord(response, 'quota_refresh')
-  const quotaRefreshRemainingValue = quotaRefresh ? readNumber(quotaRefresh, 'remaining_queries', Number.NaN) : Number.NaN
-  const quotaRefreshRemaining = Number.isFinite(quotaRefreshRemainingValue) ? quotaRefreshRemainingValue : null
+  const quotaRefreshRemainingValue = quotaRefresh
+    ? readNumber(quotaRefresh, 'remaining_queries', Number.NaN)
+    : Number.NaN
+  const quotaRefreshRemaining = Number.isFinite(quotaRefreshRemainingValue)
+    ? quotaRefreshRemainingValue
+    : null
   return {
     success: readBoolean(response, 'success', false),
     upstreamStatus: readNumber(response, 'upstream_status', 0),
@@ -654,7 +729,9 @@ export async function fetchAdminApiKeys(): Promise<AdminApiKeyRow[]> {
   return normalizeApiKeyList(payload)
 }
 
-export async function createAdminApiKey(input: AdminApiKeyCreateInput): Promise<AdminApiKeyRow | null> {
+export async function createAdminApiKey(
+  input: AdminApiKeyCreateInput,
+): Promise<AdminApiKeyRow | null> {
   const payload = await requestAdmin(
     '/api/v1/admin/keys',
     {

@@ -25,10 +25,10 @@ useLegacyPage({
 <template>
   <AdminPageShell max-width="960px">
     <div class="space-y-6">
-      <div class="flex flex-wrap justify-between items-start gap-3">
+      <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-2xl font-semibold tracking-tight">数据中心</h2>
-          <p class="text-[var(--accents-4)] mt-1 text-sm">常用指标与后台日志。</p>
+          <p class="mt-1 text-sm text-[var(--accents-4)]">常用指标与后台日志。</p>
         </div>
         <div class="datacenter-controls flex items-center gap-2">
           <UiButton id="btn-refresh" variant="outline" size="xs">刷新</UiButton>
@@ -38,15 +38,15 @@ useLegacyPage({
               type="checkbox"
               class="size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity"
               checked
-            >
+            />
             自动刷新
           </label>
         </div>
       </div>
 
-      <div class="h-px bg-[var(--border)] my-6"></div>
+      <div class="my-6 h-px bg-[var(--border)]"></div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div class="stat-card">
           <div id="m-token-total" class="stat-value">-</div>
           <div class="stat-label">Token 总数</div>
@@ -81,7 +81,7 @@ useLegacyPage({
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div class="stat-card">
           <div id="m-success-rate" class="stat-value">-</div>
           <div class="stat-label">成功率</div>
@@ -117,18 +117,33 @@ useLegacyPage({
         </div>
       </div>
 
-      <div class="h-px bg-[var(--border)] my-6"></div>
+      <div class="my-6 h-px bg-[var(--border)]"></div>
 
       <div class="space-y-3">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="text-lg font-semibold tracking-tight">后台日志</h3>
-            <p class="text-[var(--accents-4)] text-sm mt-1">显示 logs/*.log（格式化展示，完整行）。</p>
+            <p class="mt-1 text-sm text-[var(--accents-4)]">
+              显示 logs/*.log（格式化展示，完整行）。
+            </p>
           </div>
-          <div class="log-toolbar flex items-center gap-2 flex-wrap">
-            <select id="log-file" class="geist-input text-xs w-56"></select>
-            <input id="log-lines" type="number" min="50" max="5000" value="500" class="geist-input text-xs w-24" title="尾部行数">
-            <input id="log-filter" type="text" placeholder="过滤关键词…" class="geist-input text-xs w-40">
+          <div class="log-toolbar flex flex-wrap items-center gap-2">
+            <select id="log-file" class="geist-input w-56 text-xs"></select>
+            <input
+              id="log-lines"
+              type="number"
+              min="50"
+              max="5000"
+              value="500"
+              class="geist-input w-24 text-xs"
+              title="尾部行数"
+            />
+            <input
+              id="log-filter"
+              type="text"
+              placeholder="过滤关键词…"
+              class="geist-input w-40 text-xs"
+            />
             <UiButton id="log-refresh" variant="outline" size="xs">刷新</UiButton>
           </div>
         </div>

@@ -27,12 +27,7 @@
 }
 
 .mono {
-  font-family:
-    'Geist Mono',
-    ui-monospace,
-    sfmono-regular,
-    menlo,
-    monospace;
+  font-family: 'Geist Mono', ui-monospace, sfmono-regular, menlo, monospace;
 }
 
 .keys-toolbar {

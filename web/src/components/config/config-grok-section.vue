@@ -141,7 +141,7 @@ const maxRetry = computed({
       <p class="config-field-desc">是否启用临时对话模式。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="temporary" type="checkbox" class="config-toggle-input">
+          <input v-model="temporary" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -152,7 +152,7 @@ const maxRetry = computed({
       <p class="config-field-desc">是否默认启用流式输出。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="stream" type="checkbox" class="config-toggle-input">
+          <input v-model="stream" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -163,7 +163,7 @@ const maxRetry = computed({
       <p class="config-field-desc">是否启用模型思维链输出。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="thinking" type="checkbox" class="config-toggle-input">
+          <input v-model="thinking" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -174,7 +174,7 @@ const maxRetry = computed({
       <p class="config-field-desc">是否启用动态生成 Statsig 值。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="dynamicStatsig" type="checkbox" class="config-toggle-input">
+          <input v-model="dynamicStatsig" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -184,7 +184,11 @@ const maxRetry = computed({
       <div class="config-field-title">过滤标签</div>
       <p class="config-field-desc">一行一个，保存时自动转为数组。</p>
       <div class="config-field-input">
-        <textarea v-model="filterTagsText" class="geist-input font-mono text-xs" rows="4"></textarea>
+        <textarea
+          v-model="filterTagsText"
+          class="geist-input font-mono text-xs"
+          rows="4"
+        ></textarea>
       </div>
     </div>
 
@@ -193,7 +197,7 @@ const maxRetry = computed({
       <p class="config-field-desc">将视频标签替换为可点击预览图。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="videoPosterPreview" type="checkbox" class="config-toggle-input">
+          <input v-model="videoPosterPreview" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -203,7 +207,7 @@ const maxRetry = computed({
       <div class="config-field-title">超时时间（秒）</div>
       <p class="config-field-desc">请求 Grok 服务的超时时间。</p>
       <div class="config-field-input">
-        <input v-model.number="timeout" type="number" min="1" class="geist-input">
+        <input v-model.number="timeout" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -211,7 +215,7 @@ const maxRetry = computed({
       <div class="config-field-title">最大重试</div>
       <p class="config-field-desc">请求失败时的最大重试次数。</p>
       <div class="config-field-input">
-        <input v-model.number="maxRetry" type="number" min="0" class="geist-input">
+        <input v-model.number="maxRetry" type="number" min="0" class="geist-input" />
       </div>
     </div>
 
@@ -219,7 +223,7 @@ const maxRetry = computed({
       <div class="config-field-title">重试状态码</div>
       <p class="config-field-desc">逗号分隔，例如 401,429,403。</p>
       <div class="config-field-input">
-        <input v-model="retryStatusText" type="text" class="geist-input font-mono text-xs">
+        <input v-model="retryStatusText" type="text" class="geist-input font-mono text-xs" />
       </div>
     </div>
 
@@ -227,7 +231,7 @@ const maxRetry = computed({
       <div class="config-field-title">基础代理 URL</div>
       <p class="config-field-desc">代理请求 Grok 官网的基础地址。</p>
       <div class="config-field-input">
-        <input v-model="baseProxyUrl" type="text" class="geist-input">
+        <input v-model="baseProxyUrl" type="text" class="geist-input" />
       </div>
     </div>
 
@@ -235,7 +239,7 @@ const maxRetry = computed({
       <div class="config-field-title">资源代理 URL</div>
       <p class="config-field-desc">代理图片/视频等静态资源地址。</p>
       <div class="config-field-input">
-        <input v-model="assetProxyUrl" type="text" class="geist-input">
+        <input v-model="assetProxyUrl" type="text" class="geist-input" />
       </div>
     </div>
 
@@ -243,7 +247,7 @@ const maxRetry = computed({
       <div class="config-field-title">CF Clearance</div>
       <p class="config-field-desc">Cloudflare 验证 Cookie。</p>
       <div class="config-field-input">
-        <input v-model="cfClearance" type="text" class="geist-input font-mono text-xs">
+        <input v-model="cfClearance" type="text" class="geist-input font-mono text-xs" />
       </div>
     </div>
 

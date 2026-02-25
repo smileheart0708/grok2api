@@ -16,12 +16,14 @@ defineEmits<(e: 'export' | 'refresh' | 'delete' | 'pause' | 'stop') => void>()
 <template>
   <div
     id="batch-actions"
-    class="fixed bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-lg select-none"
+    class="fixed bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 whitespace-nowrap shadow-lg select-none"
   >
-    <div class="batch-actions-meta text-sm font-medium flex items-center gap-2">
-      <span class="text-[var(--accents-5)] text-xs">已选择</span>
-      <span id="selected-count" class="bg-black text-white text-xs px-1.5 py-0.5 rounded-full">{{ selectedCount }}</span>
-      <span class="text-[var(--accents-5)] text-xs">项</span>
+    <div class="batch-actions-meta flex items-center gap-2 text-sm font-medium">
+      <span class="text-xs text-[var(--accents-5)]">已选择</span>
+      <span id="selected-count" class="rounded-full bg-black px-1.5 py-0.5 text-xs text-white">{{
+        selectedCount
+      }}</span>
+      <span class="text-xs text-[var(--accents-5)]">项</span>
     </div>
     <span class="toolbar-sep"></span>
     <div class="batch-actions-buttons flex items-center gap-1">
@@ -53,7 +55,11 @@ defineEmits<(e: 'export' | 'refresh' | 'delete' | 'pause' | 'stop') => void>()
         删除
       </UiButton>
     </div>
-    <div v-if="running" id="batch-progress" class="text-xs text-[var(--accents-5)] flex items-center gap-2">
+    <div
+      v-if="running"
+      id="batch-progress"
+      class="flex items-center gap-2 text-xs text-[var(--accents-5)]"
+    >
       <span class="toolbar-sep"></span>
       <span id="batch-progress-text">{{ progressText }}</span>
       <UiButton id="btn-pause-action" variant="link" @click="$emit('pause')">

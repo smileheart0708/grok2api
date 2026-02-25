@@ -12,9 +12,12 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const emit = defineEmits<(e: 'update:section-json', payload: { section: string; value: string }) => void>()
+const emit =
+  defineEmits<(e: 'update:section-json', payload: { section: string; value: string }) => void>()
 
-const sectionNames = computed(() => Object.keys(props.sections).sort((left, right) => left.localeCompare(right)))
+const sectionNames = computed(() =>
+  Object.keys(props.sections).sort((left, right) => left.localeCompare(right)),
+)
 
 function readSectionText(section: string): string {
   const current = props.sectionJson[section]
@@ -49,13 +52,13 @@ function onInput(section: string, event: Event): void {
         <p class="config-field-desc">必须是对象类型，例如 { "key": "value" }。</p>
         <div class="config-field-input">
           <textarea
-            class="geist-input font-mono text-xs config-json-textarea"
+            class="geist-input config-json-textarea font-mono text-xs"
             rows="6"
             :value="readSectionText(section)"
             @input="onInput(section, $event)"
           ></textarea>
         </div>
-        <p v-if="errors[section]" class="text-xs text-red-600 mt-1">{{ errors[section] }}</p>
+        <p v-if="errors[section]" class="mt-1 text-xs text-red-600">{{ errors[section] }}</p>
       </div>
     </ConfigSectionCard>
   </div>

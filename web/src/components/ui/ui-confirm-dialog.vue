@@ -29,7 +29,12 @@ defineEmits<(e: 'confirm' | 'cancel') => void>()
         <UiButton variant="outline" size="xs" @click="$emit('cancel')">
           {{ cancelText }}
         </UiButton>
-        <UiButton :variant="danger ? 'danger' : 'solid'" size="xs" :tone="danger ? 'neutral' : 'brand'" @click="$emit('confirm')">
+        <UiButton
+          :variant="danger ? 'danger' : 'solid'"
+          size="xs"
+          :tone="danger ? 'neutral' : 'brand'"
+          @click="$emit('confirm')"
+        >
           {{ confirmText }}
         </UiButton>
       </div>

@@ -80,4 +80,3 @@ function toastClass(item: ToastItem): string {
   color: #2563eb;
 }
 </style>
-

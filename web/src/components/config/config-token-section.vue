@@ -60,7 +60,10 @@ const reloadIntervalSec = computed({
 </script>
 
 <template>
-  <ConfigSectionCard title="Token 池设置" description="控制 Token 刷新、失败阈值与多 worker 一致性策略。">
+  <ConfigSectionCard
+    title="Token 池设置"
+    description="控制 Token 刷新、失败阈值与多 worker 一致性策略。"
+  >
     <template #icon>
       <KeySquare :size="16" aria-hidden="true" />
     </template>
@@ -70,7 +73,7 @@ const reloadIntervalSec = computed({
       <p class="config-field-desc">是否开启 Token 自动刷新机制。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="autoRefresh" type="checkbox" class="config-toggle-input">
+          <input v-model="autoRefresh" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -80,7 +83,7 @@ const reloadIntervalSec = computed({
       <div class="config-field-title">刷新间隔（小时）</div>
       <p class="config-field-desc">Token 刷新的时间间隔。</p>
       <div class="config-field-input">
-        <input v-model.number="refreshIntervalHours" type="number" min="1" class="geist-input">
+        <input v-model.number="refreshIntervalHours" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -88,7 +91,7 @@ const reloadIntervalSec = computed({
       <div class="config-field-title">失败阈值</div>
       <p class="config-field-desc">连续失败次数达到阈值后标记为不可用。</p>
       <div class="config-field-input">
-        <input v-model.number="failThreshold" type="number" min="1" class="geist-input">
+        <input v-model.number="failThreshold" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -96,7 +99,7 @@ const reloadIntervalSec = computed({
       <div class="config-field-title">保存延迟（毫秒）</div>
       <p class="config-field-desc">Token 变更合并写入的延迟。</p>
       <div class="config-field-input">
-        <input v-model.number="saveDelayMs" type="number" min="0" class="geist-input">
+        <input v-model.number="saveDelayMs" type="number" min="0" class="geist-input" />
       </div>
     </div>
 
@@ -104,7 +107,7 @@ const reloadIntervalSec = computed({
       <div class="config-field-title">一致性刷新（秒）</div>
       <p class="config-field-desc">多 worker 场景下 Token 状态刷新间隔。</p>
       <div class="config-field-input">
-        <input v-model.number="reloadIntervalSec" type="number" min="0" class="geist-input">
+        <input v-model.number="reloadIntervalSec" type="number" min="0" class="geist-input" />
       </div>
     </div>
   </ConfigSectionCard>

@@ -14,7 +14,8 @@ interface Props {
   clearingType: AdminCacheType | null
 }
 
-const { imageCount, imageSizeText, videoCount, videoSizeText, activeType, clearingType } = defineProps<Props>()
+const { imageCount, imageSizeText, videoCount, videoSizeText, activeType, clearingType } =
+  defineProps<Props>()
 
 const emit = defineEmits<(e: 'select-type' | 'clear-type', type: AdminCacheType) => void>()
 
@@ -56,7 +57,7 @@ function onCardKeydown(event: KeyboardEvent, type: AdminCacheType): void {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div
       v-for="section in sections"
       :key="section.type"
@@ -75,12 +76,12 @@ function onCardKeydown(event: KeyboardEvent, type: AdminCacheType): void {
           </div>
           <div class="cache-stat-value">
             <span>{{ section.count }}</span>
-            <span class="text-xs text-[var(--accents-4)] ml-1">{{ section.unit }}</span>
+            <span class="ml-1 text-xs text-[var(--accents-4)]">{{ section.unit }}</span>
           </div>
         </div>
 
-        <div class="text-right shrink-0">
-          <div class="text-xs font-mono text-[var(--accents-4)]">{{ section.sizeText }}</div>
+        <div class="shrink-0 text-right">
+          <div class="font-mono text-xs text-[var(--accents-4)]">{{ section.sizeText }}</div>
           <UiIconButton
             class="mt-4"
             :label="`清空${section.title}`"

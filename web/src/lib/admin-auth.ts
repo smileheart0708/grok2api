@@ -28,8 +28,10 @@ export function sanitizeRedirectPath(raw: string | null | undefined): string {
   if (!value) return DEFAULT_REDIRECT_PATH
   if (!value.startsWith('/')) return DEFAULT_REDIRECT_PATH
   if (value.startsWith('//')) return DEFAULT_REDIRECT_PATH
-  if (value === '/login' || value.startsWith('/login?') || value.startsWith('/login#')) return DEFAULT_REDIRECT_PATH
-  if (value === '/chat' || value.startsWith('/chat?') || value.startsWith('/chat#')) return DEFAULT_REDIRECT_PATH
+  if (value === '/login' || value.startsWith('/login?') || value.startsWith('/login#'))
+    return DEFAULT_REDIRECT_PATH
+  if (value === '/chat' || value.startsWith('/chat?') || value.startsWith('/chat#'))
+    return DEFAULT_REDIRECT_PATH
   if (value.startsWith('/api/')) return DEFAULT_REDIRECT_PATH
   if (!isAdminRedirectPath(value)) return DEFAULT_REDIRECT_PATH
   return value
@@ -60,7 +62,9 @@ export async function fetchAdminSession(): Promise<boolean> {
   }
 }
 
-export async function loginAdmin(creds: AdminCreds): Promise<{ ok: boolean; message: string; expiresAt: number | null }> {
+export async function loginAdmin(
+  creds: AdminCreds,
+): Promise<{ ok: boolean; message: string; expiresAt: number | null }> {
   try {
     const response = await fetch('/api/v1/admin/login', {
       method: 'POST',
@@ -84,7 +88,7 @@ export async function loginAdmin(creds: AdminCreds): Promise<{ ok: boolean; mess
 
     return {
       ok: response.ok,
-      message: response.ok ? '' : (message || '登录失败'),
+      message: response.ok ? '' : message || '登录失败',
       expiresAt,
     }
   } catch {

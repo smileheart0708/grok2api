@@ -104,13 +104,15 @@ const testingRow = computed(() => rows.value.find((row) => row.key === testingRo
 
 const filteredRows = computed(() => {
   const hasTypeFilter = filters.value.typeSso || filters.value.typeSuperSso
-  const hasStatusFilter = filters.value.statusActive || filters.value.statusInvalid || filters.value.statusExhausted
+  const hasStatusFilter =
+    filters.value.statusActive || filters.value.statusInvalid || filters.value.statusExhausted
 
   return rows.value.filter((row) => {
     const tokenType = row.token_type === 'ssoSuper' ? 'ssoSuper' : 'sso'
-    const matchesType = !hasTypeFilter
-      || (filters.value.typeSso && tokenType === 'sso')
-      || (filters.value.typeSuperSso && tokenType === 'ssoSuper')
+    const matchesType =
+      !hasTypeFilter ||
+      (filters.value.typeSso && tokenType === 'sso') ||
+      (filters.value.typeSuperSso && tokenType === 'ssoSuper')
     if (!matchesType) return false
 
     if (!hasStatusFilter) return true
@@ -118,9 +120,11 @@ const filteredRows = computed(() => {
     const active = isTokenActive(row)
     const invalid = isTokenInvalid(row)
     const exhausted = isTokenExhausted(row)
-    return (filters.value.statusActive && active)
-      || (filters.value.statusInvalid && invalid)
-      || (filters.value.statusExhausted && exhausted)
+    return (
+      (filters.value.statusActive && active) ||
+      (filters.value.statusInvalid && invalid) ||
+      (filters.value.statusExhausted && exhausted)
+    )
   })
 })
 
@@ -282,7 +286,7 @@ async function loadChatModels(): Promise<void> {
 
     const defaultModel = chatModels.value.some((item) => item.id === storedValue)
       ? storedValue
-      : chatModels.value[0]?.id ?? ''
+      : (chatModels.value[0]?.id ?? '')
     selectedTestModel.value = defaultModel
   } catch (errorValue) {
     await handleApiFailure(errorValue, '加载测试模型失败')
@@ -377,7 +381,10 @@ async function onEditorSubmit(payload: TokenEditorSubmitPayload): Promise<void> 
   }
 
   isEditorSaving.value = true
-  const saved = await persistRows(nextRows, editorMode.value === 'create' ? 'Token 添加成功' : 'Token 保存成功')
+  const saved = await persistRows(
+    nextRows,
+    editorMode.value === 'create' ? 'Token 添加成功' : 'Token 保存成功',
+  )
   isEditorSaving.value = false
   if (saved) isEditorOpen.value = false
 }

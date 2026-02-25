@@ -1,5 +1,10 @@
 body {
-  font-family: 'Geist Sans', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
+  font-family:
+    'Geist Sans',
+    -apple-system,
+    blinkmacsystemfont,
+    'Segoe UI',
+    sans-serif;
   background-color: var(--bg);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
@@ -196,7 +201,9 @@ body {
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
   cursor: pointer;
   text-decoration: none;
 }
@@ -290,7 +297,9 @@ body {
   justify-content: center;
   color: var(--accents-6);
   background: var(--surface);
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
   cursor: pointer;
 }
 
@@ -359,7 +368,9 @@ body {
   justify-content: center;
   color: var(--accents-6);
   background: var(--surface);
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
   cursor: pointer;
 }
 
@@ -477,7 +488,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .modal-close:hover {

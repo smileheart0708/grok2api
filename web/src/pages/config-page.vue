@@ -12,11 +12,7 @@ import UiToastHost from '@/components/ui/ui-toast-host.vue'
 import UiButton from '@/components/ui/ui-button.vue'
 import { useToast } from '@/composables/use-toast'
 import { isRecord } from '@/lib/guards'
-import {
-  AdminApiRequestError,
-  fetchAdminConfig,
-  saveAdminConfig,
-} from '@/lib/admin-api'
+import { AdminApiRequestError, fetchAdminConfig, saveAdminConfig } from '@/lib/admin-api'
 import { logout } from '@/lib/admin-auth'
 import type {
   AdminConfigApp,
@@ -148,9 +144,7 @@ async function loadConfig(): Promise<void> {
 }
 
 function normalizeTags(value: readonly string[]): string[] {
-  return value
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0)
+  return value.map((item) => item.trim()).filter((item) => item.length > 0)
 }
 
 function normalizeRetryCodes(value: readonly number[]): number[] {
@@ -316,15 +310,15 @@ onMounted(() => {
 
   <AdminPageShell max-width="1120px">
     <div class="space-y-6">
-      <div class="flex flex-wrap justify-between items-start gap-3">
+      <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-2xl font-semibold tracking-tight">配置管理</h2>
-          <p class="text-[var(--accents-4)] mt-1 text-sm">管理 API 密钥及系统参数设置。</p>
+          <p class="mt-1 text-sm text-[var(--accents-4)]">管理 API 密钥及系统参数设置。</p>
         </div>
         <UiButton
           variant="solid"
           size="sm"
-          class="gap-2 config-save-btn"
+          class="config-save-btn gap-2"
           :disabled="isLoading || isSaving"
           @click="saveConfigForm"
         >
@@ -333,9 +327,9 @@ onMounted(() => {
         </UiButton>
       </div>
 
-      <div class="h-px bg-[var(--border)] my-6"></div>
+      <div class="my-6 h-px bg-[var(--border)]"></div>
 
-      <div v-if="isLoading" class="text-center py-12 text-[var(--accents-4)]">加载中...</div>
+      <div v-if="isLoading" class="py-12 text-center text-[var(--accents-4)]">加载中...</div>
       <div v-else id="config-container" class="space-y-8">
         <ConfigAppSection v-model="appConfig" @copy-value="copyValue" />
         <ConfigGrokSection v-model="grokConfig" />

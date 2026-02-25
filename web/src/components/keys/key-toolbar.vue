@@ -43,12 +43,14 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
 
 <template>
   <div class="space-y-6">
-    <div class="keys-page-header flex flex-wrap justify-between items-start gap-3">
+    <div class="keys-page-header flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 class="text-2xl font-semibold tracking-tight">API Key 管理</h2>
-        <p class="text-[var(--accents-4)] mt-1 text-sm">管理访问 /v1/* 的 API Keys（含每日额度）。</p>
+        <p class="mt-1 text-sm text-[var(--accents-4)]">
+          管理访问 /v1/* 的 API Keys（含每日额度）。
+        </p>
       </div>
-      <div class="flex items-center gap-3 w-full sm:w-auto">
+      <div class="flex w-full items-center gap-3 sm:w-auto">
         <UiButton variant="solid" size="sm" class="gap-2" @click="$emit('open-create')">
           <Plus :size="14" aria-hidden="true" />
           新增 Key
@@ -66,7 +68,7 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
             class="geist-input"
             placeholder="搜索名称或 Key..."
             @input="onSearchInput"
-          >
+          />
         </div>
         <select class="geist-input" :value="filters.status" @change="onStatusChange">
           <option value="all">全部状态</option>

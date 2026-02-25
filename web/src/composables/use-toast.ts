@@ -64,4 +64,3 @@ export function useToast() {
     info: (message: string, options?: ToastOptions) => pushToast(message, 'info', options),
   }
 }
-

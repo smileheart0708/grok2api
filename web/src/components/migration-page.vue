@@ -28,8 +28,12 @@ const legacyHref = computed(() => props.legacyPath ?? props.routePath)
   <main
     class="grid min-h-dvh place-items-center p-6 [background:radial-gradient(800px_420px_at_-10%_-20%,rgb(66_153_225_/_20%),transparent_60%),radial-gradient(760px_420px_at_120%_120%,rgb(56_189_248_/_16%),transparent_58%),linear-gradient(180deg,#f8fbff_0%,#f4f7fb_100%)] max-md:p-4"
   >
-    <section class="grid w-full max-w-[900px] gap-3.5 rounded-2xl border border-[#d7e4f8] bg-white/92 p-7 shadow-[0_24px_70px_rgb(15_23_42_/_12%)] backdrop-blur-[6px] max-md:p-[18px]">
-      <p class="m-0 inline-flex w-fit rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-semibold text-[#1e3a8a]">
+    <section
+      class="grid w-full max-w-[900px] gap-3.5 rounded-2xl border border-[#d7e4f8] bg-white/92 p-7 shadow-[0_24px_70px_rgb(15_23_42_/_12%)] backdrop-blur-[6px] max-md:p-[18px]"
+    >
+      <p
+        class="m-0 inline-flex w-fit rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-semibold text-[#1e3a8a]"
+      >
         Vue 渐进迁移中
       </p>
       <h1 class="m-0 text-[clamp(24px,3.5vw,34px)] leading-[1.15] text-[#0f172a]">{{ title }}</h1>

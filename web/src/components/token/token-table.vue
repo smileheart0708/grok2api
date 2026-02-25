@@ -4,7 +4,11 @@ import UiCheckbox from '@/components/ui/ui-checkbox.vue'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
 import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { TokenRow } from '@/components/token/token-types'
-import { getTokenStatusClass, getTokenStatusLabel, shortenToken } from '@/components/token/token-utils'
+import {
+  getTokenStatusClass,
+  getTokenStatusLabel,
+  shortenToken,
+} from '@/components/token/token-utils'
 
 interface Props {
   rows: readonly TokenRow[]
@@ -60,8 +64,15 @@ const emit = defineEmits<{
       </td>
       <td class="text-left">
         <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-gray-500" :title="item.token">{{ shortenToken(item.token) }}</span>
-          <UiIconButton label="复制 Token" variant="ghost" size="xs" @click="emit('copy-token', item.token)">
+          <span class="font-mono text-xs text-gray-500" :title="item.token">{{
+            shortenToken(item.token)
+          }}</span>
+          <UiIconButton
+            label="复制 Token"
+            variant="ghost"
+            size="xs"
+            @click="emit('copy-token', item.token)"
+          >
             <Copy :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>
@@ -70,22 +81,34 @@ const emit = defineEmits<{
         <span class="badge badge-gray">{{ item.pool }}</span>
       </td>
       <td class="text-center">
-        <span class="badge" :class="getTokenStatusClass(item)">{{ getTokenStatusLabel(item) }}</span>
+        <span class="badge" :class="getTokenStatusClass(item)">{{
+          getTokenStatusLabel(item)
+        }}</span>
       </td>
       <td class="text-center font-mono text-xs">{{ item.quota_known ? item.quota : '-' }}</td>
-      <td class="text-left text-gray-500 text-xs truncate max-w-[150px]">{{ item.note || '-' }}</td>
+      <td class="max-w-[150px] truncate text-left text-xs text-gray-500">{{ item.note || '-' }}</td>
       <td class="text-center">
         <div class="flex items-center justify-center gap-2">
           <UiIconButton label="测试" variant="ghost" size="xs" @click="emit('request-test', item)">
             <TestTubeDiagonal :size="14" aria-hidden="true" />
           </UiIconButton>
-          <UiIconButton label="刷新状态" variant="ghost" size="xs" @click="emit('request-refresh', item)">
+          <UiIconButton
+            label="刷新状态"
+            variant="ghost"
+            size="xs"
+            @click="emit('request-refresh', item)"
+          >
             <RefreshCw :size="14" aria-hidden="true" />
           </UiIconButton>
           <UiIconButton label="编辑" variant="ghost" size="xs" @click="emit('request-edit', item)">
             <Pencil :size="14" aria-hidden="true" />
           </UiIconButton>
-          <UiIconButton label="删除" variant="danger" size="xs" @click="emit('request-delete', item)">
+          <UiIconButton
+            label="删除"
+            variant="danger"
+            size="xs"
+            @click="emit('request-delete', item)"
+          >
             <Trash2 :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>

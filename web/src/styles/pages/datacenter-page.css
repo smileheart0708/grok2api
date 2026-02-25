@@ -35,8 +35,9 @@
   padding: 12px 12px;
   max-height: 420px;
   overflow: auto;
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-    monospace;
+  font-family:
+    'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
   font-size: 12px;
   line-height: 1.45;
   color: #d8dee9;
@@ -70,4 +71,3 @@
     max-height: 320px;
   }
 }
-

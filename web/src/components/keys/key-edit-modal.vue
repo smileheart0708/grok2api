@@ -40,7 +40,14 @@ const submitText = computed(() => (props.mode === 'edit' ? '保存' : '创建'))
 const isEditMode = computed(() => props.mode === 'edit')
 
 watch(
-  () => [props.open, props.mode, props.initialName, props.initialKey, props.initialIsActive, props.initialLimits],
+  () => [
+    props.open,
+    props.mode,
+    props.initialName,
+    props.initialKey,
+    props.initialIsActive,
+    props.initialLimits,
+  ],
   () => {
     if (!props.open) return
     nameInput.value = props.initialName
@@ -87,9 +94,15 @@ function onSubmit(): void {
 </script>
 
 <template>
-  <UiModal :open="open" :title="title" size="lg" :close-on-overlay="!saving" @close="$emit('close')">
+  <UiModal
+    :open="open"
+    :title="title"
+    size="lg"
+    :close-on-overlay="!saving"
+    @close="$emit('close')"
+  >
     <div class="space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <label class="modal-label mb-1 block">密钥名</label>
           <input
@@ -99,18 +112,18 @@ function onSubmit(): void {
             maxlength="50"
             placeholder="留空=随机生成"
             :disabled="saving"
-          >
+          />
         </div>
         <div>
           <label class="modal-label mb-1 block">API Key 值</label>
-          <div class="flex flex-col sm:flex-row gap-2">
+          <div class="flex flex-col gap-2 sm:flex-row">
             <input
               v-model="keyInput"
               type="text"
               class="geist-input font-mono"
               :disabled="saving || isEditMode"
               placeholder="留空=随机生成 sk-..."
-            >
+            />
             <UiButton
               variant="outline"
               size="xs"
@@ -122,34 +135,66 @@ function onSubmit(): void {
               自动生成
             </UiButton>
           </div>
-          <div class="text-xs text-[var(--accents-5)] mt-1">允许任意字符串；建议使用 sk- 前缀。</div>
+          <div class="mt-1 text-xs text-[var(--accents-5)]">
+            允许任意字符串；建议使用 sk- 前缀。
+          </div>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs text-[var(--accents-5)]">额度预设</span>
-        <UiButton variant="outline" size="xs" class="gap-1" :disabled="saving" @click="applyRecommendedPreset">
+        <UiButton
+          variant="outline"
+          size="xs"
+          class="gap-1"
+          :disabled="saving"
+          @click="applyRecommendedPreset"
+        >
           <KeyRound :size="12" aria-hidden="true" />
           推荐
         </UiButton>
-        <UiButton variant="outline" size="xs" class="gap-1" :disabled="saving" @click="applyUnlimitedPreset">
+        <UiButton
+          variant="outline"
+          size="xs"
+          class="gap-1"
+          :disabled="saving"
+          @click="applyUnlimitedPreset"
+        >
           <InfinityIcon :size="12" aria-hidden="true" />
           不限
         </UiButton>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
           <label class="modal-label mb-1 block">Chat / 天</label>
-          <input v-model="limits.chat" type="number" class="geist-input" min="-1" :disabled="saving">
+          <input
+            v-model="limits.chat"
+            type="number"
+            class="geist-input"
+            min="-1"
+            :disabled="saving"
+          />
         </div>
         <div>
           <label class="modal-label mb-1 block">生图 / 天</label>
-          <input v-model="limits.image" type="number" class="geist-input" min="-1" :disabled="saving">
+          <input
+            v-model="limits.image"
+            type="number"
+            class="geist-input"
+            min="-1"
+            :disabled="saving"
+          />
         </div>
         <div>
           <label class="modal-label mb-1 block">视频 / 天</label>
-          <input v-model="limits.video" type="number" class="geist-input" min="-1" :disabled="saving">
+          <input
+            v-model="limits.video"
+            type="number"
+            class="geist-input"
+            min="-1"
+            :disabled="saving"
+          />
         </div>
       </div>
 
@@ -161,7 +206,9 @@ function onSubmit(): void {
       <p v-if="errorText" class="text-xs text-red-600">{{ errorText }}</p>
 
       <div class="flex justify-end gap-2 pt-2">
-        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')">取消</UiButton>
+        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')"
+          >取消</UiButton
+        >
         <UiButton variant="solid" size="xs" :disabled="saving" @click="onSubmit">
           {{ saving ? '提交中...' : submitText }}
         </UiButton>

@@ -62,7 +62,13 @@ function statusClass(row: AdminApiKeyRow): string {
       <td class="text-left">
         <div class="inline-flex items-center gap-1 whitespace-nowrap">
           <span class="mono whitespace-nowrap">{{ row.display_key }}</span>
-          <UiIconButton label="复制 Key" variant="ghost" size="xs" class="shrink-0" @click="emit('copy', row)">
+          <UiIconButton
+            label="复制 Key"
+            variant="ghost"
+            size="xs"
+            class="shrink-0"
+            @click="emit('copy', row)"
+          >
             <Copy :size="14" aria-hidden="true" />
           </UiIconButton>
         </div>
@@ -70,17 +76,17 @@ function statusClass(row: AdminApiKeyRow): string {
       <td class="text-center">
         <span class="pill" :class="statusClass(row)">{{ statusText(row) }}</span>
       </td>
-      <td class="text-left mono">{{ formatLimitPair(row) }}</td>
-      <td class="text-left mono">{{ formatUsagePair(row) }}</td>
+      <td class="mono text-left">{{ formatLimitPair(row) }}</td>
+      <td class="mono text-left">{{ formatUsagePair(row) }}</td>
       <td class="text-center text-sm">{{ formatLastUsedAt(row.last_used_at) }}</td>
       <td class="text-center text-sm">{{ formatCreatedAt(row.created_at) }}</td>
       <td class="text-center">
         <div class="inline-flex items-center gap-2">
-          <UiButton variant="outline" size="xs" class="py-1 gap-1" @click="emit('edit', row)">
+          <UiButton variant="outline" size="xs" class="gap-1 py-1" @click="emit('edit', row)">
             <Pencil :size="12" aria-hidden="true" />
             编辑
           </UiButton>
-          <UiButton variant="danger" size="xs" class="py-1 gap-1" @click="emit('delete', row)">
+          <UiButton variant="danger" size="xs" class="gap-1 py-1" @click="emit('delete', row)">
             <Trash2 :size="12" aria-hidden="true" />
             删除
           </UiButton>

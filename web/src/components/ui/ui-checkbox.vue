@@ -27,7 +27,9 @@ const inputRef = ref<HTMLInputElement | null>(null)
 
 const checkedValue = computed(() => props.modelValue)
 const checkboxClass = computed(() =>
-  cn('size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity disabled:cursor-not-allowed disabled:opacity-60'),
+  cn(
+    'size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity disabled:cursor-not-allowed disabled:opacity-60',
+  ),
 )
 
 watchEffect(() => {
@@ -52,5 +54,5 @@ function onChange(event: Event): void {
     :checked="checkedValue"
     :disabled="props.disabled"
     @change="onChange"
-  >
+  />
 </template>

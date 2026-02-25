@@ -80,7 +80,7 @@ const adminAssetsBatchSize = computed({
       <div class="config-field-title">资产并发上限</div>
       <p class="config-field-desc">资源上传/下载/列表并发上限，推荐 25。</p>
       <div class="config-field-input">
-        <input v-model.number="assetsMaxConcurrent" type="number" min="1" class="geist-input">
+        <input v-model.number="assetsMaxConcurrent" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -88,7 +88,7 @@ const adminAssetsBatchSize = computed({
       <div class="config-field-title">媒体并发上限</div>
       <p class="config-field-desc">视频/媒体生成请求并发上限，推荐 50。</p>
       <div class="config-field-input">
-        <input v-model.number="mediaMaxConcurrent" type="number" min="1" class="geist-input">
+        <input v-model.number="mediaMaxConcurrent" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -96,7 +96,7 @@ const adminAssetsBatchSize = computed({
       <div class="config-field-title">用量并发上限</div>
       <p class="config-field-desc">用量查询请求并发上限，推荐 25。</p>
       <div class="config-field-input">
-        <input v-model.number="usageMaxConcurrent" type="number" min="1" class="geist-input">
+        <input v-model.number="usageMaxConcurrent" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -104,7 +104,7 @@ const adminAssetsBatchSize = computed({
       <div class="config-field-title">资产清理批量</div>
       <p class="config-field-desc">在线资产删除单批并发数量，推荐 10。</p>
       <div class="config-field-input">
-        <input v-model.number="assetsDeleteBatchSize" type="number" min="1" class="geist-input">
+        <input v-model.number="assetsDeleteBatchSize" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -112,7 +112,7 @@ const adminAssetsBatchSize = computed({
       <div class="config-field-title">管理端批量</div>
       <p class="config-field-desc">管理端在线资产统计/清理批量并发数量，推荐 10。</p>
       <div class="config-field-input">
-        <input v-model.number="adminAssetsBatchSize" type="number" min="1" class="geist-input">
+        <input v-model.number="adminAssetsBatchSize" type="number" min="1" class="geist-input" />
       </div>
     </div>
   </ConfigSectionCard>

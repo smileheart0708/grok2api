@@ -24,7 +24,8 @@ export function poolToTokenType(pool: AdminTokenPool): 'sso' | 'ssoSuper' {
 export function normalizeTokenStatus(status: string): string {
   const value = status.trim().toLowerCase()
   if (value === 'expired') return 'invalid'
-  if (value === 'active' || value === 'cooling' || value === 'invalid' || value === 'disabled') return value
+  if (value === 'active' || value === 'cooling' || value === 'invalid' || value === 'disabled')
+    return value
   return 'active'
 }
 
@@ -62,4 +63,3 @@ export function shortenToken(displayToken: string): string {
   if (displayToken.length <= 24) return displayToken
   return `${displayToken.slice(0, 8)}...${displayToken.slice(displayToken.length - 16)}`
 }
-

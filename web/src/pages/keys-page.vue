@@ -207,7 +207,7 @@ onMounted(() => {
       @reset-filters="resetFilters"
     />
 
-    <div class="h-px bg-[var(--border)] my-6"></div>
+    <div class="my-6 h-px bg-[var(--border)]"></div>
 
     <KeyStatsGrid :stats="stats" />
 

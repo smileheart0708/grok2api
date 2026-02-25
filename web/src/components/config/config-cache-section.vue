@@ -53,7 +53,7 @@ const keepBase64Cache = computed({
       <p class="config-field-desc">开启后按缓存上限自动回收。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="enableAutoClean" type="checkbox" class="config-toggle-input">
+          <input v-model="enableAutoClean" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>
@@ -63,7 +63,7 @@ const keepBase64Cache = computed({
       <div class="config-field-title">清理阈值（MB）</div>
       <p class="config-field-desc">超过阈值后触发缓存清理。</p>
       <div class="config-field-input">
-        <input v-model.number="limitMb" type="number" min="1" class="geist-input">
+        <input v-model.number="limitMb" type="number" min="1" class="geist-input" />
       </div>
     </div>
 
@@ -72,7 +72,7 @@ const keepBase64Cache = computed({
       <p class="config-field-desc">启用后会保留 Base64 返回场景的本地媒体缓存。</p>
       <div class="config-field-input">
         <label class="config-toggle">
-          <input v-model="keepBase64Cache" type="checkbox" class="config-toggle-input">
+          <input v-model="keepBase64Cache" type="checkbox" class="config-toggle-input" />
           <span class="config-toggle-slider"></span>
         </label>
       </div>

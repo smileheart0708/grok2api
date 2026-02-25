@@ -17,15 +17,8 @@ interface Props {
   emptyText: string
 }
 
-const {
-  type,
-  rows,
-  loading,
-  selectedNames,
-  allSelected,
-  hasPartialSelection,
-  emptyText,
-} = defineProps<Props>()
+const { type, rows, loading, selectedNames, allSelected, hasPartialSelection, emptyText } =
+  defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'toggle-select-all', value: boolean): void
@@ -81,11 +74,11 @@ function isRowSelected(name: string): boolean {
             class="cache-preview"
             loading="lazy"
             decoding="async"
-          >
+          />
           <span v-else class="cache-file-icon" aria-hidden="true">
             <FileImage :size="14" />
           </span>
-          <span class="font-mono text-xs text-gray-500 break-all">{{ row.name }}</span>
+          <span class="font-mono text-xs break-all text-gray-500">{{ row.name }}</span>
         </div>
       </td>
       <td class="text-left">{{ formatFileSize(row.size_bytes) }}</td>

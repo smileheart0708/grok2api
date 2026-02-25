@@ -16,4 +16,3 @@ withDefaults(defineProps<Props>(), {
     <div class="stat-label">{{ label }}</div>
   </div>
 </template>
-

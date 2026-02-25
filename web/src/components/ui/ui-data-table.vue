@@ -17,7 +17,9 @@ const tableStyle = computed(() => (props.minWidth ? { minWidth: props.minWidth }
 </script>
 
 <template>
-  <div class="ui-data-table mb-4 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+  <div
+    class="ui-data-table mb-4 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+  >
     <div class="ui-data-table__scroll overflow-x-auto">
       <table class="ui-data-table__table" :style="tableStyle">
         <thead>
@@ -28,8 +30,8 @@ const tableStyle = computed(() => (props.minWidth ? { minWidth: props.minWidth }
         </tbody>
       </table>
     </div>
-    <div v-if="loading" class="text-center py-12 text-[var(--accents-4)]">加载中...</div>
-    <div v-else-if="empty" class="text-center py-12 text-[var(--accents-4)]">{{ emptyText }}</div>
+    <div v-if="loading" class="py-12 text-center text-[var(--accents-4)]">加载中...</div>
+    <div v-else-if="empty" class="py-12 text-center text-[var(--accents-4)]">{{ emptyText }}</div>
   </div>
 </template>
 

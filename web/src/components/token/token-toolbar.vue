@@ -31,13 +31,19 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
 
 <template>
   <div class="space-y-6">
-    <div class="flex flex-wrap justify-between items-start gap-3">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 class="text-2xl font-semibold tracking-tight">Token 列表</h2>
-        <p class="text-[var(--accents-4)] mt-1 text-sm">管理 Grok2API 的 Token 服务号池。</p>
+        <p class="mt-1 text-sm text-[var(--accents-4)]">管理 Grok2API 的 Token 服务号池。</p>
       </div>
-      <div class="flex items-center gap-3 w-full sm:w-auto">
-        <UiButton variant="solid" tone="neutral" size="sm" class="gap-2" @click="$emit('open-import')">
+      <div class="flex w-full items-center gap-3 sm:w-auto">
+        <UiButton
+          variant="solid"
+          tone="neutral"
+          size="sm"
+          class="gap-2"
+          @click="$emit('open-import')"
+        >
           <Download :size="14" aria-hidden="true" />
           导入
         </UiButton>
@@ -57,22 +63,42 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
       <div class="filter-group flex items-center gap-3">
         <span class="text-xs text-[var(--accents-5)]">类型</span>
         <label class="filter-chip">
-          <input id="filter-type-sso" :checked="filters.typeSso" type="checkbox" @change="updateFilter('typeSso', $event)">
+          <input
+            id="filter-type-sso"
+            :checked="filters.typeSso"
+            type="checkbox"
+            @change="updateFilter('typeSso', $event)"
+          />
           <span>sso</span>
         </label>
         <label class="filter-chip">
-          <input id="filter-type-supersso" :checked="filters.typeSuperSso" type="checkbox" @change="updateFilter('typeSuperSso', $event)">
+          <input
+            id="filter-type-supersso"
+            :checked="filters.typeSuperSso"
+            type="checkbox"
+            @change="updateFilter('typeSuperSso', $event)"
+          />
           <span>supersso</span>
         </label>
       </div>
       <div class="filter-group flex items-center gap-3">
         <span class="text-xs text-[var(--accents-5)]">状态</span>
         <label class="filter-chip">
-          <input id="filter-status-active" :checked="filters.statusActive" type="checkbox" @change="updateFilter('statusActive', $event)">
+          <input
+            id="filter-status-active"
+            :checked="filters.statusActive"
+            type="checkbox"
+            @change="updateFilter('statusActive', $event)"
+          />
           <span>活跃</span>
         </label>
         <label class="filter-chip">
-          <input id="filter-status-invalid" :checked="filters.statusInvalid" type="checkbox" @change="updateFilter('statusInvalid', $event)">
+          <input
+            id="filter-status-invalid"
+            :checked="filters.statusInvalid"
+            type="checkbox"
+            @change="updateFilter('statusInvalid', $event)"
+          />
           <span>失效</span>
         </label>
         <label class="filter-chip">
@@ -81,7 +107,7 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
             :checked="filters.statusExhausted"
             type="checkbox"
             @change="updateFilter('statusExhausted', $event)"
-          >
+          />
           <span>额度用尽</span>
         </label>
       </div>

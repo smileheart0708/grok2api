@@ -6,11 +6,7 @@ import { ADMIN_NAV_ITEMS } from '@/constants/admin-nav'
 import { cycleTheme, useTheme } from '@/composables/use-theme'
 import UiButton from '@/components/ui/ui-button.vue'
 import UiIconButton from '@/components/ui/ui-icon-button.vue'
-import {
-  fetchAdminStorageType,
-  formatStorageLabel,
-  logout,
-} from '@/lib/admin-auth'
+import { fetchAdminStorageType, formatStorageLabel, logout } from '@/lib/admin-auth'
 
 const route = useRoute()
 const { themePreference } = useTheme()
@@ -157,7 +153,13 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="nav-actions nav-desktop-actions">
-        <UiButton variant="nav" size="xs" :tone="isStorageReady ? 'brand' : 'neutral'" title="存储模式" @click="refreshStorageMode">
+        <UiButton
+          variant="nav"
+          size="xs"
+          :tone="isStorageReady ? 'brand' : 'neutral'"
+          title="存储模式"
+          @click="refreshStorageMode"
+        >
           {{ storageLabel }}
         </UiButton>
         <UiButton variant="nav" size="xs" title="切换主题" @click="onThemeToggle">
@@ -167,7 +169,7 @@ onBeforeUnmount(() => {
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-2 text-[11px] font-medium text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
+          class="inline-flex min-h-6 items-center justify-center rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-2 text-[11px] font-medium whitespace-nowrap text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
         >
           反馈
         </a>
@@ -204,7 +206,13 @@ onBeforeUnmount(() => {
     >
       <div class="mobile-nav-header">
         <div class="admin-header__mobile-title">管理菜单</div>
-        <UiIconButton label="关闭导航菜单" class="mobile-nav-close" variant="ghost" size="sm" @click="closeMobileMenu">
+        <UiIconButton
+          label="关闭导航菜单"
+          class="mobile-nav-close"
+          variant="ghost"
+          size="sm"
+          @click="closeMobileMenu"
+        >
           <X :size="16" aria-hidden="true" />
         </UiIconButton>
       </div>
@@ -241,11 +249,13 @@ onBeforeUnmount(() => {
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="mobile-action-btn inline-flex min-h-8 w-full items-center justify-center whitespace-nowrap rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-3 text-[11px] font-medium text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
+          class="mobile-action-btn inline-flex min-h-8 w-full items-center justify-center rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-3 text-[11px] font-medium whitespace-nowrap text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
         >
           反馈
         </a>
-        <UiButton variant="nav" size="sm" class="mobile-action-btn" block @click="onLogout">退出</UiButton>
+        <UiButton variant="nav" size="sm" class="mobile-action-btn" block @click="onLogout"
+          >退出</UiButton
+        >
       </div>
     </aside>
   </header>

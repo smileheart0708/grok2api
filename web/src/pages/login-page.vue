@@ -2,7 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import UiButton from '@/components/ui/ui-button.vue'
-import { DEFAULT_REDIRECT_PATH, fetchAdminSession, loginAdmin, sanitizeRedirectPath } from '@/lib/admin-auth'
+import {
+  DEFAULT_REDIRECT_PATH,
+  fetchAdminSession,
+  loginAdmin,
+  sanitizeRedirectPath,
+} from '@/lib/admin-auth'
 
 const router = useRouter()
 const username = ref('')
@@ -31,7 +36,11 @@ function isCurrentLocation(target: string): boolean {
   try {
     const current = new URL(window.location.href)
     const next = new URL(target, current.origin)
-    return current.pathname === next.pathname && current.search === next.search && current.hash === next.hash
+    return (
+      current.pathname === next.pathname &&
+      current.search === next.search &&
+      current.hash === next.hash
+    )
   } catch {
     return false
   }
@@ -97,13 +106,21 @@ onMounted(async () => {
   <main
     class="grid min-h-dvh place-items-center p-5 [background:radial-gradient(circle_at_10%_10%,rgb(14_116_144_/_20%),transparent_45%),radial-gradient(circle_at_100%_100%,rgb(14_165_233_/_18%),transparent_42%),linear-gradient(180deg,#f4f7fb_0%,#eef3f9_100%)]"
   >
-    <section class="w-full max-w-[460px] rounded-2xl border border-[#d5e3f3] bg-white/95 p-6 shadow-[0_28px_58px_rgb(15_23_42_/_12%)]">
+    <section
+      class="w-full max-w-[460px] rounded-2xl border border-[#d5e3f3] bg-white/95 p-6 shadow-[0_28px_58px_rgb(15_23_42_/_12%)]"
+    >
       <header class="grid gap-2.5">
-        <p class="m-0 w-fit rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-semibold text-[#1e3a8a]">
+        <p
+          class="m-0 w-fit rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-semibold text-[#1e3a8a]"
+        >
           Admin Access
         </p>
-        <h1 class="m-0 text-[clamp(24px,5vw,30px)] tracking-[-0.02em] text-[#0f172a]">Grok2API 管理登录</h1>
-        <p class="m-0 text-sm leading-[1.6] text-[#334155]">使用管理员账号登录后台，系统将以 HttpOnly Cookie 保持会话。</p>
+        <h1 class="m-0 text-[clamp(24px,5vw,30px)] tracking-[-0.02em] text-[#0f172a]">
+          Grok2API 管理登录
+        </h1>
+        <p class="m-0 text-sm leading-[1.6] text-[#334155]">
+          使用管理员账号登录后台，系统将以 HttpOnly Cookie 保持会话。
+        </p>
       </header>
 
       <form class="mt-4 grid gap-3" @submit.prevent="onSubmit">
@@ -115,7 +132,7 @@ onMounted(async () => {
             type="text"
             autocomplete="username"
             :disabled="isSubmitting"
-          >
+          />
         </label>
 
         <label class="grid gap-1.5">
@@ -126,18 +143,26 @@ onMounted(async () => {
             type="password"
             autocomplete="current-password"
             :disabled="isSubmitting"
-          >
+          />
         </label>
 
         <p v-if="errorMessage" class="m-0 text-[13px] text-[#b91c1c]">{{ errorMessage }}</p>
 
-        <UiButton class="h-[38px] w-full" type="submit" variant="solid" size="md" :disabled="isSubmitting">
+        <UiButton
+          class="h-[38px] w-full"
+          type="submit"
+          variant="solid"
+          size="md"
+          :disabled="isSubmitting"
+        >
           {{ isSubmitting ? '登录中...' : '登录' }}
         </UiButton>
       </form>
 
       <footer class="mt-3.5">
-        <a class="text-[13px] text-[#0369a1] no-underline hover:underline" href="/chat">前往公开聊天</a>
+        <a class="text-[13px] text-[#0369a1] no-underline hover:underline" href="/chat"
+          >前往公开聊天</a
+        >
       </footer>
     </section>
   </main>

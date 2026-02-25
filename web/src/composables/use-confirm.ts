@@ -75,4 +75,3 @@ export function useConfirm() {
     cancel,
   }
 }
-

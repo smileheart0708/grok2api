@@ -33,7 +33,14 @@ const submitText = computed(() => (props.mode === 'edit' ? '保存' : '添加'))
 const isTokenLocked = computed(() => props.mode === 'edit')
 
 watch(
-  () => [props.open, props.mode, props.initialToken, props.initialPool, props.initialQuota, props.initialNote],
+  () => [
+    props.open,
+    props.mode,
+    props.initialToken,
+    props.initialPool,
+    props.initialQuota,
+    props.initialNote,
+  ],
   () => {
     if (!props.open) return
     tokenInput.value = props.initialToken
@@ -76,9 +83,9 @@ function onSubmit(): void {
           :readonly="isTokenLocked"
           :disabled="saving"
           placeholder="sso=..."
-        >
+        />
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <label class="modal-label mb-1 block">类型</label>
           <select v-model="poolInput" class="geist-input" :disabled="saving">
@@ -88,7 +95,13 @@ function onSubmit(): void {
         </div>
         <div>
           <label class="modal-label mb-1 block">额度</label>
-          <input v-model="quotaInput" type="number" class="geist-input" min="0" :disabled="saving">
+          <input
+            v-model="quotaInput"
+            type="number"
+            class="geist-input"
+            min="0"
+            :disabled="saving"
+          />
         </div>
       </div>
       <div>
@@ -100,11 +113,13 @@ function onSubmit(): void {
           placeholder="可选备注"
           maxlength="50"
           :disabled="saving"
-        >
+        />
       </div>
       <p v-if="errorText" class="text-xs text-red-600">{{ errorText }}</p>
       <div class="flex justify-end gap-2 pt-2">
-        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')">取消</UiButton>
+        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')"
+          >取消</UiButton
+        >
         <UiButton variant="solid" size="xs" :disabled="saving" @click="onSubmit">
           {{ saving ? '处理中...' : submitText }}
         </UiButton>

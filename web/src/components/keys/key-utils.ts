@@ -49,7 +49,8 @@ export function formatCreatedAt(createdAtSec: number): string {
 }
 
 export function formatLastUsedAt(lastUsedAtMs: number | null): string {
-  if (typeof lastUsedAtMs !== 'number' || !Number.isFinite(lastUsedAtMs) || lastUsedAtMs <= 0) return '-'
+  if (typeof lastUsedAtMs !== 'number' || !Number.isFinite(lastUsedAtMs) || lastUsedAtMs <= 0)
+    return '-'
   return new Date(Math.floor(lastUsedAtMs)).toLocaleString()
 }
 
@@ -105,7 +106,10 @@ export function buildKeyStats(rows: readonly AdminApiKeyRow[]): KeyStats {
   }
 }
 
-export function filterApiKeys(rows: readonly AdminApiKeyRow[], filterState: KeyFilterState): AdminApiKeyRow[] {
+export function filterApiKeys(
+  rows: readonly AdminApiKeyRow[],
+  filterState: KeyFilterState,
+): AdminApiKeyRow[] {
   const keyword = normalizeSearch(filterState.search)
   const status = filterState.status
 

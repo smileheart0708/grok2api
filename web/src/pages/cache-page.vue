@@ -80,7 +80,9 @@ const localStats = ref<AdminCacheLocalStats>({
 
 let autoRefreshTimer: number | null = null
 
-const currentRows = computed(() => (activeType.value === 'image' ? imageRows.value : videoRows.value))
+const currentRows = computed(() =>
+  activeType.value === 'image' ? imageRows.value : videoRows.value,
+)
 const currentSelectedNames = computed(() => selectedByType(activeType.value))
 const currentSelectedCount = computed(() => currentSelectedNames.value.length)
 const currentTypeLabel = computed(() => cacheTypeLabel(activeType.value))
@@ -180,7 +182,11 @@ function formatError(errorValue: unknown, fallback: string): string {
   return fallback
 }
 
-async function handleApiFailure(errorValue: unknown, fallback: string, silent = false): Promise<void> {
+async function handleApiFailure(
+  errorValue: unknown,
+  fallback: string,
+  silent = false,
+): Promise<void> {
   if (errorValue instanceof AdminApiRequestError && errorValue.status === 401) {
     await logout('/admin/cache')
     return
@@ -240,7 +246,10 @@ function toggleCurrentSelection(payload: { name: string; selected: boolean }): v
     setSelectedByType(type, [...current, payload.name])
     return
   }
-  setSelectedByType(type, current.filter((name) => name !== payload.name))
+  setSelectedByType(
+    type,
+    current.filter((name) => name !== payload.name),
+  )
 }
 
 function openFile(type: AdminCacheType, row: AdminCacheListItem): void {
@@ -280,30 +289,35 @@ interface DeleteBatchResult {
   unauthorized: boolean
 }
 
-async function deleteNames(type: AdminCacheType, names: readonly string[]): Promise<DeleteBatchResult> {
+async function deleteNames(
+  type: AdminCacheType,
+  names: readonly string[],
+): Promise<DeleteBatchResult> {
   const deletedNames: string[] = []
   let failed = 0
   let unauthorized = false
 
   for (let index = 0; index < names.length; index += CACHE_DELETE_BATCH_SIZE) {
     const chunk = names.slice(index, index + CACHE_DELETE_BATCH_SIZE)
-    const chunkResults = await Promise.all(chunk.map(async (name) => {
-      try {
-        const deleted = await deleteAdminCacheItem(type, name)
-        return {
-          name,
-          deleted,
-          unauthorized: false,
+    const chunkResults = await Promise.all(
+      chunk.map(async (name) => {
+        try {
+          const deleted = await deleteAdminCacheItem(type, name)
+          return {
+            name,
+            deleted,
+            unauthorized: false,
+          }
+        } catch (errorValue) {
+          const authError = errorValue instanceof AdminApiRequestError && errorValue.status === 401
+          return {
+            name,
+            deleted: false,
+            unauthorized: authError,
+          }
         }
-      } catch (errorValue) {
-        const authError = errorValue instanceof AdminApiRequestError && errorValue.status === 401
-        return {
-          name,
-          deleted: false,
-          unauthorized: authError,
-        }
-      }
-    }))
+      }),
+    )
 
     for (const result of chunkResults) {
       if (result.unauthorized) {
@@ -445,7 +459,7 @@ onUnmounted(() => {
     <div class="space-y-6">
       <CacheToolbar :active-type="activeType" :result-count="currentRows.length" />
 
-      <div class="h-px bg-[var(--border)] my-6"></div>
+      <div class="my-6 h-px bg-[var(--border)]"></div>
 
       <CacheStatsGrid
         :image-count="localStats.local_image.count"

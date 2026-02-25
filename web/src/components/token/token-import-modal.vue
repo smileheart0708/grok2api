@@ -63,14 +63,16 @@ function onSubmit(): void {
         <label class="modal-label mb-1 block">Token 列表（每行一个）</label>
         <textarea
           v-model="textInput"
-          class="geist-input font-mono h-48"
+          class="geist-input h-48 font-mono"
           placeholder="粘贴 Token，一行一个..."
           :disabled="saving"
         ></textarea>
       </div>
       <p v-if="errorText" class="text-xs text-red-600">{{ errorText }}</p>
       <div class="flex justify-end gap-2 pt-2">
-        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')">取消</UiButton>
+        <UiButton variant="outline" size="xs" :disabled="saving" @click="$emit('close')"
+          >取消</UiButton
+        >
         <UiButton variant="solid" size="xs" :disabled="saving" @click="onSubmit">
           {{ saving ? '导入中...' : '开始导入' }}
         </UiButton>
