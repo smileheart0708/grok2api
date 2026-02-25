@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 Cloudflare Workers 的 Grok2API 服务，使用 TypeScript + Hono 框架，支持 D1 数据库和 KV 缓存。前端使用 Vue 3 单独部署。
+基于 Cloudflare Workers 的 Grok2API 服务，使用 TypeScript + Hono 框架，支持 D1 数据库和 KV 缓存。前端使用 Vue 3 + Tailwind CSS v4 单独部署。
 
 ## 技术栈
 
@@ -16,8 +16,9 @@
 ### 前端 (web/)
 - **框架**: Vue 3.5+ + Vue Router 5 + Pinia 3
 - **构建**: Vite 7
+- **样式**: Tailwind CSS v4 (使用 `@theme inline` 定义主题)
 - **语言**: TypeScript 5.9+ (严格模式)
-- **Lint**: oxlint + ESLint (Vue strict type-checked)
+- **Lint**: oxlint + ESLint + Stylelint (max-warnings 0)
 - **包管理器**: pnpm 10.30+
 
 ## 构建/测试/部署命令
@@ -28,7 +29,8 @@
 pnpm install
 pnpm run dev              # wrangler 开发服务器
 pnpm run typecheck        # tsc --noEmit
-pnpm run lint             # eslint
+pnpm run lint             # eslint (max-warnings 0)
+pnpm run lint:fix         # eslint --fix
 pnpm run deploy           # wrangler deploy
 pnpm run db:migrate       # wrangler d1 migrations apply DB --remote
 ```
@@ -40,7 +42,7 @@ cd web && pnpm install
 pnpm run dev              # Vite 开发服务器
 pnpm run build            # 构建 (含类型检查)
 pnpm run type-check       # vue-tsc --build
-pnpm run lint             # oxlint + eslint (max-warnings 0)
+pnpm run lint             # oxlint + eslint + stylelint (max-warnings 0)
 pnpm run lint:fix         # 自动修复 lint 问题
 pnpm run format           # prettier --write src/
 ```
@@ -120,7 +122,7 @@ import MyComponent from '@/components/MyComponent.vue'
 | 类型/接口 | PascalCase | `TokenRow`, `RouteRecordRaw` |
 | 函数/变量 | camelCase | `selectBestToken`, `isLoading` |
 | 常量 | UPPER_SNAKE_CASE | `MAX_FAILURES` |
-| Vue 组件 | PascalCase 使用, kebab-case 文件 | `<TokenPage />`, `token-page.vue` |
+| Vue 组件 | PascalCase 使用，kebab-case 文件 | `<TokenPage />`, `token-page.vue` |
 
 ### 4. Vue 组件规范
 
@@ -139,7 +141,29 @@ const emit = defineEmits<{ (e: 'update', value: number): void }>()
 - Props 使用 `defineProps<T>()` 泛型语法
 - Emits 使用类型化定义
 
-### 5. 错误处理
+### 5. Tailwind CSS v4 规范 (强制性)
+
+**禁止使用 `var()` 定义 class，会导致警告**:
+
+```css
+/* ❌ 错误 - 会产生警告 */
+<div class="text-[var(--accents-5)]">
+
+/* ✅ 正确 - 使用主题变量 */
+<div class="text-accent-5">
+```
+
+**原因**: Tailwind CSS v4 的 `@theme inline` 已将所有 CSS 变量映射为 utility classes，直接使用 `var()` 会绕过 Tailwind 的优化系统。
+
+**主题变量映射** (在 `web/src/styles/index.css` 定义):
+- `--color-bg` → `bg-bg`
+- `--color-fg` → `text-fg`
+- `--color-accent-1` ~ `--color-accent-7` → `bg-accent-1` ~ `text-accent-7`
+- `--color-border` → `border-border`
+- `--color-surface` → `bg-surface`
+- `--color-surface-muted` → `bg-surface-muted`
+
+### 6. 错误处理
 
 ```typescript
 // 后端 API 错误
@@ -148,7 +172,7 @@ return c.json({
 }, 401);
 ```
 
-### 6. 数据库操作 (后端)
+### 7. 数据库操作 (后端)
 
 - 所有数据库操作封装在 `src/repo/` 目录
 - 使用参数化查询防止 SQL 注入
@@ -167,8 +191,9 @@ return c.json({
 3. **KV 单值限制 25MB**
 4. **web/ 是独立项目**，有自己的 package.json 和 tsconfig
 5. **前端 ESLint max-warnings 0**，不允许警告
+6. **Tailwind CSS v4 禁止使用 var()**，使用主题变量代替
 
 ## 常用调试
 
-- 后端: `?debug=1` 查看错误堆栈，`/health` 健康检查
-- 前端: `pnpm run dev` 启动 Vite 开发服务器，集成 Vue DevTools
+- 后端：`?debug=1` 查看错误堆栈，`/health` 健康检查
+- 前端：`pnpm run dev` 启动 Vite 开发服务器，集成 Vue DevTools
