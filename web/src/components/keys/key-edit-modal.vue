@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { Infinity as InfinityIcon, KeyRound, Sparkles } from 'lucide-vue-next'
 import UiModal from '@/components/ui/ui-modal.vue'
 import UiButton from '@/components/ui/ui-button.vue'
+import UiCheckbox from '@/components/ui/ui-checkbox.vue'
 import {
   DEFAULT_KEY_LIMIT_DRAFT,
   generateRandomApiKey,
@@ -153,7 +154,7 @@ function onSubmit(): void {
       </div>
 
       <label class="inline-flex items-center gap-2">
-        <input v-model="activeInput" type="checkbox" class="checkbox" :disabled="saving">
+        <UiCheckbox v-model="activeInput" :disabled="saving" />
         <span class="text-sm">启用</span>
       </label>
 

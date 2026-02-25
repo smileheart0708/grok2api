@@ -16,7 +16,7 @@ defineEmits<(e: 'export' | 'refresh' | 'delete' | 'pause' | 'stop') => void>()
 <template>
   <div
     id="batch-actions"
-    class="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white border border-[var(--border)] rounded-full px-3 py-2 flex items-center shadow-lg gap-3 select-none whitespace-nowrap"
+    class="fixed bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-lg select-none"
   >
     <div class="batch-actions-meta text-sm font-medium flex items-center gap-2">
       <span class="text-[var(--accents-5)] text-xs">已选择</span>

@@ -1,11 +1,38 @@
 @import url('./theme.css');
 @import url('./common.css');
-@import url('./ui/button.css');
-@import url('./legacy-utilities.css');
 @import url('./ui/toast.css');
+@import 'tailwindcss';
+
+@source '../public/legacy/scripts/*.js';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --font-sans: 'Geist Sans', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, sfmono-regular, menlo, monospace;
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-accent-1: var(--accents-1);
+  --color-accent-2: var(--accents-2);
+  --color-accent-3: var(--accents-3);
+  --color-accent-4: var(--accents-4);
+  --color-accent-5: var(--accents-5);
+  --color-accent-6: var(--accents-6);
+  --color-accent-7: var(--accents-7);
+  --radius-modal: 12px;
+}
 
 * {
   box-sizing: border-box;
+}
+
+*,
+::before,
+::after {
+  border-color: var(--border);
 }
 
 html,
@@ -22,8 +49,4 @@ body {
 
 body {
   overflow-y: auto;
-}
-
-a {
-  color: inherit;
 }

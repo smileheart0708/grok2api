@@ -129,6 +129,13 @@ pnpm run dev
 pnpm run typecheck
 ```
 
+## 前端样式约定
+
+- 前端默认使用 Tailwind CSS v4 utility 方案。
+- 禁止新增“手写 utility 仿真文件”（如 `legacy-utilities.css` 这一类镜像 Tailwind 的样式层）。
+- 通用视觉能力优先沉淀在 `web/src/components/ui/` 与 `web/src/styles/common.css`，页面样式仅保留页面特有或 legacy 脚本绑定所需的最小规则。
+- 样式归属清单见 `web/docs/style-ownership.md`。
+
 ## 注意事项
 
 1. 不要随意修改 `wrangler.toml` 中 Worker 名称和 D1/KV 绑定 ID，否则会导致新资源被创建，表现为“数据丢失”。

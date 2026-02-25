@@ -52,7 +52,7 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
 
     <div
       id="token-filter-bar"
-      class="token-filter-bar mb-4 bg-white border border-[var(--border)] rounded-lg px-4 py-3 flex flex-wrap items-center gap-4"
+      class="token-filter-bar mb-4 flex flex-wrap items-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
     >
       <div class="filter-group flex items-center gap-3">
         <span class="text-xs text-[var(--accents-5)]">类型</span>

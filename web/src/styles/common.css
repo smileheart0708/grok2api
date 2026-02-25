@@ -433,6 +433,10 @@ body {
   transition: transform 0.2s ease;
 }
 
+.confirm-dialog .modal-content {
+  padding: 0;
+}
+
 .modal-overlay.is-open .modal-content {
   transform: scale(1);
 }
@@ -479,6 +483,35 @@ body {
 .modal-close:hover {
   color: var(--fg);
   background: var(--surface-muted);
+}
+
+.confirm-dialog-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confirm-dialog-message {
+  font-size: 13px;
+  color: var(--accents-5);
+  line-height: 1.5;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  margin-inline: 2px;
 }
 
 .app-footer {

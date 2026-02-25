@@ -167,9 +167,7 @@ onBeforeUnmount(() => {
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="ui-button"
-          data-variant="nav"
-          data-size="xs"
+          class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-2 text-[11px] font-medium text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
         >
           反馈
         </a>
@@ -243,10 +241,7 @@ onBeforeUnmount(() => {
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="ui-button mobile-action-btn"
-          data-variant="nav"
-          data-size="sm"
-          data-block="true"
+          class="mobile-action-btn inline-flex min-h-8 w-full items-center justify-center whitespace-nowrap rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-3 text-[11px] font-medium text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
         >
           反馈
         </a>

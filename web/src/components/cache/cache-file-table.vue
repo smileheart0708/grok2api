@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Eye, FileImage, Trash2 } from 'lucide-vue-next'
-import { computed, useTemplateRef, watchEffect } from 'vue'
+import { computed } from 'vue'
 import { formatFileSize, formatFileTime } from '@/components/cache/cache-utils'
+import UiCheckbox from '@/components/ui/ui-checkbox.vue'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
 import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { AdminCacheListItem, AdminCacheType } from '@/types/admin-api'
@@ -32,21 +33,7 @@ const emit = defineEmits<{
   (e: 'view' | 'delete', row: AdminCacheListItem): void
 }>()
 
-const selectAllRef = useTemplateRef<HTMLInputElement>('select-all')
-
 const selectedSet = computed(() => new Set(selectedNames))
-
-watchEffect(() => {
-  const element = selectAllRef.value
-  if (!element) return
-  element.indeterminate = hasPartialSelection && !allSelected
-})
-
-function readChecked(event: Event): boolean {
-  const target = event.target
-  if (target instanceof HTMLInputElement) return target.checked
-  return false
-}
 
 function isRowSelected(name: string): boolean {
   return selectedSet.value.has(name)
@@ -63,13 +50,12 @@ function isRowSelected(name: string): boolean {
     <template #head>
       <tr>
         <th class="w-10 text-center">
-          <input
-            ref="select-all"
-            :checked="allSelected"
-            type="checkbox"
-            class="checkbox"
-            @change="emit('toggle-select-all', readChecked($event))"
-          >
+          <UiCheckbox
+            :model-value="allSelected"
+            :indeterminate="hasPartialSelection && !allSelected"
+            class="mx-auto"
+            @change="emit('toggle-select-all', $event)"
+          />
         </th>
         <th class="w-[55%] text-left">文件</th>
         <th class="w-[15%] text-left">大小</th>
@@ -80,12 +66,11 @@ function isRowSelected(name: string): boolean {
 
     <tr v-for="row in rows" :key="row.name" :class="{ 'row-selected': isRowSelected(row.name) }">
       <td class="text-center">
-        <input
-          type="checkbox"
-          class="checkbox"
-          :checked="isRowSelected(row.name)"
-          @change="emit('toggle-select', { name: row.name, selected: readChecked($event) })"
-        >
+        <UiCheckbox
+          :model-value="isRowSelected(row.name)"
+          class="mx-auto"
+          @change="emit('toggle-select', { name: row.name, selected: $event })"
+        />
       </td>
       <td class="text-left">
         <div class="flex items-center gap-2">

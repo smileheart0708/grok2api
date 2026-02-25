@@ -4,7 +4,6 @@ const config = {
   ignoreFiles: [
     'dist/**',
     'node_modules/**',
-    'src/styles/legacy-utilities.css',
     'src/styles/ui/toast.css',
     'src/styles/pages/*.css',
   ],
@@ -15,6 +14,21 @@ const config = {
     },
   ],
   rules: {
+    'import-notation': null,
+    'at-rule-no-unknown': [
+      true,
+      {
+        ignoreAtRules: [
+          'theme',
+          'source',
+          'utility',
+          'variant',
+          'custom-variant',
+          'apply',
+          'reference',
+        ],
+      },
+    ],
     'selector-class-pattern': [
       '^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?:__(?:[a-z0-9]+(?:-[a-z0-9]+)*))?(?:--(?:[a-z0-9]+(?:-[a-z0-9]+)*))?$',
       {

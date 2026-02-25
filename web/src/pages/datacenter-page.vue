@@ -33,7 +33,12 @@ useLegacyPage({
         <div class="datacenter-controls flex items-center gap-2">
           <UiButton id="btn-refresh" variant="outline" size="xs">刷新</UiButton>
           <label class="dc-toggle text-xs text-[var(--accents-4)]">
-            <input id="auto-refresh" type="checkbox" class="checkbox" checked>
+            <input
+              id="auto-refresh"
+              type="checkbox"
+              class="size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity"
+              checked
+            >
             自动刷新
           </label>
         </div>

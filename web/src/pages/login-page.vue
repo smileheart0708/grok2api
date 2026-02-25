@@ -94,145 +94,51 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="login-page">
-    <section class="login-page__panel">
-      <header class="login-page__header">
-        <p class="login-page__badge">Admin Access</p>
-        <h1 class="login-page__title">Grok2API 管理登录</h1>
-        <p class="login-page__subtitle">使用管理员账号登录后台，系统将以 HttpOnly Cookie 保持会话。</p>
+  <main
+    class="grid min-h-dvh place-items-center p-5 [background:radial-gradient(circle_at_10%_10%,rgb(14_116_144_/_20%),transparent_45%),radial-gradient(circle_at_100%_100%,rgb(14_165_233_/_18%),transparent_42%),linear-gradient(180deg,#f4f7fb_0%,#eef3f9_100%)]"
+  >
+    <section class="w-full max-w-[460px] rounded-2xl border border-[#d5e3f3] bg-white/95 p-6 shadow-[0_28px_58px_rgb(15_23_42_/_12%)]">
+      <header class="grid gap-2.5">
+        <p class="m-0 w-fit rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-semibold text-[#1e3a8a]">
+          Admin Access
+        </p>
+        <h1 class="m-0 text-[clamp(24px,5vw,30px)] tracking-[-0.02em] text-[#0f172a]">Grok2API 管理登录</h1>
+        <p class="m-0 text-sm leading-[1.6] text-[#334155]">使用管理员账号登录后台，系统将以 HttpOnly Cookie 保持会话。</p>
       </header>
 
-      <form class="login-page__form" @submit.prevent="onSubmit">
-        <label class="login-page__field">
-          <span class="login-page__label">用户名</span>
+      <form class="mt-4 grid gap-3" @submit.prevent="onSubmit">
+        <label class="grid gap-1.5">
+          <span class="text-[13px] text-[#334155]">用户名</span>
           <input
             v-model="username"
-            class="geist-input login-page__input"
+            class="geist-input h-[38px]"
             type="text"
             autocomplete="username"
             :disabled="isSubmitting"
           >
         </label>
 
-        <label class="login-page__field">
-          <span class="login-page__label">密码</span>
+        <label class="grid gap-1.5">
+          <span class="text-[13px] text-[#334155]">密码</span>
           <input
             v-model="password"
-            class="geist-input login-page__input"
+            class="geist-input h-[38px]"
             type="password"
             autocomplete="current-password"
             :disabled="isSubmitting"
           >
         </label>
 
-        <p v-if="errorMessage" class="login-page__error">{{ errorMessage }}</p>
+        <p v-if="errorMessage" class="m-0 text-[13px] text-[#b91c1c]">{{ errorMessage }}</p>
 
-        <UiButton class="login-page__submit" type="submit" variant="solid" size="md" :disabled="isSubmitting">
+        <UiButton class="h-[38px] w-full" type="submit" variant="solid" size="md" :disabled="isSubmitting">
           {{ isSubmitting ? '登录中...' : '登录' }}
         </UiButton>
       </form>
 
-      <footer class="login-page__footer">
-        <a class="login-page__legacy" href="/chat">前往公开聊天</a>
+      <footer class="mt-3.5">
+        <a class="text-[13px] text-[#0369a1] no-underline hover:underline" href="/chat">前往公开聊天</a>
       </footer>
     </section>
   </main>
 </template>
-
-<style scoped>
-.login-page {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background:
-    radial-gradient(circle at 10% 10%, rgb(14 116 144 / 20%), transparent 45%),
-    radial-gradient(circle at 100% 100%, rgb(14 165 233 / 18%), transparent 42%),
-    linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
-}
-
-.login-page__panel {
-  width: min(460px, 100%);
-  border: 1px solid #d5e3f3;
-  border-radius: 16px;
-  background: rgb(255 255 255 / 95%);
-  box-shadow: 0 28px 58px rgb(15 23 42 / 12%);
-  padding: 24px;
-}
-
-.login-page__header {
-  display: grid;
-  gap: 10px;
-}
-
-.login-page__badge {
-  margin: 0;
-  width: fit-content;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #dbeafe;
-  color: #1e3a8a;
-  border: 1px solid #bfdbfe;
-}
-
-.login-page__title {
-  margin: 0;
-  font-size: clamp(24px, 5vw, 30px);
-  letter-spacing: -0.02em;
-  color: #0f172a;
-}
-
-.login-page__subtitle {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #334155;
-}
-
-.login-page__form {
-  margin-top: 16px;
-  display: grid;
-  gap: 12px;
-}
-
-.login-page__field {
-  display: grid;
-  gap: 6px;
-}
-
-.login-page__label {
-  font-size: 13px;
-  color: #334155;
-}
-
-.login-page__input {
-  height: 38px;
-}
-
-.login-page__submit {
-  width: 100%;
-  height: 38px;
-}
-
-.login-page__error {
-  margin: 0;
-  color: #b91c1c;
-  font-size: 13px;
-}
-
-.login-page__footer {
-  margin-top: 14px;
-}
-
-.login-page__legacy {
-  color: #0369a1;
-  font-size: 13px;
-  text-decoration: none;
-}
-
-.login-page__legacy:hover {
-  text-decoration: underline;
-}
-</style>

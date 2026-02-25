@@ -65,12 +65,17 @@ function generateVideo(): void {
         <div class="text-xs text-[var(--accents-5)]">在线聊天</div>
       </div>
       <div class="chat-top-actions flex items-center gap-2">
-        <a href="/login" class="ui-button text-xs px-3 py-1.5" data-variant="outline" data-size="xs">后台登录</a>
+        <a
+          href="/login"
+          class="inline-flex min-h-7 items-center justify-center rounded-[var(--btn-radius)] border border-[var(--btn-neutral-outline-border)] bg-[var(--btn-neutral-outline-bg)] px-2.5 text-xs font-semibold text-[var(--btn-neutral-outline-fg)] transition-[color,background-color,border-color] duration-200 ease-out hover:border-[var(--btn-neutral-outline-hover-border)] hover:bg-[var(--btn-neutral-outline-hover-bg)] hover:text-[var(--btn-neutral-outline-hover-fg)]"
+        >
+          后台登录
+        </a>
       </div>
     </div>
   </header>
 
-  <main class="flex-1 container mx-auto max-w-5xl px-6 py-6 fade-in space-y-4">
+  <main class="fade-in flex-1 mx-auto w-full max-w-5xl space-y-4 px-6 py-6">
     <div class="card">
       <div class="card-title">连接配置</div>
       <div class="grid grid-cols-12 gap-3 items-end">
@@ -84,7 +89,12 @@ function generateVideo(): void {
           <select id="model-select" class="geist-input h-[34px]"></select>
         </div>
         <div class="col-span-6 md:col-span-1 flex items-center gap-2">
-          <input id="stream-toggle" type="checkbox" class="checkbox" checked>
+          <input
+            id="stream-toggle"
+            type="checkbox"
+            class="size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity"
+            checked
+          >
           <label for="stream-toggle" class="text-sm">Stream</label>
         </div>
         <div class="col-span-12 md:col-span-2 flex flex-wrap justify-end gap-2">
@@ -101,7 +111,7 @@ function generateVideo(): void {
         <UiButton id="tab-video" class="tab" variant="tab" size="sm" @click="switchTab('video')">生成视频</UiButton>
       </div>
 
-      <div id="panel-chat" class="panel">
+      <div id="panel-chat">
         <div id="chat-messages" class="chat-messages"></div>
 
         <div class="composer">
@@ -117,7 +127,7 @@ function generateVideo(): void {
         </div>
       </div>
 
-      <div id="panel-image" class="panel hidden">
+      <div id="panel-image" class="hidden">
         <div id="image-mode-hint" class="text-xs text-[var(--accents-5)] mb-2 hidden">当前为新生图方式：支持实时瀑布流、宽高比与并发数量。</div>
         <div id="image-run-mode-wrap" class="grid grid-cols-12 gap-3 items-end mb-3 hidden">
           <div class="col-span-12 md:col-span-3">
@@ -180,7 +190,7 @@ function generateVideo(): void {
         <div id="image-results" class="results-grid mt-4"></div>
       </div>
 
-      <div id="panel-video" class="panel hidden">
+      <div id="panel-video" class="hidden">
         <div class="grid grid-cols-12 gap-3 items-end">
           <div class="col-span-12 md:col-span-7">
             <label class="field-label">Prompt</label>

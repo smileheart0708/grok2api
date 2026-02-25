@@ -15,7 +15,7 @@ const activeLabel = computed(() => cacheTypeLabel(activeType))
 </script>
 
 <template>
-  <div class="cache-page-header flex flex-wrap justify-between items-start gap-3">
+  <div class="flex flex-wrap items-start justify-between gap-3">
     <div>
       <h2 class="text-2xl font-semibold tracking-tight">缓存管理</h2>
       <p class="text-[var(--accents-4)] mt-1 text-sm">管理本地图片与视频缓存。</p>

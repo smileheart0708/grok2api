@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { TestTubeDiagonal, RefreshCw, Copy, Pencil, Trash2 } from 'lucide-vue-next'
+import UiCheckbox from '@/components/ui/ui-checkbox.vue'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
 import UiIconButton from '@/components/ui/ui-icon-button.vue'
 import type { TokenRow } from '@/components/token/token-types'
@@ -21,12 +22,6 @@ const emit = defineEmits<{
   (e: 'request-refresh' | 'request-test' | 'request-edit' | 'request-delete', row: TokenRow): void
   (e: 'copy-token', token: string): void
 }>()
-
-function readChecked(event: Event): boolean {
-  const target = event.target
-  if (target instanceof HTMLInputElement) return target.checked
-  return false
-}
 </script>
 
 <template>
@@ -39,13 +34,12 @@ function readChecked(event: Event): boolean {
     <template #head>
       <tr>
         <th class="w-10">
-          <input
+          <UiCheckbox
             id="select-all"
-            :checked="allSelected"
-            type="checkbox"
-            class="checkbox"
-            @change="emit('toggle-select-all', readChecked($event))"
-          >
+            :model-value="allSelected"
+            class="mx-auto"
+            @change="emit('toggle-select-all', $event)"
+          />
         </th>
         <th class="w-48 text-left">Token</th>
         <th class="w-24">类型</th>
@@ -58,12 +52,11 @@ function readChecked(event: Event): boolean {
 
     <tr v-for="item in rows" :key="item.key" :class="{ 'row-selected': isSelected(item.key) }">
       <td class="text-center">
-        <input
-          type="checkbox"
-          class="checkbox"
-          :checked="isSelected(item.key)"
-          @change="emit('toggle-select', { key: item.key, selected: readChecked($event) })"
-        >
+        <UiCheckbox
+          :model-value="isSelected(item.key)"
+          class="mx-auto"
+          @change="emit('toggle-select', { key: item.key, selected: $event })"
+        />
       </td>
       <td class="text-left">
         <div class="flex items-center gap-2">

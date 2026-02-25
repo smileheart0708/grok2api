@@ -101,7 +101,7 @@ onUnmounted(() => {
   <div
     id="batch-actions"
     ref="root"
-    class="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white border border-[var(--border)] rounded-full px-3 py-2 flex items-center shadow-lg gap-3 cursor-move select-none active:cursor-grabbing whitespace-nowrap"
+    class="fixed bottom-8 left-1/2 z-20 flex -translate-x-1/2 cursor-move items-center gap-3 whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-lg select-none active:cursor-grabbing"
     :class="{ 'is-dragging': isDragging }"
     :style="floatingStyle"
     @pointerdown="onPointerDown"
