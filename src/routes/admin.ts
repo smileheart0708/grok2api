@@ -517,7 +517,7 @@ adminRoutes.get("/api/v1/admin/config", requireAdminAuth, async (c) => {
       app: {
         api_key: settings.grok.api_key ?? "",
         admin_username: settings.global.admin_username ?? "admin",
-        app_key: PASSWORD_MASK,
+        app_key: settings.global.admin_password ?? "",
         app_url: settings.global.base_url ?? "",
         image_format: settings.global.image_mode ?? "url",
         video_format: "url",
