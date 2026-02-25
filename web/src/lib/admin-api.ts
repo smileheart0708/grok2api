@@ -27,6 +27,7 @@ import type {
   AdminConfigToken,
   AdminTokenPoolMap,
   AdminTokenRecord,
+  AdminTokenRateLimitTestResult,
   AdminTokenTestPayload,
   AdminTokenTestResult,
 } from '@/types/admin-api'
@@ -674,6 +675,34 @@ export async function fetchAdminChatModels(): Promise<AdminChatModel[]> {
     })
   }
   return out
+}
+
+export async function testAdminTokenRateLimit(
+  payload: AdminTokenTestPayload,
+): Promise<AdminTokenRateLimitTestResult> {
+  const response = await requestAdmin(
+    '/api/v1/admin/tokens/rate-limit-test',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    true,
+  )
+
+  assertBusinessOk(response, '查询额度失败')
+  if (!isRecord(response)) {
+    return {
+      model: payload.model,
+      remaining_queries: null,
+      raw_response: null,
+    }
+  }
+
+  return {
+    model: readString(response, 'model') || payload.model,
+    remaining_queries: readNumber(response, 'remaining_queries', Number.NaN) || null,
+    raw_response: readRecord(response, 'raw_response') ?? null,
+  }
 }
 
 export async function testAdminToken(

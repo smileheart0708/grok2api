@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import AdminPageShell from '@/components/admin/admin-page-shell.vue'
 import TokenAddEditModal from '@/components/token/token-add-edit-modal.vue'
 import TokenImportModal from '@/components/token/token-import-modal.vue'
+import TokenRateLimitTestModal from '@/components/token/token-rate-limit-test-modal.vue'
 import TokenStatsGrid from '@/components/token/token-stats-grid.vue'
 import TokenTable from '@/components/token/token-table.vue'
 import TokenTestModal from '@/components/token/token-test-modal.vue'
@@ -37,6 +38,7 @@ import {
   refreshAdminTokens,
   saveAdminTokens,
   testAdminToken,
+  testAdminTokenRateLimit,
 } from '@/lib/admin-api'
 import { logout } from '@/lib/admin-auth'
 import type {
@@ -85,6 +87,15 @@ const testMetaText = ref('')
 const testResultText = ref('')
 const chatModels = ref<AdminChatModel[]>([])
 const selectedTestModel = ref('')
+
+const isRateLimitTestOpen = ref(false)
+const rateLimitTestRowKey = ref('')
+const rateLimitTestResult = ref<Record<string, unknown> | null>(null)
+const selectedRateLimitModel = ref<string>('')
+
+function setRateLimitTestModel(modelId: string): void {
+  selectedRateLimitModel.value = modelId
+}
 
 const batchState = ref<TokenBatchActionState>({
   running: false,
@@ -534,12 +545,59 @@ async function runTokenTest(): Promise<void> {
       success('测试成功')
       await loadTokenData()
     } else {
-      info('测试完成，请查看返回内容')
+      error('测试失败')
     }
   } catch (errorValue) {
     await handleApiFailure(errorValue, '测试失败')
   } finally {
     isTestRunning.value = false
+  }
+}
+
+async function openRateLimitTestModal(row: TokenRow): Promise<void> {
+  rateLimitTestRowKey.value = row.key
+  rateLimitTestResult.value = null
+  selectedRateLimitModel.value = chatModels.value[0]?.id ?? ''
+  isRateLimitTestOpen.value = true
+  if (chatModels.value.length === 0) {
+    await loadChatModels()
+  }
+}
+
+function closeRateLimitTestModal(): void {
+  isRateLimitTestOpen.value = false
+  rateLimitTestResult.value = null
+}
+
+async function runRateLimitTest(model: string): Promise<void> {
+  const row = rows.value.find((r) => r.key === rateLimitTestRowKey.value)
+  if (!row) {
+    error('测试目标不存在')
+    closeRateLimitTestModal()
+    return
+  }
+
+  try {
+    const result = await testAdminTokenRateLimit({
+      token: normalizeSsoToken(row.token),
+      tokenType: resolveTokenType(row),
+      model,
+    })
+
+    rateLimitTestResult.value = {
+      model: result.model,
+      remaining_queries: result.remaining_queries,
+      raw_response: result.raw_response,
+    }
+
+    if (typeof result.remaining_queries === 'number') {
+      success(`查询成功：剩余额度 ${String(result.remaining_queries)}`)
+      await loadTokenData()
+    } else {
+      error('查询成功，但未返回有效额度')
+    }
+  } catch (errorValue) {
+    await handleApiFailure(errorValue, '查询失败')
   }
 }
 
@@ -725,6 +783,7 @@ onMounted(() => {
       @toggle-select="toggleSelect"
       @request-refresh="refreshSingleToken"
       @request-test="openTestModal"
+      @request-rate-limit-test="openRateLimitTestModal"
       @request-edit="openEditModal"
       @request-delete="deleteSingleToken"
       @copy-token="copyTokenToClipboard"
@@ -761,6 +820,17 @@ onMounted(() => {
     @close="closeTestModal"
     @run="runTokenTest"
     @update:selected-model="setTestModel"
+  />
+
+  <TokenRateLimitTestModal
+    :open="isRateLimitTestOpen"
+    :models="chatModels"
+    :selected-model="selectedRateLimitModel"
+    :running="false"
+    :result-text="rateLimitTestResult ? JSON.stringify(rateLimitTestResult, null, 2) : null"
+    @close="closeRateLimitTestModal"
+    @submit="runRateLimitTest"
+    @update:selected-model="setRateLimitTestModel"
   />
 
   <UiConfirmDialog

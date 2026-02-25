@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TestTubeDiagonal, RefreshCw, Copy, Pencil, Trash2 } from 'lucide-vue-next'
+import { TestTubeDiagonal, RefreshCw, Copy, Pencil, Trash2, Gauge } from 'lucide-vue-next'
 import UiCheckbox from '@/components/ui/ui-checkbox.vue'
 import UiDataTable from '@/components/ui/ui-data-table.vue'
 import UiIconButton from '@/components/ui/ui-icon-button.vue'
@@ -23,7 +23,7 @@ defineProps<Props>()
 const emit = defineEmits<{
   (e: 'toggle-select-all', value: boolean): void
   (e: 'toggle-select', payload: { key: string; selected: boolean }): void
-  (e: 'request-refresh' | 'request-test' | 'request-edit' | 'request-delete', row: TokenRow): void
+  (e: 'request-refresh' | 'request-test' | 'request-rate-limit-test' | 'request-edit' | 'request-delete', row: TokenRow): void
   (e: 'copy-token', token: string): void
 }>()
 </script>
@@ -89,6 +89,9 @@ const emit = defineEmits<{
       <td class="max-w-[150px] truncate text-left text-xs text-gray-500">{{ item.note || '-' }}</td>
       <td class="text-center">
         <div class="flex items-center justify-center gap-2">
+          <UiIconButton label="额度测试" variant="ghost" size="xs" @click="emit('request-rate-limit-test', item)">
+            <Gauge :size="14" aria-hidden="true" />
+          </UiIconButton>
           <UiIconButton label="测试" variant="ghost" size="xs" @click="emit('request-test', item)">
             <TestTubeDiagonal :size="14" aria-hidden="true" />
           </UiIconButton>

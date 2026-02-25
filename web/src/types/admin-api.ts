@@ -50,6 +50,12 @@ export interface AdminChatModel {
   description: string
 }
 
+export interface AdminTokenRateLimitTestResult {
+  model: string
+  remaining_queries: number | null
+  raw_response: Record<string, unknown> | null
+}
+
 export interface AdminTokenTestPayload {
   token: string
   tokenType: AdminTokenType

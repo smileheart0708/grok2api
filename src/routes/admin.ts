@@ -254,6 +254,12 @@ interface AdminTokensRefreshBody {
   tokens?: unknown;
 }
 
+interface AdminTokenRateLimitTestBody {
+  token?: unknown;
+  token_type?: unknown;
+  model?: unknown;
+}
+
 interface AdminTokenTestBody {
   token?: unknown;
   token_type?: unknown;
@@ -1046,6 +1052,40 @@ adminRoutes.post("/api/v1/admin/tokens/refresh", requireAdminAuth, async (c) => 
     return c.json(legacyOk({ results }));
   } catch (e) {
     return c.json(legacyErr(`Refresh failed: ${e instanceof Error ? e.message : String(e)}`), 500);
+  }
+});
+
+adminRoutes.post("/api/v1/admin/tokens/rate-limit-test", requireAdminAuth, async (c) => {
+  try {
+    const body = (await c.req.json()) as AdminTokenRateLimitTestBody;
+    const token_type = validateTokenType(String(body.token_type ?? ""));
+    const token = normalizeSsoToken(String(body.token ?? ""));
+    const model = String(body.model ?? "").trim();
+
+    if (!token) return c.json(legacyErr("Token 不能为空"), 400);
+    if (!model) return c.json(legacyErr("模型不能为空"), 400);
+
+    const tokenRow = await dbFirst<{ status: string }>(
+      c.env.DB,
+      "SELECT status FROM tokens WHERE token = ? AND token_type = ?",
+      [token, token_type],
+    );
+    if (!tokenRow) return c.json(legacyErr("Token 不存在"), 404);
+
+    const settings = await getSettings(c.env);
+    const cf = normalizeCfCookie(settings.grok.cf_clearance ?? "");
+    const cookie = buildTokenCookie(token, cf);
+
+    const ratePayload = await checkRateLimits(cookie, settings.grok, model);
+    const remaining = getRemainingTokens(ratePayload);
+
+    return c.json(legacyOk({
+      model,
+      remaining_queries: typeof remaining === "number" ? remaining : null,
+      raw_response: ratePayload,
+    }));
+  } catch (e) {
+    return c.json(legacyErr(`查询失败：${e instanceof Error ? e.message : String(e)}`), 500);
   }
 });
 
