@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Github, Menu, X } from 'lucide-vue-next'
+import { Menu, X } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
 import { ADMIN_NAV_ITEMS } from '@/constants/admin-nav'
 import { cycleTheme, useTheme } from '@/composables/use-theme'
@@ -19,11 +19,11 @@ const hideMenuTimer = ref<number | null>(null)
 const themeButtonText = computed(() => {
   switch (themePreference.value) {
     case 'light':
-      return '主题: Light'
+      return '浅色主题'
     case 'dark':
-      return '主题: Dark'
+      return '深色主题'
     default:
-      return '主题: Auto'
+      return '跟随系统'
   }
 })
 
@@ -118,23 +118,7 @@ onBeforeUnmount(() => {
     <div class="app-nav-inner">
       <div class="nav-left">
         <div class="nav-brand">
-          <a
-            href="https://github.com/TQZHR/grok2api"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="brand-link"
-          >
-            <Github class="admin-header__icon-github" :size="14" aria-hidden="true" />
-            <span>Grok2API</span>
-          </a>
-          <a
-            href="https://github.com/TQZHR"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="admin-header__author"
-          >
-            @TQZHR
-          </a>
+          <span>Grok2API</span>
         </div>
 
         <div class="nav-divider"></div>
@@ -169,7 +153,7 @@ onBeforeUnmount(() => {
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex min-h-6 items-center justify-center rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-2 text-[11px] font-medium whitespace-nowrap text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
+          class="inline-flex min-h-6 items-center justify-center rounded-full border border-(--btn-nav-border) bg-(--btn-nav-bg) px-2 text-[11px] font-medium whitespace-nowrap text-(--btn-nav-fg) transition-[color,border-color] duration-200 ease-out hover:border-(--btn-nav-hover-border) hover:text-(--btn-nav-hover-fg)"
         >
           反馈
         </a>
@@ -249,7 +233,7 @@ onBeforeUnmount(() => {
           href="https://github.com/TQZHR/grok2api/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="mobile-action-btn inline-flex min-h-8 w-full items-center justify-center rounded-full border border-[var(--btn-nav-border)] bg-[var(--btn-nav-bg)] px-3 text-[11px] font-medium whitespace-nowrap text-[var(--btn-nav-fg)] transition-[color,border-color] duration-200 ease-out hover:border-[var(--btn-nav-hover-border)] hover:text-[var(--btn-nav-hover-fg)]"
+          class="mobile-action-btn inline-flex min-h-8 w-full items-center justify-center rounded-full border border-(--btn-nav-border) bg-(--btn-nav-bg) px-3 text-[11px] font-medium whitespace-nowrap text-(--btn-nav-fg) transition-[color,border-color] duration-200 ease-out hover:border-(--btn-nav-hover-border) hover:text-(--btn-nav-hover-fg)"
         >
           反馈
         </a>
@@ -262,23 +246,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.admin-header__author {
-  color: var(--accents-4);
-  text-decoration: none;
-  font-size: 12px;
-}
-
-.admin-header__author:hover {
-  color: var(--fg);
-}
-
 .admin-header__mobile-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--accents-7);
-}
-
-.admin-header__icon-github {
-  flex-shrink: 0;
 }
 </style>

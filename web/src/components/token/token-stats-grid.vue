@@ -27,7 +27,7 @@ defineProps<Props>()
       label="Token 失效"
       value-class="text-red-600"
     />
-    <UiStatCard :value="stats.chatQuota.toLocaleString()" label="聊天/画图剩余" />
+    <UiStatCard :value="stats.chatQuota.toLocaleString()" label="总额度" />
     <UiStatCard :value="stats.totalCalls.toLocaleString()" label="总调用次数" />
   </div>
 </template>
