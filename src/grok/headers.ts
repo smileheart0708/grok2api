@@ -1,5 +1,14 @@
 import type { GrokSettings } from "../settings";
 
+/**
+ * 动态请求头生成模块
+ *
+ * x-statsig-id：Grok 的反爬虫机制，需要模拟浏览器指纹
+ * 动态模式下生成随机的 Sentry 错误信息作为指纹
+ * 静态模式下使用用户配置的固定指纹
+ */
+
+// 基础请求头：模拟 Chrome 浏览器
 const BASE_HEADERS: Record<string, string> = {
   Accept: "*/*",
   "Accept-Language": "zh-CN,zh;q=0.9",
@@ -27,6 +36,9 @@ function randomString(length: number, lettersOnly = true): string {
   return out;
 }
 
+// 生成随机 Statsig ID：模拟浏览器 JavaScript 错误的 base64 编码
+// Grok 使用此字段进行客户端指纹识别
+// 两种模式：读取 null.children 或 undefined.xxx 的错误消息
 function generateStatsigId(): string {
   let msg: string;
   if (Math.random() < 0.5) {
@@ -39,6 +51,13 @@ function generateStatsigId(): string {
   return btoa(msg);
 }
 
+/**
+ * 获取动态请求头
+ *
+ * @param settings - Grok 配置，包含 dynamic_statsig 和 x_statsig_id
+ * @param pathname - API 路径，用于判断 Content-Type
+ * @returns 完整的请求头对象
+ */
 export function getDynamicHeaders(settings: GrokSettings, pathname: string): Record<string, string> {
   const dynamic = settings.dynamic_statsig !== false;
   const statsigId = dynamic ? generateStatsigId() : (settings.x_statsig_id ?? "").trim();

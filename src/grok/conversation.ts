@@ -21,6 +21,17 @@ export interface OpenAIChatRequestBody {
 
 export const CONVERSATION_API = "https://grok.com/rest/app-chat/conversations/new";
 
+/**
+ * 从 OpenAI 格式消息中提取内容
+ *
+ * OpenAI messages 支持两种格式：
+ * 1. 字符串：{ role: "user", content: "你好" }
+ * 2. 多部分数组：{ role: "user", content: [{ type: "text", text: "描述" }, { type: "image_url", image_url: { url: "..." } }] }
+ *
+ * 转换策略：
+ * - 最后一条用户消息直接输出（作为当前输入）
+ * - 其他消息添加角色前缀（作为上下文）
+ */
 export function extractContent(messages: OpenAIChatMessage[]): { content: string; images: string[] } {
   const images: string[] = [];
   const extracted: Array<{ role: string; text: string }> = [];
@@ -68,6 +79,19 @@ export function extractContent(messages: OpenAIChatMessage[]): { content: string
   return { content: out.join("\n\n"), images };
 }
 
+/**
+ * 构建 Grok API 请求体
+ *
+ * 视频模型特殊处理：
+ * 1. 需要先调用 createMediaPost 创建占位帖子
+ * 2. 使用 postId 关联视频生成任务
+ * 3. 支持 aspect_ratio, video_length, resolution, preset 等参数
+ *
+ * 图片/文本模型：
+ * - fileAttachments: 已上传文件的 ID 列表
+ * - enableImageGeneration: 允许模型生成图片
+ * - modelMode: 模型运行模式（AUTO/FAST/HEAVY/EXPERT）
+ */
 export function buildConversationPayload(args: {
   requestModel: string;
   content: string;
@@ -86,19 +110,21 @@ export function buildConversationPayload(args: {
   const cfg = getModelInfo(requestModel);
   const { grokModel, mode, isVideoModel } = toGrokModel(requestModel);
 
-  if (cfg?.is_video_model) {
-    if (!postId) throw new Error("视频模型缺少 postId（需要先创建 media post）");
+    // 视频模型需要特殊的配置结构
+    if (cfg?.is_video_model) {
+      if (!postId) throw new Error("视频模型缺少 postId（需要先创建 media post）");
 
-    const aspectRatio = (args.videoConfig?.aspect_ratio ?? "").trim() || "3:2";
-    const videoLengthRaw = Number(args.videoConfig?.video_length ?? 6);
-    const videoLength = Number.isFinite(videoLengthRaw) ? Math.max(1, Math.floor(videoLengthRaw)) : 6;
-    const resolution = (args.videoConfig?.resolution ?? "SD") === "HD" ? "HD" : "SD";
-    const preset = (args.videoConfig?.preset ?? "normal").trim();
+      const aspectRatio = (args.videoConfig?.aspect_ratio ?? "").trim() || "3:2";
+      const videoLengthRaw = Number(args.videoConfig?.video_length ?? 6);
+      const videoLength = Number.isFinite(videoLengthRaw) ? Math.max(1, Math.floor(videoLengthRaw)) : 6;
+      const resolution = (args.videoConfig?.resolution ?? "SD") === "HD" ? "HD" : "SD";
+      const preset = (args.videoConfig?.preset ?? "normal").trim();
 
-    let modeFlag = "--mode=custom";
-    if (preset === "fun") modeFlag = "--mode=extremely-crazy";
-    else if (preset === "normal") modeFlag = "--mode=normal";
-    else if (preset === "spicy") modeFlag = "--mode=extremely-spicy-or-crazy";
+      // 预设模式映射：normal/extremely-crazy/extremely-spicy-or-crazy
+      let modeFlag = "--mode=custom";
+      if (preset === "fun") modeFlag = "--mode=extremely-crazy";
+      else if (preset === "normal") modeFlag = "--mode=normal";
+      else if (preset === "spicy") modeFlag = "--mode=extremely-spicy-or-crazy";
 
     const prompt = `${String(content || "").trim()} ${modeFlag}`.trim();
 

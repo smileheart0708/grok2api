@@ -2,6 +2,12 @@ import type { GrokSettings } from "../settings";
 import { getDynamicHeaders } from "./headers";
 import { toRateLimitModel } from "./models";
 
+/**
+ * 速率限制检查模块
+ *
+ * 查询当前账户对指定模型的剩余配额
+ * 用于在请求前判断是否需要切换账户或等待
+ */
 const RATE_LIMIT_API = "https://grok.com/rest/rate-limits";
 
 export async function checkRateLimits(

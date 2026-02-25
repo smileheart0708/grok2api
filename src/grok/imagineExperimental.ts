@@ -15,10 +15,22 @@ export type ImageGenerationMethod =
   | typeof IMAGE_METHOD_LEGACY
   | typeof IMAGE_METHOD_IMAGINE_WS_EXPERIMENTAL;
 
+/**
+ * 实验性图片生成模块
+ *
+ * 使用 WebSocket 协议与 Grok Imagine 服务通信，实现流式图片生成进度反馈。
+ * 相比传统 HTTP 轮询，WebSocket 能实时推送生成进度。
+ *
+ * 两种图片生成方法：
+ * 1. legacy: 传统 HTTP API，稳定但功能有限
+ * 2. imagine_ws_experimental: WebSocket 实验性方法，支持实时进度
+ */
 const IMAGINE_WS_HTTP_API = "https://grok.com/ws/imagine/listen";
 const IMAGINE_REFERER = "https://grok.com/imagine";
 const ASSET_API = "https://assets.grok.com";
 
+// WebSocket 消息格式：Grok 返回的 JSON 结构包含多种字段名变体
+// 需要兼容处理 percentage_complete/percentageComplete/progress 等不同命名
 interface WsJson {
   timestamp?: unknown;
   item?: unknown;
@@ -53,6 +65,8 @@ export function resolveImageGenerationMethod(raw: unknown): ImageGenerationMetho
 }
 
 const ALLOWED_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1", "2:3", "3:2"]);
+// 尺寸到宽高比映射：OpenAI 使用像素尺寸，Grok 使用宽高比
+// 例如：1024x1024 -> 1:1, 1024x576 -> 16:9
 const SIZE_TO_RATIO: Record<string, string> = {
   "1024x1024": "1:1",
   "512x512": "1:1",
@@ -177,6 +191,21 @@ function buildImagineWsPayload(prompt: string, requestId: string, aspectRatio: s
   };
 }
 
+/**
+ * 通过 WebSocket 生成图片
+ *
+ * 流程：
+ * 1. 发起 HTTP 请求升级为 WebSocket 连接
+ * 2. 发送图片生成请求（包含 prompt、aspectRatio、requestId）
+ * 3. 接收进度消息，调用 progressCb 回调
+ * 4. 图片完成后调用 completedCb 回调
+ * 5. 收集 targetCount 张图片后完成
+ *
+ * 关键点：
+ * - requestId 用于匹配响应消息（WebSocket 可能收到其他请求的消息）
+ * - imageId 用于区分同一批次中的多张图片
+ * - 超时和错误处理确保资源释放
+ */
 export async function generateImagineWs(args: {
   prompt: string;
   n: number;
@@ -200,6 +229,10 @@ export async function generateImagineWs(args: {
   headers["Upgrade"] = "websocket";
   delete headers["Content-Type"];
 
+  // Cloudflare Workers 的 WebSocket 客户端模式：
+  // 1. 使用 fetch 发起带 Upgrade: websocket 头的请求
+  // 2. 从响应中获取 wsResp.webSocket 对象
+  // 3. 调用 ws.accept() 开始接收消息
   const wsResp = await fetch(IMAGINE_WS_HTTP_API, { method: "GET", headers });
   const ws = wsResp.webSocket;
   if (wsResp.status !== 101 || !ws) {
@@ -210,9 +243,12 @@ export async function generateImagineWs(args: {
   ws.accept();
   ws.send(JSON.stringify(buildImagineWsPayload(args.prompt, requestId, aspectRatio)));
 
+  // 状态管理：使用 Map 跟踪每张图片的索引和最终URL
+  // 一个请求可能生成多张图片，每张有独立的 imageId
   const imageIndexes = new Map<string, number>();
   const finalUrls = new Map<string, string>();
 
+  // Promise 包装 WebSocket 事件驱动模型
   await new Promise<void>((resolve, reject) => {
     let finished = false;
 
@@ -386,6 +422,12 @@ function buildExperimentalImageEditPayload(args: {
   return payload;
 }
 
+/**
+ * 实验性图片编辑请求
+ *
+ * 尝试两种模型：imagine-image-edit 和 grok-3
+ * 某些账户可能只支持其中一种，因此依次尝试
+ */
 export async function sendExperimentalImageEditRequest(args: {
   prompt: string;
   fileUris: string[];

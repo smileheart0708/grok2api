@@ -1,6 +1,17 @@
 import type { GrokSettings } from "../settings";
 import { getDynamicHeaders } from "./headers";
 
+/**
+ * 媒体帖子创建模块
+ *
+ * 用于视频生成的准备工作：
+ * 1. Grok 视频生成需要先创建一个 media post 作为容器
+ * 2. 返回的 postId 用于关联后续的视频生成请求
+ *
+ * 两种类型：
+ * - MEDIA_POST_TYPE_IMAGE: 图片帖子，需要提供 mediaUrl
+ * - MEDIA_POST_TYPE_VIDEO: 视频帖子，需要提供 prompt
+ */
 const ENDPOINT = "https://grok.com/rest/media/post/create";
 
 export type MediaPostType = "MEDIA_POST_TYPE_VIDEO" | "MEDIA_POST_TYPE_IMAGE";

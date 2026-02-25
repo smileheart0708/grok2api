@@ -1,3 +1,16 @@
+/**
+ * 模型配置模块
+ *
+ * 模型映射关系：
+ * - 请求模型名（如 grok-4-fast）-> Grok 内部模型名 + 运行模式
+ * - 不同模式影响响应速度和质量：
+ *   - AUTO: 自动选择
+ *   - FAST: 快速响应
+ *   - HEAVY: 深度思考（需要 Super tokens）
+ *   - EXPERT: 专家模式
+ *   - MODEL_MODE_GROK_4_MINI_THINKING: 思考模式
+ */
+
 export interface ModelInfo {
   grok_model: [string, string];
   rate_limit_model: string;

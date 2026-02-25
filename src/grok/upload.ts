@@ -31,6 +31,16 @@ function parseDataUrl(dataUrl: string): { base64: string; mime: string } {
   return { base64, mime: match?.[1] ?? MIME_DEFAULT };
 }
 
+/**
+ * 图片上传模块
+ *
+ * 支持三种输入格式：
+ * 1. URL：远程图片地址，自动下载并提取 MIME 类型
+ * 2. Data URL：data:image/png;base64,xxx 格式，解析 base64 和 MIME
+ * 3. 纯 base64：直接使用，默认 MIME 为 image/jpeg
+ *
+ * 返回 fileId 和 fileUri，用于后续对话请求中的图片引用
+ */
 export async function uploadImage(
   imageInput: string,
   cookie: string,

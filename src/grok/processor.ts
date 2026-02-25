@@ -27,6 +27,7 @@ interface GrokResponseFrame {
   webSearchResults?: { results?: unknown };
 }
 
+// 类型守卫：安全地将 unknown 转换为 Record，避免运行时类型错误
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -49,6 +50,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// 带超时的流读取：Promise.race 实现读取和超时的竞态，避免无限等待
 async function readWithTimeout(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   ms: number,
@@ -123,10 +125,11 @@ function base64UrlEncode(input: string): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+// 资源路径编码：区分完整URL(u_前缀)和相对路径(p_前缀)，避免信息丢失
+// 某些URL的真实路径可能编码在query参数中，因此需保留完整URL
 function encodeAssetPath(raw: string): string {
   try {
     const u = new URL(raw);
-    // Keep full URL (query etc.) to avoid lossy pathname-only encoding (some URLs may encode the real path in query).
     return `u_${base64UrlEncode(u.toString())}`;
   } catch {
     const p = raw.startsWith("/") ? raw : `/${raw}`;
@@ -157,6 +160,17 @@ function normalizeGeneratedAssetUrls(input: unknown): string[] {
   return out;
 }
 
+/**
+ * 核心转换函数：将 Grok 的 NDJSON 流式响应转换为 OpenAI 兼容的 SSE 流
+ *
+ * NDJSON 格式说明：每行一个 JSON 对象，用于流式传输增量数据
+ * SSE 格式说明：Server-Sent Events，data: {JSON}\n\n 格式
+ *
+ * 处理流程：
+ * 1. 读取 Grok 原始流 -> 按换行符分割
+ * 2. 解析每行 JSON -> 提取 token、图片URL、视频进度等
+ * 3. 转换为 OpenAI chunk 格式 -> 输出到客户端
+ */
 export function createOpenAiStreamFromGrokNdjson(
   grokResp: Response,
   opts: {
@@ -215,7 +229,10 @@ export function createOpenAiStreamFromGrokNdjson(
       };
 
       try {
-         
+        // 三重超时机制：
+        // 1. firstTimeoutMs: 首个响应超时（防止连接建立后无数据）
+        // 2. chunkTimeoutMs: 块间空闲超时（防止流中断）
+        // 3. totalTimeoutMs: 总超时（防止无限运行）
         while (true) {
           const now = Date.now();
           const elapsed = now - startTime;
@@ -370,18 +387,25 @@ export function createOpenAiStreamFromGrokNdjson(
               continue;
             }
 
-            // Text chat stream
+            // 文本聊天流处理
+            // rawToken 可能是字符串(正常token)或数组(跳过)
             if (Array.isArray(rawToken)) continue;
             if (typeof rawToken !== "string" || !rawToken) continue;
             let token = rawToken;
 
+            // 过滤敏感标签（用户可配置）
             if (filteredTags.some((t) => token.includes(t))) continue;
 
+            // 思考模式状态机：
+            // isThinking=false, currentIsThinking=true -> 进入思考块，添加 <THINKING>
+            // isThinking=true, currentIsThinking=false -> 退出思考块，添加 </THINKING>
+            // thinkingFinished=true 后忽略后续思考内容
             const currentIsThinking = Boolean(grok.isThinking);
             const messageTag = grok.messageTag;
 
             if (thinkingFinished && currentIsThinking) continue;
 
+            // 工具调用处理：当 Grok 执行网络搜索时，将搜索结果格式化为 Markdown 链接
             if (grok.toolUsageCardId && grok.webSearchResults?.results && Array.isArray(grok.webSearchResults.results)) {
               if (currentIsThinking) {
                 if (showThinking) {
@@ -404,12 +428,15 @@ export function createOpenAiStreamFromGrokNdjson(
             let content = token;
             if (messageTag === "header") content = `\n\n${token}\n\n`;
 
+            // 思考模式边界处理：在思考内容前后添加特殊标记
+            // 用户可通过 show_thinking=false 隐藏思考过程
             let shouldSkip = false;
             if (!isThinking && currentIsThinking) {
-              if (showThinking) content = `<think>\n${content}`;
+              if (showThinking) content = `<arg_key>\n${content}`;
               else shouldSkip = true;
             } else if (isThinking && !currentIsThinking) {
-              if (showThinking) content = `\n</think>\n${content}`;
+              if (showThinking) content = `\n"]];
+\n${content}`;
               thinkingFinished = true;
             } else if (currentIsThinking && !showThinking) {
               shouldSkip = true;
