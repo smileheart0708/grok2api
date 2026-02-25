@@ -11,6 +11,7 @@ import { createOpenAiStreamFromGrokNdjson, parseOpenAiFromGrokNdjson } from "../
 import { uploadImage } from "../../grok/upload";
 import { addRequestLog } from "../../repo/logs";
 import { applyCooldown, recordTokenFailure, selectBestToken } from "../../repo/tokens";
+import { scheduleDelayedTokenRefresh } from "../../kv/tokenRefresh";
 import { getClientIp, mapLimit, openAiError } from "./common";
 import { enforceQuota } from "./quota";
 import type { OpenAiRoutesApp } from "./types";
@@ -138,6 +139,14 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
             if (retryCodes.includes(upstream.status) && attempt < maxRetry - 1) continue;
             break;
           }
+
+          scheduleDelayedTokenRefresh({
+            env: c.env,
+            executionCtx: c.executionCtx,
+            token: jwt,
+            source: "chat_completions",
+            model: requestedModel,
+          });
 
           if (stream) {
             const sse = createOpenAiStreamFromGrokNdjson(upstream, {

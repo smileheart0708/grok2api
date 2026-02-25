@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import type { Env } from "./env";
+import type { Env, TokenUsageRefreshQueueMessage } from "./env";
 import { openAiRoutes } from "./routes/openai";
 import { mediaRoutes } from "./routes/media";
 import { adminRoutes } from "./routes/admin";
 import { runKvDailyClear } from "./kv/cleanup";
-import { runTokenAutoRefresh } from "./kv/tokenRefresh";
+import { consumeTokenRefreshQueueBatch, runTokenAutoRefresh } from "./kv/tokenRefresh";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -171,12 +171,13 @@ app.notFound(async (c) => {
   }
 });
 
-const handler: ExportedHandler<Env> = {
+const handler: ExportedHandler<Env, TokenUsageRefreshQueueMessage> = {
   fetch: (request, env, ctx) => app.fetch(request, env, ctx),
   scheduled: (_event, env, ctx) => {
     ctx.waitUntil(runKvDailyClear(env));
     ctx.waitUntil(runTokenAutoRefresh(env));
   },
+  queue: (batch, env) => consumeTokenRefreshQueueBatch(batch, env),
 };
 
 export default handler;

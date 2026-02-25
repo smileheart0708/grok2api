@@ -31,6 +31,17 @@ binding = "KV_CACHE"
 # 由 CI 或首次部署填充。
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
+[[queues.producers]]
+binding = "TOKEN_USAGE_REFRESH_QUEUE"
+queue = "grok2api-token-usage-refresh"
+
+[[queues.consumers]]
+queue = "grok2api-token-usage-refresh"
+max_batch_size = 25
+max_batch_timeout = 3
+max_retries = 5
+retry_delay = 20
+
 # Durable Objects 迁移历史：
 # - do-v1 创建了 AutoRegisterJob（现已移除）
 # - do-v2 删除它，使 Worker 可以在不导出类的情况下部署

@@ -1,7 +1,17 @@
+export type TokenUsageRefreshSource = "chat_completions" | "image_generations" | "image_edits";
+
+export interface TokenUsageRefreshQueueMessage {
+  token: string;
+  source: TokenUsageRefreshSource;
+  model: string;
+  requested_at: number;
+}
+
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   KV_CACHE: KVNamespace;
+  TOKEN_USAGE_REFRESH_QUEUE?: Queue<TokenUsageRefreshQueueMessage>;
 
   // Optional vars via wrangler.toml [vars]
   // Cache reset time zone offset minutes (default Asia/Shanghai = 480)

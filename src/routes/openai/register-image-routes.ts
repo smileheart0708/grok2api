@@ -1,4 +1,5 @@
 import { normalizeCfCookie, getSettings } from "../../settings";
+import { scheduleDelayedTokenRefresh } from "../../kv/tokenRefresh";
 import {
   IMAGE_METHOD_IMAGINE_WS_EXPERIMENTAL,
   resolveAspectRatio,
@@ -146,8 +147,15 @@ openAiRoutes.post("/images/generations", async (c) => {
                 key_name: keyName,
                 token_suffix: getTokenSuffix(experimentalToken.token),
                 error: status === 200 ? "" : "stream_error",
-              });
-            },
+                });
+              },
+            });
+          scheduleDelayedTokenRefresh({
+            env: c.env,
+            executionCtx: c.executionCtx,
+            token: experimentalToken.token,
+            source: "image_generations",
+            model: requestedModel,
           });
           return new Response(streamBody, { status: 200, headers: streamHeaders() });
         }
@@ -206,6 +214,14 @@ openAiRoutes.post("/images/generations", async (c) => {
         );
       }
 
+      scheduleDelayedTokenRefresh({
+        env: c.env,
+        executionCtx: c.executionCtx,
+        token: chosen.token,
+        source: "image_generations",
+        model: requestedModel,
+      });
+
       const streamBody = createImageEventStream({
         upstream,
         responseFormat,
@@ -244,6 +260,13 @@ openAiRoutes.post("/images/generations", async (c) => {
             concurrency,
           });
           const selected = pickImageResults(urls, n);
+          scheduleDelayedTokenRefresh({
+            env: c.env,
+            executionCtx: c.executionCtx,
+            token: experimentalToken.token,
+            source: "image_generations",
+            model: requestedModel,
+          });
           await recordImageLog({
             env: c.env,
             ip,
@@ -265,6 +288,7 @@ openAiRoutes.post("/images/generations", async (c) => {
     }
 
     const calls = Math.ceil(n / 2);
+    const successfulTokens = new Set<string>();
     const urlsNested = await mapLimit(
       Array.from({ length: calls }),
       Math.min(calls, Math.max(1, concurrency)),
@@ -273,7 +297,7 @@ openAiRoutes.post("/images/generations", async (c) => {
       if (!chosen) throw new Error("No available token");
       const cookie = buildCookie(chosen.token, cf);
       try {
-        return await runImageCall({
+        const urls = await runImageCall({
           requestModel: requestedModel,
           prompt: imageCallPrompt("generation", prompt),
           fileIds: [],
@@ -282,6 +306,8 @@ openAiRoutes.post("/images/generations", async (c) => {
           responseFormat,
           baseUrl,
         });
+        successfulTokens.add(chosen.token);
+        return urls;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         await recordTokenFailure(c.env.DB, chosen.token, 500, msg.slice(0, 200));
@@ -292,6 +318,15 @@ openAiRoutes.post("/images/generations", async (c) => {
     );
     const urls = dedupeImages(urlsNested.flat().filter(Boolean));
     const selected = pickImageResults(urls, n);
+    for (const token of successfulTokens) {
+      scheduleDelayedTokenRefresh({
+        env: c.env,
+        executionCtx: c.executionCtx,
+        token,
+        source: "image_generations",
+        model: requestedModel,
+      });
+    }
 
     await recordImageLog({
       env: c.env,
@@ -463,8 +498,15 @@ openAiRoutes.post("/images/edits", async (c) => {
                 key_name: keyName,
                 token_suffix: getTokenSuffix(chosen.token),
                 error: status === 200 ? "" : "stream_error",
-              });
-            },
+                });
+              },
+            });
+          scheduleDelayedTokenRefresh({
+            env: c.env,
+            executionCtx: c.executionCtx,
+            token: chosen.token,
+            source: "image_edits",
+            model: requestedModel,
           });
           return new Response(streamBody, { status: 200, headers: streamHeaders() });
         } catch (e) {
@@ -507,6 +549,14 @@ openAiRoutes.post("/images/edits", async (c) => {
         );
       }
 
+      scheduleDelayedTokenRefresh({
+        env: c.env,
+        executionCtx: c.executionCtx,
+        token: chosen.token,
+        source: "image_edits",
+        model: requestedModel,
+      });
+
       const streamBody = createImageEventStream({
         upstream,
         responseFormat,
@@ -545,6 +595,13 @@ openAiRoutes.post("/images/edits", async (c) => {
         const urls = dedupeImages(urlsNested.flat().filter(Boolean));
         if (!urls.length) throw new Error("Experimental image edit returned no images");
         const selected = pickImageResults(urls, n);
+        scheduleDelayedTokenRefresh({
+          env: c.env,
+          executionCtx: c.executionCtx,
+          token: chosen.token,
+          source: "image_edits",
+          model: requestedModel,
+        });
 
         await recordImageLog({
           env: c.env,
@@ -579,6 +636,13 @@ openAiRoutes.post("/images/edits", async (c) => {
     });
     const urls = dedupeImages(urlsNested.flat().filter(Boolean));
     const selected = pickImageResults(urls, n);
+    scheduleDelayedTokenRefresh({
+      env: c.env,
+      executionCtx: c.executionCtx,
+      token: chosen.token,
+      source: "image_edits",
+      model: requestedModel,
+    });
 
     await recordImageLog({
       env: c.env,

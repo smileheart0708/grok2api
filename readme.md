@@ -25,6 +25,9 @@ pnpm exec wrangler d1 create grok2api
 
 # 创建 KV，记录输出中的 id
 pnpm exec wrangler kv namespace create grok2api-cache
+
+# 创建 Queue（用于延迟刷新 token 用量）
+pnpm exec wrangler queues create grok2api-token-usage-refresh
 ```
 
 ### 2) 配置 GitHub Secrets
@@ -56,6 +59,7 @@ pnpm exec wrangler login
 # 首次部署时，创建资源并填入 wrangler.toml 占位符
 pnpm exec wrangler d1 create grok2api
 pnpm exec wrangler kv namespace create grok2api-cache
+pnpm exec wrangler queues create grok2api-token-usage-refresh
 
 # 应用迁移并部署
 pnpm exec wrangler d1 migrations apply DB --remote
@@ -120,6 +124,7 @@ curl https://<your-domain>/v1/chat/completions \
 - `KV_CACHE_MAX_BYTES`：KV 单值最大字节数，默认 `26214400`（25MB）
 - `KV_CLEANUP_BATCH`：清理批量，默认 `200`
 - `BUILD_SHA`：构建版本标识（CI 自动注入）
+- `TOKEN_USAGE_REFRESH_QUEUE`：Queues 绑定（队列名固定 `grok2api-token-usage-refresh`，用于成功请求后延迟 10 秒刷新 token 用量）
 
 ## 本地开发
 
