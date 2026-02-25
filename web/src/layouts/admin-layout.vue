@@ -4,7 +4,7 @@ import AdminHeader from '@/components/admin/admin-header.vue'
 </script>
 
 <template>
-  <div class="min-h-dvh bg-[var(--bg)] text-[var(--fg)]">
+  <div class="min-h-dvh bg-bg text-fg">
     <AdminHeader />
     <main class="pt-[var(--header-height)]">
       <RouterView />

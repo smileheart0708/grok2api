@@ -34,7 +34,7 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 class="text-2xl font-semibold tracking-tight">Token 列表</h2>
-        <p class="mt-1 text-sm text-[var(--accents-4)]">管理 Grok2API 的 Token 服务号池。</p>
+        <p class="mt-1 text-sm text-accent-4">管理 Grok2API 的 Token 服务号池。</p>
       </div>
       <div class="flex w-full items-center gap-3 sm:w-auto">
         <UiButton
@@ -58,10 +58,10 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
 
     <div
       id="token-filter-bar"
-      class="token-filter-bar mb-4 flex flex-wrap items-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+      class="token-filter-bar mb-4 flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface px-4 py-3"
     >
       <div class="filter-group flex items-center gap-3">
-        <span class="text-xs text-[var(--accents-5)]">类型</span>
+        <span class="text-xs text-accent-5">类型</span>
         <label class="filter-chip">
           <input
             id="filter-type-sso"
@@ -82,7 +82,7 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
         </label>
       </div>
       <div class="filter-group flex items-center gap-3">
-        <span class="text-xs text-[var(--accents-5)]">状态</span>
+        <span class="text-xs text-accent-5">状态</span>
         <label class="filter-chip">
           <input
             id="filter-status-active"
@@ -112,7 +112,7 @@ function updateFilter(key: keyof TokenFilterState, event: Event): void {
         </label>
       </div>
       <div class="filter-summary ml-auto flex items-center gap-3">
-        <span class="text-xs text-[var(--accents-5)]">结果 {{ resultCount }}</span>
+        <span class="text-xs text-accent-5">结果 {{ resultCount }}</span>
         <UiButton variant="outline" size="xs" @click="$emit('reset-filters')">清空筛选</UiButton>
       </div>
     </div>

@@ -101,18 +101,18 @@ onUnmounted(() => {
   <div
     id="batch-actions"
     ref="root"
-    class="fixed bottom-8 left-1/2 z-20 flex -translate-x-1/2 cursor-move items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 whitespace-nowrap shadow-lg select-none active:cursor-grabbing"
+    class="fixed bottom-8 left-1/2 z-20 flex -translate-x-1/2 cursor-move items-center gap-3 rounded-full border border-border bg-surface px-3 py-2 whitespace-nowrap shadow-lg select-none active:cursor-grabbing"
     :class="{ 'is-dragging': isDragging }"
     :style="floatingStyle"
     @pointerdown="onPointerDown"
   >
     <div class="batch-actions-meta flex items-center gap-2 text-sm font-medium">
-      <GripVertical :size="13" class="text-[var(--accents-4)]" aria-hidden="true" />
-      <span class="text-xs text-[var(--accents-5)]">{{ sectionLabel }}已选择</span>
+      <GripVertical :size="13" class="text-accent-4" aria-hidden="true" />
+      <span class="text-xs text-accent-5">{{ sectionLabel }}已选择</span>
       <span class="rounded-full bg-black px-1.5 py-0.5 text-xs text-white">{{
         selectedCount
       }}</span>
-      <span class="text-xs text-[var(--accents-5)]">项</span>
+      <span class="text-xs text-accent-5">项</span>
     </div>
     <span class="toolbar-sep"></span>
     <div class="batch-actions-buttons flex items-center gap-1">

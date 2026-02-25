@@ -28,15 +28,15 @@ useLegacyPage({
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-2xl font-semibold tracking-tight">数据中心</h2>
-          <p class="mt-1 text-sm text-[var(--accents-4)]">常用指标与后台日志。</p>
+          <p class="mt-1 text-sm text-accent-4">常用指标与后台日志。</p>
         </div>
         <div class="datacenter-controls flex items-center gap-2">
           <UiButton id="btn-refresh" variant="outline" size="xs">刷新</UiButton>
-          <label class="dc-toggle text-xs text-[var(--accents-4)]">
+          <label class="dc-toggle text-xs text-accent-4">
             <input
               id="auto-refresh"
               type="checkbox"
-              class="size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity"
+              class="size-3 shrink-0 cursor-pointer rounded-sm border border-accent-3 bg-surface accent-black transition-opacity"
               checked
             />
             自动刷新
@@ -44,7 +44,7 @@ useLegacyPage({
         </div>
       </div>
 
-      <div class="my-6 h-px bg-[var(--border)]"></div>
+      <div class="my-6 h-px bg-border"></div>
 
       <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div class="stat-card">
@@ -117,13 +117,13 @@ useLegacyPage({
         </div>
       </div>
 
-      <div class="my-6 h-px bg-[var(--border)]"></div>
+      <div class="my-6 h-px bg-border"></div>
 
       <div class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="text-lg font-semibold tracking-tight">后台日志</h3>
-            <p class="mt-1 text-sm text-[var(--accents-4)]">
+            <p class="mt-1 text-sm text-accent-4">
               显示 logs/*.log（格式化展示，完整行）。
             </p>
           </div>

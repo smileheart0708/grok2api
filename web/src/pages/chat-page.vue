@@ -59,12 +59,12 @@ function generateVideo(): void {
 
 <template>
   <header
-    class="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md"
+    class="sticky top-0 z-10 border-b border-border bg-bg/80 backdrop-blur-md"
   >
     <div class="chat-public-header mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
       <div class="flex items-center gap-3">
         <div class="font-semibold tracking-tight">Grok2API</div>
-        <div class="text-xs text-[var(--accents-5)]">在线聊天</div>
+        <div class="text-xs text-accent-5">在线聊天</div>
       </div>
       <div class="chat-top-actions flex items-center gap-2">
         <a
@@ -89,7 +89,7 @@ function generateVideo(): void {
             class="geist-input font-mono"
             placeholder="sk-... 或你自定义的 Key"
           />
-          <div class="mt-1 text-xs text-[var(--accents-5)]">
+          <div class="mt-1 text-xs text-accent-5">
             保存在浏览器本地，仅用于调用本服务 /v1/*。
           </div>
         </div>
@@ -101,7 +101,7 @@ function generateVideo(): void {
           <input
             id="stream-toggle"
             type="checkbox"
-            class="size-3 shrink-0 cursor-pointer rounded-[4px] border border-[var(--accents-3)] bg-[var(--surface)] accent-black transition-opacity"
+            class="size-3 shrink-0 cursor-pointer rounded-sm border border-accent-3 bg-surface accent-black transition-opacity"
             checked
           />
           <label for="stream-toggle" class="text-sm">Stream</label>
@@ -138,7 +138,7 @@ function generateVideo(): void {
           <div class="composer-row">
             <input id="chat-file" type="file" accept="image/*" class="hidden" />
             <UiButton variant="outline" size="xs" @click="pickChatImage">上传图片</UiButton>
-            <div id="chat-attach-info" class="text-xs text-[var(--accents-5)]"></div>
+            <div id="chat-attach-info" class="text-xs text-accent-5"></div>
             <div class="flex-1"></div>
             <UiButton variant="solid" size="xs" class="composer-primary px-4" @click="sendChat"
               >发送</UiButton
@@ -150,7 +150,7 @@ function generateVideo(): void {
       </div>
 
       <div id="panel-image" class="hidden">
-        <div id="image-mode-hint" class="mb-2 hidden text-xs text-[var(--accents-5)]">
+        <div id="image-mode-hint" class="mb-2 hidden text-xs text-accent-5">
           当前为新生图方式：支持实时瀑布流、宽高比与并发数量。
         </div>
         <div id="image-run-mode-wrap" class="mb-3 grid hidden grid-cols-12 items-end gap-3">
@@ -294,7 +294,7 @@ function generateVideo(): void {
             <UiButton variant="outline" size="xs" @click="pickVideoImage"
               >上传参考图（可选）</UiButton
             >
-            <div id="video-attach-info" class="text-xs text-[var(--accents-5)]"></div>
+            <div id="video-attach-info" class="text-xs text-accent-5"></div>
             <div class="flex-1"></div>
             <UiButton variant="solid" size="xs" class="composer-primary px-4" @click="generateVideo"
               >生成视频</UiButton

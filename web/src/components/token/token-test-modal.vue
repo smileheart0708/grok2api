@@ -58,13 +58,13 @@ function onModelChange(event: Event): void {
           </option>
         </select>
       </div>
-      <div class="text-xs text-[var(--accents-5)]">
+      <div class="text-xs text-accent-5">
         测试消息固定为 <code>hi</code>，仅用于模拟一次下游聊天请求。
       </div>
-      <div v-if="metaText" class="text-xs text-[var(--accents-5)]">{{ metaText }}</div>
+      <div v-if="metaText" class="text-xs text-accent-5">{{ metaText }}</div>
       <pre
         v-if="hasResult"
-        class="test-result-box max-h-64 overflow-auto rounded-md border border-[var(--border)] bg-[var(--accents-1)] p-2 font-mono text-xs whitespace-pre-wrap"
+        class="test-result-box max-h-64 overflow-auto rounded-md border border-border bg-accent-1 p-2 font-mono text-xs whitespace-pre-wrap"
         >{{ resultText }}</pre
       >
       <div class="flex justify-end gap-2 pt-2">

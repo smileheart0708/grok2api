@@ -459,7 +459,7 @@ onUnmounted(() => {
     <div class="space-y-6">
       <CacheToolbar :active-type="activeType" :result-count="currentRows.length" />
 
-      <div class="my-6 h-px bg-[var(--border)]"></div>
+      <div class="my-6 h-px bg-border"></div>
 
       <CacheStatsGrid
         :image-count="localStats.local_image.count"

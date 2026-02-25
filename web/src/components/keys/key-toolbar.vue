@@ -46,7 +46,7 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
     <div class="keys-page-header flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 class="text-2xl font-semibold tracking-tight">API Key 管理</h2>
-        <p class="mt-1 text-sm text-[var(--accents-4)]">
+        <p class="mt-1 text-sm text-accent-4">
           管理访问 /v1/* 的 API Keys（含每日额度）。
         </p>
       </div>
@@ -81,7 +81,7 @@ function isKeyFilterStatus(value: string): value is KeyFilterStatus {
           重置
         </UiButton>
       </div>
-      <div class="keys-toolbar-right text-xs text-[var(--accents-5)]">
+      <div class="keys-toolbar-right text-xs text-accent-5">
         结果 <span>{{ resultCount }}</span>
       </div>
     </div>

@@ -135,14 +135,14 @@ function onSubmit(): void {
               自动生成
             </UiButton>
           </div>
-          <div class="mt-1 text-xs text-[var(--accents-5)]">
+          <div class="mt-1 text-xs text-accent-5">
             允许任意字符串；建议使用 sk- 前缀。
           </div>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs text-[var(--accents-5)]">额度预设</span>
+        <span class="text-xs text-accent-5">额度预设</span>
         <UiButton
           variant="outline"
           size="xs"

@@ -313,7 +313,7 @@ onMounted(() => {
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-2xl font-semibold tracking-tight">配置管理</h2>
-          <p class="mt-1 text-sm text-[var(--accents-4)]">管理 API 密钥及系统参数设置。</p>
+          <p class="mt-1 text-sm text-accent-4">管理 API 密钥及系统参数设置。</p>
         </div>
         <UiButton
           variant="solid"
@@ -327,9 +327,9 @@ onMounted(() => {
         </UiButton>
       </div>
 
-      <div class="my-6 h-px bg-[var(--border)]"></div>
+      <div class="my-6 h-px bg-border"></div>
 
-      <div v-if="isLoading" class="py-12 text-center text-[var(--accents-4)]">加载中...</div>
+      <div v-if="isLoading" class="py-12 text-center text-accent-4">加载中...</div>
       <div v-else id="config-container" class="space-y-8">
         <ConfigAppSection v-model="appConfig" @copy-value="copyValue" />
         <ConfigGrokSection v-model="grokConfig" />
