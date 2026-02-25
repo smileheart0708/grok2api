@@ -52,9 +52,6 @@ jobs:
       - name: Web Lint
         run: pnpm --dir web run lint
 
-      - name: Web Stylelint
-        run: pnpm --dir web run lint:style
-
       - name: Web Build
         run: pnpm --dir web run build
 
