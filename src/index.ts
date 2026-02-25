@@ -5,6 +5,7 @@ import { openAiRoutes } from "./routes/openai";
 import { mediaRoutes } from "./routes/media";
 import { adminRoutes } from "./routes/admin";
 import { runKvDailyClear } from "./kv/cleanup";
+import { runTokenAutoRefresh } from "./kv/tokenRefresh";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -174,6 +175,7 @@ const handler: ExportedHandler<Env> = {
   fetch: (request, env, ctx) => app.fetch(request, env, ctx),
   scheduled: (_event, env, ctx) => {
     ctx.waitUntil(runKvDailyClear(env));
+    ctx.waitUntil(runTokenAutoRefresh(env));
   },
 };
 
