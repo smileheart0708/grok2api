@@ -280,8 +280,12 @@ function buildPoolMap(tokenRows: readonly TokenRow[]): AdminTokenPoolMap {
     out[row.pool].push({
       token: row.token,
       status: row.status,
-      note: row.note,
       token_type: row.token_type,
+      note: row.note,
+      fail_count: row.fail_count,
+      use_count: row.use_count,
+      quota_summary: row.quota_summary,
+      quota_buckets: row.quota_buckets,
     })
   }
   return out
