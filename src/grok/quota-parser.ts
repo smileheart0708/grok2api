@@ -18,6 +18,19 @@ interface EffortLimitEntry {
   remaining_queries: number | null;
 }
 
+export function createEmptyQuotaSnapshot(): ParsedQuotaSnapshot {
+  return {
+    remaining_queries: null,
+    total_queries: null,
+    remaining_tokens: null,
+    total_tokens: null,
+    low_effort_cost: null,
+    high_effort_cost: null,
+    window_size_seconds: null,
+    metric_kind: "unknown",
+  };
+}
+
 function toNonNegativeInteger(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   if (value < 0) return null;
@@ -57,16 +70,7 @@ export function parseQuotaSnapshot(
   effortTier: ModelEffortTier,
 ): ParsedQuotaSnapshot {
   if (!payload) {
-    return {
-      remaining_queries: null,
-      total_queries: null,
-      remaining_tokens: null,
-      total_tokens: null,
-      low_effort_cost: null,
-      high_effort_cost: null,
-      window_size_seconds: null,
-      metric_kind: "unknown",
-    };
+    return createEmptyQuotaSnapshot();
   }
 
   const lowEffort = parseEffortEntry(payload, "lowEffortRateLimits");

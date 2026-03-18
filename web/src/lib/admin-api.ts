@@ -761,7 +761,6 @@ export async function testAdminTokenRateLimit(
     true,
   )
 
-  assertBusinessOk(response, '查询额度失败')
   if (!isRecord(response)) {
     return {
       success: false,
@@ -777,6 +776,30 @@ export async function testAdminTokenRateLimit(
       window_size_seconds: null,
       raw_response: null,
       error: '响应格式无效',
+    }
+  }
+
+  const rawResponse = readRecord(response, 'raw_response') ?? null
+  const topLevelError =
+    readString(response, 'error') ||
+    readString(response, 'message') ||
+    (rawResponse ? readString(rawResponse, 'error') : '')
+  const status = readString(response, 'status').trim().toLowerCase()
+  if (status === 'error') {
+    return {
+      success: false,
+      model: readString(response, 'model') || payload.model,
+      rate_limit_model: readString(response, 'rate_limit_model') || payload.model,
+      effort_tier: 'low',
+      remaining_queries: null,
+      total_queries: null,
+      remaining_tokens: null,
+      total_tokens: null,
+      low_effort_cost: null,
+      high_effort_cost: null,
+      window_size_seconds: null,
+      raw_response: rawResponse,
+      error: topLevelError || '查询额度失败',
     }
   }
 
@@ -807,8 +830,8 @@ export async function testAdminTokenRateLimit(
     window_size_seconds: Number.isFinite(readNumber(response, 'window_size_seconds', Number.NaN))
       ? readNumber(response, 'window_size_seconds', Number.NaN)
       : null,
-    raw_response: readRecord(response, 'raw_response') ?? null,
-    error: readString(response, 'error') || null,
+    raw_response: rawResponse,
+    error: topLevelError || null,
   }
 }
 

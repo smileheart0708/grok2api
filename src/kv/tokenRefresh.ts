@@ -11,11 +11,10 @@ import {
 } from "../settings";
 import { checkRateLimits } from "../grok/rateLimits";
 import {
-  getModelEffortTier,
   listChatModelQuotaTargets,
   toRateLimitModel,
 } from "../grok/models";
-import { parseQuotaSnapshot } from "../grok/quota-parser";
+import { createEmptyQuotaSnapshot, type ParsedQuotaSnapshot } from "../grok/quota-parser";
 import { clearTokenInflightAfterRefresh, updateTokenLimits } from "../repo/tokens";
 import {
   clearQuotaInflightAfterRefresh,
@@ -113,28 +112,28 @@ async function persistQuotaSnapshot(args: {
   model: string;
   source: TokenQuotaSource;
   payload: Record<string, unknown> | null;
+  snapshot: ParsedQuotaSnapshot;
   success: boolean;
   error: string | null;
   atMs: number;
 }): Promise<RefreshQuotaResult> {
   const rateLimitModel = toRateLimitModel(args.model);
-  const snapshot = parseQuotaSnapshot(args.payload, getModelEffortTier(args.model));
   const canUseQuota =
-    snapshot.remaining_queries !== null || snapshot.remaining_tokens !== null;
+    args.snapshot.remaining_queries !== null || args.snapshot.remaining_tokens !== null;
   const success = args.success && canUseQuota;
   const errorMessage = success ? null : args.error ?? "quota_refresh_failed";
 
   await saveTokenQuotaSnapshot(args.env.DB, {
     token: args.token,
     rate_limit_model: rateLimitModel,
-    remaining_tokens: snapshot.remaining_tokens,
-    total_tokens: snapshot.total_tokens,
-    remaining_queries: snapshot.remaining_queries,
-    total_queries: snapshot.total_queries,
-    low_effort_cost: snapshot.low_effort_cost,
-    high_effort_cost: snapshot.high_effort_cost,
-    window_size_seconds: snapshot.window_size_seconds,
-    metric_kind: snapshot.metric_kind,
+    remaining_tokens: args.snapshot.remaining_tokens,
+    total_tokens: args.snapshot.total_tokens,
+    remaining_queries: args.snapshot.remaining_queries,
+    total_queries: args.snapshot.total_queries,
+    low_effort_cost: args.snapshot.low_effort_cost,
+    high_effort_cost: args.snapshot.high_effort_cost,
+    window_size_seconds: args.snapshot.window_size_seconds,
+    metric_kind: args.snapshot.metric_kind,
     source: args.source,
     refreshed_at: args.atMs,
     success,
@@ -148,7 +147,7 @@ async function persistQuotaSnapshot(args: {
       model: args.model,
       rateLimitModel,
       tokenType: args.tokenType,
-      remainingQueries: snapshot.remaining_queries,
+      remainingQueries: args.snapshot.remaining_queries,
     });
     await updateTokenLimits(args.env.DB, args.token, legacyPatch);
   }
@@ -157,13 +156,13 @@ async function persistQuotaSnapshot(args: {
     success,
     model: args.model,
     rate_limit_model: rateLimitModel,
-    remaining_queries: snapshot.remaining_queries,
-    total_queries: snapshot.total_queries,
-    remaining_tokens: snapshot.remaining_tokens,
-    total_tokens: snapshot.total_tokens,
-    low_effort_cost: snapshot.low_effort_cost,
-    high_effort_cost: snapshot.high_effort_cost,
-    window_size_seconds: snapshot.window_size_seconds,
+    remaining_queries: args.snapshot.remaining_queries,
+    total_queries: args.snapshot.total_queries,
+    remaining_tokens: args.snapshot.remaining_tokens,
+    total_tokens: args.snapshot.total_tokens,
+    low_effort_cost: args.snapshot.low_effort_cost,
+    high_effort_cost: args.snapshot.high_effort_cost,
+    window_size_seconds: args.snapshot.window_size_seconds,
     raw_response: args.payload,
     error: errorMessage,
   };
@@ -183,16 +182,32 @@ export async function refreshTokenQuotaForModel(args: {
   const cookie = buildTokenCookie(args.token, cf);
 
   try {
-    const payload = await checkRateLimits(cookie, settings.grok, args.model);
+    const result = await checkRateLimits(cookie, settings.grok, args.model);
+    if (!result.success) {
+      return persistQuotaSnapshot({
+        env: args.env,
+        token: args.token,
+        tokenType: args.tokenType,
+        model: args.model,
+        source: args.source,
+        payload: result,
+        snapshot: createEmptyQuotaSnapshot(),
+        success: false,
+        error: result.error,
+        atMs: now,
+      });
+    }
+
     return persistQuotaSnapshot({
       env: args.env,
       token: args.token,
       tokenType: args.tokenType,
       model: args.model,
       source: args.source,
-      payload,
-      success: payload !== null,
-      error: payload ? null : "rate_limit_api_unavailable",
+      payload: result.payload,
+      snapshot: result.snapshot,
+      success: true,
+      error: null,
       atMs: now,
     });
   } catch (errorValue) {
@@ -203,6 +218,7 @@ export async function refreshTokenQuotaForModel(args: {
       model: args.model,
       source: args.source,
       payload: null,
+      snapshot: createEmptyQuotaSnapshot(),
       success: false,
       error: errorValue instanceof Error ? errorValue.message : String(errorValue),
       atMs: now,
