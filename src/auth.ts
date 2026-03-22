@@ -20,6 +20,7 @@ function bearerToken(authHeader: string | null): string | null {
 
 function authError(message: string, code: string): Record<string, unknown> {
   return {
+    success: false,
     error: {
       message,
       type: "authentication_error",
@@ -67,11 +68,11 @@ export const requireApiAuth: MiddlewareHandler<{ Bindings: Env; Variables: { api
 
 export const requireAdminAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   const token = getAdminSessionCookie(c);
-  if (!token) return c.json({ error: "缺少会话", code: "MISSING_SESSION" }, 401);
+  if (!token) return c.json({ success: false, error: "缺少会话", code: "MISSING_SESSION" }, 401);
   const ok = await verifyAdminSession(c.env.DB, token);
   if (!ok) {
     clearAdminSessionCookie(c);
-    return c.json({ error: "会话已过期", code: "SESSION_EXPIRED" }, 401);
+    return c.json({ success: false, error: "会话已过期", code: "SESSION_EXPIRED" }, 401);
   }
   return next();
 };

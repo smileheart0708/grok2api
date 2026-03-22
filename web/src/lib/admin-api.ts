@@ -137,8 +137,7 @@ function parseBusinessError(
   payload: Record<string, unknown>,
   fallback: string,
 ): AdminApiError | null {
-  const successValue = payload['success']
-  if (typeof successValue === 'boolean' && !successValue) {
+  if (!readBoolean(payload, 'success', true)) {
     const nestedError = readRecord(payload, 'error')
     const message =
       readString(payload, 'message') ||
@@ -147,13 +146,6 @@ function parseBusinessError(
       fallback
     const code =
       readString(payload, 'code') || (nestedError ? readString(nestedError, 'code') : '') || null
-    return { message, status: 200, code, payload }
-  }
-
-  const statusValue = readString(payload, 'status').trim().toLowerCase()
-  if (statusValue === 'error') {
-    const message = readString(payload, 'error') || readString(payload, 'message') || fallback
-    const code = readString(payload, 'code') || null
     return { message, status: 200, code, payload }
   }
 
@@ -786,8 +778,7 @@ export async function testAdminTokenRateLimit(
     readString(response, 'error') ||
     readString(response, 'message') ||
     (rawResponse ? readString(rawResponse, 'error') : '')
-  const status = readString(response, 'status').trim().toLowerCase()
-  if (status === 'error') {
+  if (!readBoolean(response, 'success', false)) {
     return {
       success: false,
       model: readString(response, 'model') || payload.model,
@@ -852,8 +843,6 @@ export async function testAdminToken(
     },
     true,
   )
-
-  assertBusinessOk(response, '测试 Token 失败')
   if (!isRecord(response)) {
     return {
       success: false,
@@ -881,8 +870,9 @@ export async function testAdminToken(
   const quotaRefreshRemainingTokens = Number.isFinite(quotaRefreshRemainingTokensValue)
     ? quotaRefreshRemainingTokensValue
     : null
+  const successValue = readBoolean(response, 'success', false)
   return {
-    success: readBoolean(response, 'success', false),
+    success: successValue,
     upstreamStatus: readNumber(response, 'upstream_status', 0),
     result: response['result'] ?? null,
     reactivated: readBoolean(response, 'reactivated', false),

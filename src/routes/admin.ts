@@ -69,7 +69,7 @@ import { listLastUsedByKey, listUsageForDay, localDayString } from "../repo/apiK
 import type { ApiKeyUsageRow } from "../repo/apiKeyUsage";
 
 function jsonError(message: string, code: string): Record<string, unknown> {
-  return { error: message, code };
+  return { success: false, error: message, code };
 }
 
 const PASSWORD_MASK = "********";
@@ -398,11 +398,11 @@ export const adminRoutes = new Hono<{ Bindings: Env }>();
 // ============================================================================
 
 function legacyOk(data: Record<string, unknown> = {}): Record<string, unknown> {
-  return { status: "success", ...data };
+  return { success: true, ...data };
 }
 
 function legacyErr(message: string): Record<string, unknown> {
-  return { status: "error", error: message };
+  return { success: false, error: message };
 }
 
 function toPoolName(tokenType: "sso" | "ssoSuper"): "ssoBasic" | "ssoSuper" {
@@ -484,7 +484,7 @@ adminRoutes.post("/api/v1/admin/logout", async (c) => {
 });
 
 adminRoutes.get("/api/v1/admin/storage", requireAdminAuth, async (c) => {
-  return c.json({ type: "d1" });
+  return c.json({ success: true, type: "d1" });
 });
 
 adminRoutes.get("/api/v1/admin/config", requireAdminAuth, async (c) => {
@@ -495,6 +495,7 @@ adminRoutes.get("/api/v1/admin/config", requireAdminAuth, async (c) => {
       .map((t) => t.trim())
       .filter(Boolean);
     return c.json({
+      success: true,
       app: {
         api_key: settings.grok.api_key ?? "",
         admin_username: settings.global.admin_username ?? "admin",
@@ -876,7 +877,7 @@ adminRoutes.get("/api/v1/admin/models/chat", requireAdminAuth, async (c) => {
       rate_limit_model: cfg.rate_limit_model,
       effort_tier: getModelEffortTier(id),
     }));
-  return c.json({ object: "list", data });
+  return c.json({ success: true, object: "list", data });
 });
 
 adminRoutes.get("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
@@ -910,7 +911,7 @@ adminRoutes.get("/api/v1/admin/tokens", requireAdminAuth, async (c) => {
         quota_buckets: buckets,
       });
     }
-    return c.json(out);
+    return c.json({ success: true, ...out });
   } catch (e) {
     return c.json(legacyErr(`Get tokens failed: ${e instanceof Error ? e.message : String(e)}`), 500);
   }
@@ -1251,7 +1252,7 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
 adminRoutes.get("/api/v1/admin/cache/local", requireAdminAuth, async (c) => {
   try {
     const stats = await getKvStats(c.env.DB);
-    return c.json({ local_image: stats.image, local_video: stats.video });
+    return c.json({ success: true, local_image: stats.image, local_video: stats.video });
   } catch (e) {
     return c.json(legacyErr(`Get cache stats failed: ${e instanceof Error ? e.message : String(e)}`), 500);
   }
@@ -1261,6 +1262,7 @@ adminRoutes.get("/api/v1/admin/cache", requireAdminAuth, async (c) => {
   try {
     const stats = await getKvStats(c.env.DB);
     return c.json({
+      success: true,
       local_image: stats.image,
       local_video: stats.video,
       online: { count: 0, status: "not_loaded", token: null, last_asset_clear_at: null },
@@ -1374,6 +1376,7 @@ adminRoutes.get("/api/v1/admin/metrics", requireAdminAuth, async (c) => {
     const totalCalls = totalCallsRow?.c ?? 0;
 
     return c.json({
+      success: true,
       tokens: {
         total,
         active,
@@ -1394,7 +1397,7 @@ adminRoutes.get("/api/v1/admin/metrics", requireAdminAuth, async (c) => {
 
 adminRoutes.get("/api/v1/admin/logs/files", requireAdminAuth, async (c) => {
   const now = nowMs();
-  return c.json({ files: [{ name: "request_logs", size_bytes: 0, mtime_ms: now }] });
+  return c.json({ success: true, files: [{ name: "request_logs", size_bytes: 0, mtime_ms: now }] });
 });
 
 adminRoutes.get("/api/v1/admin/logs/tail", requireAdminAuth, async (c) => {
@@ -1403,7 +1406,7 @@ adminRoutes.get("/api/v1/admin/logs/tail", requireAdminAuth, async (c) => {
     const limit = Math.max(50, Math.min(5000, Number(c.req.query("lines") ?? 500)));
     const rows = await getRequestLogs(c.env.DB, limit);
     const lines = rows.map((r) => `${r.time} | ${r.status} | ${r.model} | ${r.ip} | ${r.key_name} | ${r.error}`.trim());
-    return c.json({ file, lines });
+    return c.json({ success: true, file, lines });
   } catch (e) {
     return c.json(legacyErr(`Tail failed: ${e instanceof Error ? e.message : String(e)}`), 500);
   }
