@@ -40,6 +40,7 @@ const DEFAULT_CONFIG_KNOWN: AdminConfigKnownSections = {
     admin_username: 'admin',
     app_key: '',
     app_url: '',
+    upstream_base_url: 'https://grok.com',
     image_format: 'url',
     video_format: 'url',
   },
@@ -499,6 +500,7 @@ function normalizeAppConfig(section: Record<string, unknown> | null): AdminConfi
     admin_username: readString(section, 'admin_username', defaults.admin_username),
     app_key: readString(section, 'app_key', defaults.app_key),
     app_url: readString(section, 'app_url', defaults.app_url),
+    upstream_base_url: readString(section, 'upstream_base_url', defaults.upstream_base_url),
     image_format: normalizeImageFormat(readString(section, 'image_format', defaults.image_format)),
     video_format: normalizeVideoFormat(readString(section, 'video_format', defaults.video_format)),
   }
