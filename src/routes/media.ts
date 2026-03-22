@@ -126,8 +126,9 @@ function responseFromBytes(args: {
   return new Response(args.bytes, { status: 200, headers });
 }
 
-function toUpstreamHeaders(args: { pathname: string; cookie: string; settings: Awaited<ReturnType<typeof getSettings>>["grok"] }): Record<string, string> {
-  const headers = getDynamicHeaders(args.settings, args.pathname);
+function toUpstreamHeaders(args: { pathname: string; cookie: string; settings: Awaited<ReturnType<typeof getSettings>>["grok"]; upstreamBaseUrl?: string }): Record<string, string> {
+  const upstream = args.upstreamBaseUrl ?? "https://grok.com";
+  const headers = getDynamicHeaders(args.settings, args.pathname, upstream);
   headers["Cookie"] = args.cookie;
   delete headers["Content-Type"];
   headers["Accept"] =
@@ -137,7 +138,7 @@ function toUpstreamHeaders(args: { pathname: string; cookie: string; settings: A
   headers["Sec-Fetch-Site"] = "same-site";
   headers["Sec-Fetch-User"] = "?1";
   headers["Upgrade-Insecure-Requests"] = "1";
-  headers["Referer"] = "https://grok.com/";
+  headers["Referer"] = `${upstream}/`;
   return headers;
 }
 
@@ -212,8 +213,9 @@ mediaRoutes.get("/images/:imgPath{.+}", async (c) => {
 
   const cf = normalizeCfCookie(settingsBundle.grok.cf_clearance ?? "");
   const cookie = cf ? `sso-rw=${chosen.token};sso=${chosen.token};${cf}` : `sso-rw=${chosen.token};sso=${chosen.token}`;
+  const upstreamBaseUrl = settingsBundle.global.upstream_base_url;
 
-  const baseHeaders = toUpstreamHeaders({ pathname: originalPath, cookie, settings: settingsBundle.grok });
+  const baseHeaders = toUpstreamHeaders({ pathname: originalPath, cookie, settings: settingsBundle.grok, upstreamBaseUrl });
 
   // Range requests: KV can't stream partial content efficiently; proxy from upstream.
   // (If the object is cached and within KV limits, we do support Range by slicing bytes above.)

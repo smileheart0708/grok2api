@@ -56,9 +56,14 @@ function generateStatsigId(): string {
  *
  * @param settings - Grok 配置，包含 dynamic_statsig 和 x_statsig_id
  * @param pathname - API 路径，用于判断 Content-Type
+ * @param upstreamBaseUrl - 可选的上游基础 URL，用于设置 Origin 和 Referer
  * @returns 完整的请求头对象
  */
-export function getDynamicHeaders(settings: GrokSettings, pathname: string): Record<string, string> {
+export function getDynamicHeaders(
+  settings: GrokSettings,
+  pathname: string,
+  upstreamBaseUrl?: string,
+): Record<string, string> {
   const dynamic = settings.dynamic_statsig !== false;
   const statsigId = dynamic ? generateStatsigId() : (settings.x_statsig_id ?? "").trim();
   if (!dynamic && !statsigId) throw new Error("配置缺少 x_statsig_id（且未启用 dynamic_statsig）");
@@ -67,6 +72,13 @@ export function getDynamicHeaders(settings: GrokSettings, pathname: string): Rec
   headers["x-statsig-id"] = statsigId;
   headers["x-xai-request-id"] = crypto.randomUUID();
   headers["Content-Type"] = pathname.includes("upload-file") ? "text/plain;charset=UTF-8" : "application/json";
+
+  if (upstreamBaseUrl) {
+    const base = upstreamBaseUrl.replace(/\/$/, "");
+    headers["Origin"] = base;
+    headers["Referer"] = `${base}/`;
+  }
+
   return headers;
 }
 

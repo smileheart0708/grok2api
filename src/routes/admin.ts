@@ -1137,6 +1137,7 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
       imgIds: [],
       imgUris: [],
       settings: settings.grok,
+      upstreamBaseUrl: settings.global.upstream_base_url,
     });
 
     const upstream = await sendConversationRequest({

@@ -108,6 +108,7 @@ export function buildConversationPayload(args: {
     preset?: string;
   };
   settings: GrokSettings;
+  upstreamBaseUrl?: string;
 }): { payload: Record<string, unknown>; referer?: string; isVideoModel: boolean } {
   const { requestModel, content, imgIds, postId, settings } = args;
   const cfg = getModelInfo(requestModel);
@@ -133,7 +134,7 @@ export function buildConversationPayload(args: {
 
     return {
       isVideoModel: true,
-      referer: "https://grok.com/imagine",
+      referer: `${args.upstreamBaseUrl ?? "https://grok.com"}/imagine`,
       payload: {
         temporary: true,
         modelName: "grok-3",
@@ -197,7 +198,7 @@ export async function sendConversationRequest(args: {
   const { payload, cookie, settings, referer } = args;
   const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const apiUrl = buildConversationApiUrl(upstreamBaseUrl);
-  const headers = getDynamicHeaders(settings, "/rest/app-chat/conversations/new");
+  const headers = getDynamicHeaders(settings, "/rest/app-chat/conversations/new", upstreamBaseUrl);
   headers["Cookie"] = cookie;
   if (referer) headers["Referer"] = referer;
   const body = JSON.stringify(payload);

@@ -129,6 +129,7 @@ export async function fetchImageAsBase64(args: {
   rawUrl: string;
   cookie: string;
   settings: Awaited<ReturnType<typeof getSettings>>["grok"];
+  upstreamBaseUrl?: string;
 }): Promise<string> {
   let url: URL;
   try {
@@ -138,14 +139,15 @@ export async function fetchImageAsBase64(args: {
     url = new URL(`https://assets.grok.com${p}`);
   }
 
-  const headers = getDynamicHeaders(args.settings, url.pathname || "/");
+  const upstream = args.upstreamBaseUrl ?? "https://grok.com";
+  const headers = getDynamicHeaders(args.settings, url.pathname || "/", upstream);
   headers["Cookie"] = args.cookie;
   delete headers["Content-Type"];
   headers["Accept"] = "image/avif,image/webp,image/*,*/*;q=0.8";
   headers["Sec-Fetch-Dest"] = "image";
   headers["Sec-Fetch-Mode"] = "no-cors";
   headers["Sec-Fetch-Site"] = "same-site";
-  headers["Referer"] = "https://grok.com/";
+  headers["Referer"] = `${upstream}/`;
 
   const resp = await fetch(url.toString(), { method: "GET", headers, redirect: "follow" });
   if (!resp.ok) {
@@ -162,12 +164,18 @@ export async function convertRawUrlByFormat(
     baseUrl: string;
     cookie: string;
     settings: Awaited<ReturnType<typeof getSettings>>["grok"];
+    upstreamBaseUrl?: string;
   },
 ): Promise<string> {
   if (responseFormat === "url") {
     return toProxyUrl(args.baseUrl, encodeAssetPath(rawUrl));
   }
-  return fetchImageAsBase64({ rawUrl, cookie: args.cookie, settings: args.settings });
+  return fetchImageAsBase64({
+    rawUrl,
+    cookie: args.cookie,
+    settings: args.settings,
+    ...(args.upstreamBaseUrl ? { upstreamBaseUrl: args.upstreamBaseUrl } : {}),
+  });
 }
 
 export async function collectImageUrls(resp: Response): Promise<string[]> {
@@ -420,6 +428,7 @@ export async function runImageCall(args: {
     imgIds: args.fileIds,
     imgUris: [],
     settings: args.settings,
+    upstreamBaseUrl,
   });
   const upstream = await sendConversationRequest({
     payload,
@@ -460,6 +469,7 @@ export async function runImageStreamCall(args: {
     imgIds: args.fileIds,
     imgUris: [],
     settings: args.settings,
+    upstreamBaseUrl,
   });
   return sendConversationRequest({
     payload,

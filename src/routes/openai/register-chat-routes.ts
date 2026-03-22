@@ -134,6 +134,7 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
             ...(postId ? { postId } : {}),
             ...(isVideoModel && body.video_config ? { videoConfig: body.video_config } : {}),
             settings: settingsBundle.grok,
+            upstreamBaseUrl,
           });
 
           const upstream = await sendConversationRequest({

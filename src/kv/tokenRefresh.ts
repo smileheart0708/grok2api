@@ -182,7 +182,8 @@ export async function refreshTokenQuotaForModel(args: {
   const cookie = buildTokenCookie(args.token, cf);
 
   try {
-    const result = await checkRateLimits(cookie, settings.grok, args.model);
+    const upstreamBaseUrl = settings.global.upstream_base_url;
+    const result = await checkRateLimits(cookie, settings.grok, args.model, upstreamBaseUrl);
     if (!result.success) {
       return persistQuotaSnapshot({
         env: args.env,

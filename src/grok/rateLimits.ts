@@ -9,7 +9,6 @@ import { parseQuotaSnapshot, type ParsedQuotaSnapshot } from "./quota-parser";
  * 查询当前账户对指定模型的剩余配额
  * 用于在请求前判断是否需要切换账户或等待
  */
-const RATE_LIMIT_API = "https://grok.com/rest/rate-limits";
 const RATE_LIMIT_RESPONSE_BODY_LIMIT = 4096;
 
 export interface RateLimitApiErrorResponse extends Record<string, unknown> {
@@ -102,14 +101,17 @@ export async function checkRateLimits(
   cookie: string,
   settings: GrokSettings,
   model: string,
+  upstreamBaseUrl?: string,
 ): Promise<RateLimitApiResult> {
   const rateModel = toRateLimitModel(model);
-  const headers = getDynamicHeaders(settings, "/rest/rate-limits");
+  const upstream = upstreamBaseUrl ?? "https://grok.com";
+  const headers = getDynamicHeaders(settings, "/rest/rate-limits", upstream);
   headers["Cookie"] = cookie;
   const body = JSON.stringify({ requestKind: "DEFAULT", modelName: rateModel });
+  const apiUrl = `${upstream.replace(/\/$/, "")}/rest/rate-limits`;
 
   try {
-    const resp = await fetch(RATE_LIMIT_API, { method: "POST", headers, body });
+    const resp = await fetch(apiUrl, { method: "POST", headers, body });
     const statusText = resp.statusText || "";
     // Keep the raw body so admins can inspect upstream drift instead of only seeing a null quota snapshot.
     const responseBody = await resp.text().catch(() => "");
