@@ -198,6 +198,7 @@ export interface AdminConfigApp {
   admin_username: string
   app_key: string
   app_url: string
+  upstream_base_url: string
   image_format: AdminConfigImageFormat
   video_format: AdminConfigVideoFormat
 }

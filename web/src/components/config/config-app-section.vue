@@ -61,6 +61,13 @@ const imageFormat = computed({
     patch({ image_format: 'url' })
   },
 })
+
+const upstreamBaseUrl = computed({
+  get: () => props.modelValue.upstream_base_url,
+  set: (value: string) => {
+    patch({ upstream_base_url: value })
+  },
+})
 </script>
 
 <template>
@@ -118,6 +125,14 @@ const imageFormat = computed({
       <p class="config-field-desc">当前 Grok2API 服务的外部访问 URL。</p>
       <div class="config-field-input">
         <input v-model="appUrl" type="text" class="geist-input" />
+      </div>
+    </div>
+
+    <div class="config-field">
+      <div class="config-field-title">上游地址</div>
+      <p class="config-field-desc">Grok API 的上游地址，修改后可以访问自托管 Grok 实例。</p>
+      <div class="config-field-input">
+        <input v-model="upstreamBaseUrl" type="text" class="geist-input" />
       </div>
     </div>
 
