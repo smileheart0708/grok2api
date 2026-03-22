@@ -19,7 +19,10 @@ export interface OpenAIChatRequestBody {
   };
 }
 
-export const CONVERSATION_API = "https://grok.com/rest/app-chat/conversations/new";
+export function buildConversationApiUrl(upstreamBaseUrl: string): string {
+  const base = upstreamBaseUrl.replace(/\/$/, "");
+  return `${base}/rest/app-chat/conversations/new`;
+}
 
 /**
  * 从 OpenAI 格式消息中提取内容
@@ -189,12 +192,15 @@ export async function sendConversationRequest(args: {
   cookie: string;
   settings: GrokSettings;
   referer?: string;
+  upstreamBaseUrl?: string;
 }): Promise<Response> {
   const { payload, cookie, settings, referer } = args;
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
+  const apiUrl = buildConversationApiUrl(upstreamBaseUrl);
   const headers = getDynamicHeaders(settings, "/rest/app-chat/conversations/new");
   headers["Cookie"] = cookie;
   if (referer) headers["Referer"] = referer;
   const body = JSON.stringify(payload);
 
-  return fetch(CONVERSATION_API, { method: "POST", headers, body });
+  return fetch(apiUrl, { method: "POST", headers, body });
 }

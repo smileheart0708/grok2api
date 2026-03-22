@@ -4,6 +4,7 @@ import { nowMs } from "./utils/time";
 
 export interface GlobalSettings {
   base_url?: string;
+  upstream_base_url?: string;
   log_level?: string;
   image_mode?: "url" | "base64" | "b64_json";
   admin_username?: string;
@@ -85,6 +86,7 @@ export interface SettingsBundle {
 const DEFAULTS: SettingsBundle = {
   global: {
     base_url: "",
+    upstream_base_url: "https://grok.com",
     log_level: "INFO",
     image_mode: "url",
     admin_username: "admin",
@@ -275,17 +277,17 @@ export async function saveSettings(
   const now = nowMs();
   const current = await getSettings(env);
 
-  const nextGlobal: GlobalSettings = { ...current.global, ...(updates.global_config ?? {}) };
+  const nextGlobal: GlobalSettings = { ...current.global, ...updates.global_config };
   const nextGrok: GrokSettings = {
     ...current.grok,
-    ...(updates.grok_config ?? {}),
+    ...updates.grok_config,
     cf_clearance: stripCfPrefix(updates.grok_config?.cf_clearance ?? current.grok.cf_clearance ?? ""),
   };
   nextGrok.image_generation_method = normalizeImageGenerationMethod(nextGrok.image_generation_method);
-  const nextToken: TokenSettings = { ...current.token, ...(updates.token_config ?? {}) };
-  const nextCache: CacheSettings = { ...current.cache, ...(updates.cache_config ?? {}) };
-  const nextPerformance: PerformanceSettings = { ...current.performance, ...(updates.performance_config ?? {}) };
-  const nextRegister: RegisterSettings = { ...current.register, ...(updates.register_config ?? {}) };
+  const nextToken: TokenSettings = { ...current.token, ...updates.token_config };
+  const nextCache: CacheSettings = { ...current.cache, ...updates.cache_config };
+  const nextPerformance: PerformanceSettings = { ...current.performance, ...updates.performance_config };
+  const nextRegister: RegisterSettings = { ...current.register, ...updates.register_config };
 
   await dbRun(
     env.DB,
@@ -317,5 +319,17 @@ export async function saveSettings(
     "INSERT INTO settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
     ["register", JSON.stringify(nextRegister), now],
   );
+}
+
+export async function getUpstreamBaseUrl(env: Env): Promise<string> {
+  const settings = await getSettings(env);
+  const raw = (settings.global.upstream_base_url ?? "").trim();
+  return raw || "https://grok.com";
+}
+
+export function buildUpstreamUrl(base: string, path: string): string {
+  const baseClean = base.replace(/\/$/, "");
+  const pathClean = path.startsWith("/") ? path : `/${path}`;
+  return `${baseClean}${pathClean}`;
 }
 

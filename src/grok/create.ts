@@ -12,7 +12,10 @@ import { getDynamicHeaders } from "./headers";
  * - MEDIA_POST_TYPE_IMAGE: 图片帖子，需要提供 mediaUrl
  * - MEDIA_POST_TYPE_VIDEO: 视频帖子，需要提供 prompt
  */
-const ENDPOINT = "https://grok.com/rest/media/post/create";
+function buildMediaPostApiUrl(upstreamBaseUrl: string): string {
+  const base = upstreamBaseUrl.replace(/\/$/, "");
+  return `${base}/rest/media/post/create`;
+}
 
 export type MediaPostType = "MEDIA_POST_TYPE_VIDEO" | "MEDIA_POST_TYPE_IMAGE";
 interface ImageMediaPostBody {
@@ -31,10 +34,12 @@ export async function createMediaPost(
   args: { mediaType: MediaPostType; prompt?: string; mediaUrl?: string },
   cookie: string,
   settings: GrokSettings,
+  upstreamBaseUrl?: string,
 ): Promise<{ postId: string }> {
+  const upstream = upstreamBaseUrl ?? "https://grok.com";
   const headers = getDynamicHeaders(settings, "/rest/media/post/create");
   headers["Cookie"] = cookie;
-  headers["Referer"] = "https://grok.com/imagine";
+  headers["Referer"] = `${upstream}/imagine`;
 
   let bodyObj: CreateMediaPostBody;
   if (args.mediaType === "MEDIA_POST_TYPE_IMAGE") {
@@ -46,8 +51,9 @@ export async function createMediaPost(
   }
 
   const body = JSON.stringify(bodyObj);
+  const apiUrl = buildMediaPostApiUrl(upstream);
 
-  const resp = await fetch(ENDPOINT, { method: "POST", headers, body });
+  const resp = await fetch(apiUrl, { method: "POST", headers, body });
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
     throw new Error(`创建会话失败: ${resp.status} ${text.slice(0, 200)}`);
@@ -61,9 +67,10 @@ export async function createPost(
   fileUri: string,
   cookie: string,
   settings: GrokSettings,
+  upstreamBaseUrl?: string,
 ): Promise<{ postId: string }> {
   const path = fileUri.startsWith("/") ? fileUri : `/${fileUri}`;
   const url = `https://assets.grok.com${path}`;
-  return createMediaPost({ mediaType: "MEDIA_POST_TYPE_IMAGE", mediaUrl: url }, cookie, settings);
+  return createMediaPost({ mediaType: "MEDIA_POST_TYPE_IMAGE", mediaUrl: url }, cookie, settings, upstreamBaseUrl);
 }
 

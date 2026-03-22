@@ -123,6 +123,7 @@ openAiRoutes.post("/images/generations", async (c) => {
     const responseFormat = parsedResponseFormat.value;
     const responseField = responseFieldName(responseFormat);
     const baseUrl = baseUrlFromSettings(settingsBundle, origin);
+    const upstreamBaseUrl = settingsBundle.global.upstream_base_url ?? "https://grok.com";
     const cf = normalizeCfCookie(settingsBundle.grok.cf_clearance ?? "");
 
     const quota = await enforceQuota({
@@ -154,6 +155,7 @@ openAiRoutes.post("/images/generations", async (c) => {
             baseUrl,
             aspectRatio,
             concurrency,
+            upstreamBaseUrl,
             onFinish: async ({ status, duration }) => {
               if (status !== 200) {
                 await releaseTokenReservation(c.env.DB, experimentalReservation);
@@ -212,6 +214,7 @@ openAiRoutes.post("/images/generations", async (c) => {
         fileIds: [],
         cookie,
         settings: settingsBundle.grok,
+        upstreamBaseUrl,
       });
       if (!upstream.ok) {
         const txt = await upstream.text().catch(() => "");
@@ -291,6 +294,7 @@ openAiRoutes.post("/images/generations", async (c) => {
             baseUrl,
             aspectRatio,
             concurrency,
+            upstreamBaseUrl,
           });
           const selected = pickImageResults(urls, n);
           scheduleDelayedTokenRefresh({
@@ -344,6 +348,7 @@ openAiRoutes.post("/images/generations", async (c) => {
             settings: settingsBundle.grok,
             responseFormat,
             baseUrl,
+            upstreamBaseUrl,
           });
           successfulTokens.add(reservation.token);
           return urls;
@@ -453,6 +458,7 @@ openAiRoutes.post("/images/edits", async (c) => {
     const responseFormat = parsedResponseFormat.value;
     const responseField = responseFieldName(responseFormat);
     const baseUrl = baseUrlFromSettings(settingsBundle, origin);
+    const upstreamBaseUrl = settingsBundle.global.upstream_base_url ?? "https://grok.com";
 
     const quota = await enforceQuota({
       env: c.env,
@@ -527,7 +533,7 @@ openAiRoutes.post("/images/edits", async (c) => {
       }
 
       const dataUrl = `data:${mime};base64,${arrayBufferToBase64(bytes)}`;
-      const uploaded = await uploadImage(dataUrl, cookie, settingsBundle.grok);
+      const uploaded = await uploadImage(dataUrl, cookie, settingsBundle.grok, upstreamBaseUrl);
       if (uploaded.fileId) fileIds.push(uploaded.fileId);
       if (uploaded.fileUri) fileUris.push(uploaded.fileUri);
     }
@@ -540,6 +546,7 @@ openAiRoutes.post("/images/edits", async (c) => {
             fileUris,
             cookie,
             settings: settingsBundle.grok,
+            upstreamBaseUrl,
           });
 
           const streamBody = createImageEventStream({
@@ -587,6 +594,7 @@ openAiRoutes.post("/images/edits", async (c) => {
         fileIds,
         cookie,
         settings: settingsBundle.grok,
+        upstreamBaseUrl,
       });
       if (!upstream.ok) {
         const txt = await upstream.text().catch(() => "");
@@ -662,6 +670,7 @@ openAiRoutes.post("/images/edits", async (c) => {
             settings: settingsBundle.grok,
             responseFormat,
             baseUrl,
+            upstreamBaseUrl,
           }),
         );
         const urls = dedupeImages(urlsNested.flat().filter(Boolean));
@@ -704,6 +713,7 @@ openAiRoutes.post("/images/edits", async (c) => {
         settings: settingsBundle.grok,
         responseFormat,
         baseUrl,
+        upstreamBaseUrl,
       });
     });
     const urls = dedupeImages(urlsNested.flat().filter(Boolean));

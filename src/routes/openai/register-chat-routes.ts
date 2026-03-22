@@ -102,8 +102,9 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
         const imgInputs = isVideoModel && images.length > 1 ? images.slice(0, 1) : images;
 
         try {
+          const upstreamBaseUrl = settingsBundle.global.upstream_base_url ?? "https://grok.com";
           const uploads = await mapLimit(imgInputs, 5, (u) =>
-            uploadImage(u, cookie, settingsBundle.grok),
+            uploadImage(u, cookie, settingsBundle.grok, upstreamBaseUrl),
           );
           const imgIds = uploads.map((u) => u.fileId).filter(Boolean);
           const imgUris = uploads.map((u) => u.fileUri).filter(Boolean);
@@ -112,13 +113,14 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
           if (isVideoModel) {
             const firstUri = imgUris[0];
             if (firstUri) {
-              const post = await createPost(firstUri, cookie, settingsBundle.grok);
+              const post = await createPost(firstUri, cookie, settingsBundle.grok, upstreamBaseUrl);
               postId = post.postId || undefined;
             } else {
               const post = await createMediaPost(
                 { mediaType: "MEDIA_POST_TYPE_VIDEO", prompt: content },
                 cookie,
                 settingsBundle.grok,
+                upstreamBaseUrl,
               );
               postId = post.postId || undefined;
             }
@@ -138,6 +140,7 @@ export function registerChatRoutes(openAiRoutes: OpenAiRoutesApp): void {
             payload,
             cookie,
             settings: settingsBundle.grok,
+            upstreamBaseUrl,
             ...(referer ? { referer } : {}),
           });
 

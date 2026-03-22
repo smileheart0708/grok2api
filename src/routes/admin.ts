@@ -205,6 +205,7 @@ interface AdminConfigAppInput {
   admin_username?: unknown;
   app_key?: unknown;
   app_url?: unknown;
+  upstream_base_url?: unknown;
   image_format?: unknown;
 }
 
@@ -499,6 +500,7 @@ adminRoutes.get("/api/v1/admin/config", requireAdminAuth, async (c) => {
         admin_username: settings.global.admin_username ?? "admin",
         app_key: settings.global.admin_password ?? "",
         app_url: settings.global.base_url ?? "",
+        upstream_base_url: settings.global.upstream_base_url ?? "https://grok.com",
         image_format: settings.global.image_mode ?? "url",
         video_format: "url",
       },
@@ -573,6 +575,7 @@ adminRoutes.post("/api/v1/admin/config", requireAdminAuth, async (c) => {
         }
       }
       if (typeof appCfg.app_url === "string") global_config.base_url = appCfg.app_url.trim();
+      if (typeof appCfg.upstream_base_url === "string") global_config.upstream_base_url = appCfg.upstream_base_url.trim();
       if (appCfg.image_format === "url" || appCfg.image_format === "base64" || appCfg.image_format === "b64_json")
         global_config.image_mode = appCfg.image_format;
     }
@@ -729,12 +732,14 @@ adminRoutes.get("/api/v1/admin/imagine/ws", async (c) => {
             ? `sso-rw=${chosen.token};sso=${chosen.token};${cf}`
             : `sso-rw=${chosen.token};sso=${chosen.token}`;
           const startAt = Date.now();
+          const upstreamBaseUrl = settings.global.upstream_base_url ?? "https://grok.com";
           const urls = await generateImagineWs({
             prompt,
             n: 6,
             cookie,
             settings: settings.grok,
             aspectRatio,
+            upstreamBaseUrl,
           });
           if (socketClosed || localToken !== runToken) break;
 
@@ -1138,6 +1143,7 @@ adminRoutes.post("/api/v1/admin/tokens/test", requireAdminAuth, async (c) => {
       payload,
       cookie,
       settings: settings.grok,
+      upstreamBaseUrl: settings.global.upstream_base_url,
       ...(referer ? { referer } : {}),
     });
     const upstreamStatus = upstream.status;

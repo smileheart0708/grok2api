@@ -411,7 +411,9 @@ export async function runImageCall(args: {
   settings: Awaited<ReturnType<typeof getSettings>>["grok"];
   responseFormat: ImageResponseFormat;
   baseUrl: string;
+  upstreamBaseUrl?: string;
 }): Promise<string[]> {
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const { payload, referer } = buildConversationPayload({
     requestModel: args.requestModel,
     content: args.prompt,
@@ -423,6 +425,7 @@ export async function runImageCall(args: {
     payload,
     cookie: args.cookie,
     settings: args.settings,
+    upstreamBaseUrl,
     ...(referer ? { referer } : {}),
   });
   if (!upstream.ok) {
@@ -448,7 +451,9 @@ export async function runImageStreamCall(args: {
   fileIds: string[];
   cookie: string;
   settings: Awaited<ReturnType<typeof getSettings>>["grok"];
+  upstreamBaseUrl?: string;
 }): Promise<Response> {
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const { payload, referer } = buildConversationPayload({
     requestModel: args.requestModel,
     content: args.prompt,
@@ -460,6 +465,7 @@ export async function runImageStreamCall(args: {
     payload,
     cookie: args.cookie,
     settings: args.settings,
+    upstreamBaseUrl,
     ...(referer ? { referer } : {}),
   });
 }
@@ -477,7 +483,9 @@ export async function collectExperimentalGenerationImages(args: {
   baseUrl: string;
   aspectRatio: string;
   concurrency: number;
+  upstreamBaseUrl?: string;
 }): Promise<string[]> {
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const calls = Math.ceil(Math.max(1, args.n) / 4);
   const plans = Array.from({ length: calls }, (_, i) => {
     const alreadyPlanned = i * 4;
@@ -495,6 +503,7 @@ export async function collectExperimentalGenerationImages(args: {
         cookie: args.cookie,
         settings: args.settings,
         aspectRatio: args.aspectRatio,
+        upstreamBaseUrl,
       }),
   );
   const rawUrls: string[] = [];
@@ -529,12 +538,15 @@ export async function runExperimentalImageEditCall(args: {
   settings: Awaited<ReturnType<typeof getSettings>>["grok"];
   responseFormat: ImageResponseFormat;
   baseUrl: string;
+  upstreamBaseUrl?: string;
 }): Promise<string[]> {
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const upstream = await sendExperimentalImageEditRequest({
     prompt: args.prompt,
     fileUris: args.fileUris,
     cookie: args.cookie,
     settings: args.settings,
+    upstreamBaseUrl,
   });
   const rawUrls = await collectImageUrls(upstream);
   const converted = await Promise.all(
@@ -683,8 +695,10 @@ export function createExperimentalImageEventStream(args: {
   aspectRatio: string;
   concurrency: number;
   onFinish?: (result: { status: number; duration: number }) => Promise<void> | void;
+  upstreamBaseUrl?: string;
 }): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const safeN = Math.max(1, Math.floor(args.n || 1));
   const concurrency = Math.max(1, Math.min(3, Math.floor(args.concurrency || 1)));
 
@@ -755,6 +769,7 @@ export function createExperimentalImageEventStream(args: {
               cookie: args.cookie,
               settings: args.settings,
               aspectRatio: args.aspectRatio,
+              upstreamBaseUrl,
               progressCb: ({ index, progress }) => {
                 emitPartial(toOutIndex(plan.offset, index), progress);
               },
@@ -876,11 +891,11 @@ export function invalidStreamNMessage(): string {
   return "Streaming is only supported when n=1 or n=2";
 }
 
-export function imageUsagePayload(values: string[]) {
+export function imageUsagePayload() {
   return {
-    total_tokens: 0 * values.filter((v) => v !== "error").length,
+    total_tokens: 0,
     input_tokens: 0,
-    output_tokens: 0 * values.filter((v) => v !== "error").length,
+    output_tokens: 0,
     input_tokens_details: { text_tokens: 0, image_tokens: 0 },
   };
 }
@@ -893,7 +908,7 @@ export function buildImageJsonPayload(field: ImageResponseFormat, values: string
   return {
     created: createdTs(),
     data: imageResponseData(field, values),
-    usage: imageUsagePayload(values),
+    usage: imageUsagePayload(),
   };
 }
 

@@ -25,8 +25,11 @@ export type ImageGenerationMethod =
  * 1. legacy: 传统 HTTP API，稳定但功能有限
  * 2. imagine_ws_experimental: WebSocket 实验性方法，支持实时进度
  */
-const IMAGINE_WS_HTTP_API = "https://grok.com/ws/imagine/listen";
-const IMAGINE_REFERER = "https://grok.com/imagine";
+function buildImagineWsApiUrl(upstreamBaseUrl: string): string {
+  const base = upstreamBaseUrl.replace(/\/$/, "");
+  return `${base}/ws/imagine/listen`;
+}
+
 const ASSET_API = "https://assets.grok.com";
 
 // WebSocket 消息格式：Grok 返回的 JSON 结构包含多种字段名变体
@@ -215,7 +218,9 @@ export async function generateImagineWs(args: {
   aspectRatio?: string;
   progressCb?: (progress: ImagineWsProgress) => void | Promise<void>;
   completedCb?: (completed: ImagineWsCompleted) => void | Promise<void>;
+  upstreamBaseUrl?: string;
 }): Promise<string[]> {
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const timeoutMs = Math.max(10_000, Number(args.timeoutMs ?? 120_000));
   const targetCount = Math.max(1, Math.floor(Number(args.n || 1)));
   const aspectRatio = resolveAspectRatio(args.aspectRatio);
@@ -223,8 +228,8 @@ export async function generateImagineWs(args: {
 
   const headers = getDynamicHeaders(args.settings, "/ws/imagine/listen");
   headers["Cookie"] = args.cookie;
-  headers["Origin"] = "https://grok.com";
-  headers["Referer"] = IMAGINE_REFERER;
+  headers["Origin"] = upstreamBaseUrl;
+  headers["Referer"] = `${upstreamBaseUrl}/imagine`;
   headers["Connection"] = "Upgrade";
   headers["Upgrade"] = "websocket";
   delete headers["Content-Type"];
@@ -233,7 +238,8 @@ export async function generateImagineWs(args: {
   // 1. 使用 fetch 发起带 Upgrade: websocket 头的请求
   // 2. 从响应中获取 wsResp.webSocket 对象
   // 3. 调用 ws.accept() 开始接收消息
-  const wsResp = await fetch(IMAGINE_WS_HTTP_API, { method: "GET", headers });
+  const wsUrl = buildImagineWsApiUrl(upstreamBaseUrl);
+  const wsResp = await fetch(wsUrl, { method: "GET", headers });
   const ws = wsResp.webSocket;
   if (wsResp.status !== 101 || !ws) {
     const text = await wsResp.text().catch(() => "");
@@ -433,7 +439,9 @@ export async function sendExperimentalImageEditRequest(args: {
   fileUris: string[];
   cookie: string;
   settings: GrokSettings;
+  upstreamBaseUrl?: string;
 }): Promise<Response> {
+  const upstreamBaseUrl = args.upstreamBaseUrl ?? "https://grok.com";
   const imageReferences = args.fileUris.map((uri) => normalizeAssetUrl(uri)).filter(Boolean);
   if (!imageReferences.length) {
     throw new Error("Experimental image edit requires uploaded image references");
@@ -459,7 +467,7 @@ export async function sendExperimentalImageEditRequest(args: {
       payload,
       cookie: args.cookie,
       settings: args.settings,
-      referer: IMAGINE_REFERER,
+      referer: `${upstreamBaseUrl}/imagine`,
     });
     if (upstream.ok) return upstream;
     lastStatus = upstream.status;
